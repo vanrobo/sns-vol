@@ -1,0 +1,153 @@
+import { createClient } from "@/lib/supabase/client";
+import type {
+  AdminData,
+  Application,
+  ApplicationStatus,
+  Event,
+  Grievance,
+  Profile,
+} from "@/types";
+
+export async function getAdminData(): Promise<AdminData> {
+  const supabase = createClient();
+
+  const [
+    { data: events, error: e1 },
+    { data: users, error: e2 },
+    { data: grievances, error: e3 },
+    { data: apps, error: e4 },
+  ] = await Promise.all([
+    supabase.from("events").select("*").order("date", { ascending: false }),
+    supabase.from("profiles").select("*").order("name"),
+    supabase
+      .from("grievances")
+      .select("*, profiles(name)")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("applications")
+      .select("*, profiles(name, skills), events(title)")
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (e1) throw e1;
+  if (e2) throw e2;
+  if (e3) throw e3;
+  if (e4) throw e4;
+
+  const applications: Application[] = (apps ?? []).map((a) => {
+    const row = a as {
+      id: string;
+      user_id: string;
+      event_id: string;
+      status: ApplicationStatus;
+      profiles: { name: string; skills: string[] } | null;
+      events: { title: string } | null;
+    };
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      event_id: row.event_id,
+      status: row.status,
+      user_name: row.profiles?.name ?? "Unknown",
+      event_title: row.events?.title ?? "Unknown",
+      user_skills: row.profiles?.skills ?? [],
+    };
+  });
+
+  const grievanceList: Grievance[] = (grievances ?? []).map((g) => {
+    const row = g as Grievance & { profiles: { name: string } | null };
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      category: row.category,
+      description: row.description,
+      status: row.status,
+      admin_notes: row.admin_notes,
+      created_at: row.created_at,
+      user_name: row.profiles?.name,
+    };
+  });
+
+  return {
+    events: (events ?? []).map((e) => ({
+      ...e,
+      required_skills: e.required_skills ?? [],
+    })) as Event[],
+    users: (users ?? []) as Profile[],
+    grievances: grievanceList,
+    applications,
+  };
+}
+
+export async function createEvent(input: {
+  title: string;
+  date: string;
+  venue: string;
+  description: string;
+  criteria?: string;
+  required_skills: string[];
+  category?: string;
+  coordinator_phone?: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .insert({
+      title: input.title,
+      date: input.date,
+      venue: input.venue,
+      description: input.description,
+      criteria: input.criteria ?? "Student",
+      required_skills: input.required_skills,
+      category: input.category ?? "Community",
+      coordinator_phone: input.coordinator_phone ?? "",
+      status: "active",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Event;
+}
+
+export async function updateApplicationStatus(
+  userId: string,
+  eventId: string,
+  status: ApplicationStatus,
+) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("applications")
+    .update({ status })
+    .eq("user_id", userId)
+    .eq("event_id", eventId);
+  if (error) throw error;
+}
+
+export async function approveICard(userId: string) {
+  const supabase = createClient();
+  const short = userId.replace(/-/g, "").slice(0, 6).toUpperCase();
+  const volunteerId = `SNS-VOL-2026-${short}`;
+  const validUntil = "2027-12-31";
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      status: "active",
+      volunteer_id: volunteerId,
+      valid_until: validUntil,
+    })
+    .eq("id", userId);
+
+  if (error) throw error;
+  return { volunteer_id: volunteerId, valid_until: validUntil };
+}
+
+export async function resolveGrievance(id: string, adminNotes: string) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("grievances")
+    .update({ status: "resolved", admin_notes: adminNotes })
+    .eq("id", id);
+  if (error) throw error;
+}

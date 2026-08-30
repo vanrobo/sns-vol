@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabase/client";
+import { signUp } from "@/lib/actions/auth";
 import { Loader2, User, Mail, Building, Lock } from "lucide-react";
 
 export default function SignupPage() {
@@ -19,16 +19,9 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name, college },
-        },
-      });
-      if (error) {
-        toast.error(error.message);
+      const result = await signUp(name, email, college, password);
+      if (result.error) {
+        toast.error(result.error);
         return;
       }
       toast.success("Account created! You can sign in now.");

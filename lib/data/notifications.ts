@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/client";
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
 import type { Notification } from "@/types";
 
 export async function getNotifications(): Promise<Notification[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -20,7 +22,7 @@ export async function getNotifications(): Promise<Notification[]> {
 }
 
 export async function hasUnreadNotifications(): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -37,7 +39,7 @@ export async function hasUnreadNotifications(): Promise<boolean> {
 }
 
 export async function markNotificationsRead() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

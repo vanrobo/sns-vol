@@ -25,7 +25,7 @@ import {
   approveICard,
   resolveGrievance,
 } from "@/lib/data/admin";
-import { signOut } from "@/lib/data/profiles";
+import { signOutAction } from "@/lib/actions/auth";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -189,9 +189,7 @@ export default function AdminDashboard() {
   };
 
   const handleSignout = async () => {
-    await signOut();
-    router.push("/login");
-    router.refresh();
+    await signOutAction();
   };
 
   const filteredVolunteers = data.users.filter(

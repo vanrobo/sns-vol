@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/client";
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
 import type { Event, EventStatus } from "@/types";
 
 export async function getEvents(status: EventStatus | "attended"): Promise<Event[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -61,7 +63,7 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
 }
 
 export async function applyToEvent(eventId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -76,7 +78,7 @@ export async function applyToEvent(eventId: string) {
 }
 
 export async function withdrawApplication(eventId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -91,7 +93,7 @@ export async function withdrawApplication(eventId: string) {
 }
 
 export async function markAttended(eventId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -109,7 +111,7 @@ export async function submitFeedback(
   starRating: number,
   comment = "",
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

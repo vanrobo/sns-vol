@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/client";
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types";
 
 export async function getCurrentUser() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -10,7 +12,7 @@ export async function getCurrentUser() {
 }
 
 export async function getProfile(userId?: string): Promise<Profile | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
   let id = userId;
   if (!id) {
     const {
@@ -45,7 +47,7 @@ export async function updateProfile(
     >
   >,
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -62,12 +64,15 @@ export async function updateProfile(
   return data as Profile;
 }
 
-export async function uploadAvatar(file: File): Promise<string> {
-  const supabase = createClient();
+export async function uploadAvatar(formData: FormData): Promise<string> {
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  const file = formData.get("file") as File | null;
+  if (!file) throw new Error("No file provided");
 
   const ext = file.name.split(".").pop() || "jpg";
   const path = `${user.id}/avatar.${ext}`;
@@ -82,18 +87,16 @@ export async function uploadAvatar(file: File): Promise<string> {
     data: { publicUrl },
   } = supabase.storage.from("avatars").getPublicUrl(path);
 
-  // Bust cache
   return `${publicUrl}?t=${Date.now()}`;
 }
 
 export async function deleteAccount() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  // Soft-delete: deactivate and clear PII (auth user remains; full delete needs service role)
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -111,6 +114,6 @@ export async function deleteAccount() {
 }
 
 export async function signOut() {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.auth.signOut();
 }

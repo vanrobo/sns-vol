@@ -2,12 +2,14 @@
 
 1. Create a free project at https://supabase.com
 2. Open **SQL Editor** → paste and run [`migrations/001_initial_schema.sql`](migrations/001_initial_schema.sql)
-3. Copy **Project URL** and **anon/publishable key** from **Project Settings → API** into `.env.local` (and Vercel env vars):
+3. Copy **Project URL** and **publishable key** from **Project Settings → API** into `.env.local` (and Vercel env vars):
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY=your-publishable-key
 ```
+
+Use **Config** variables in Vercel (no `NEXT_PUBLIC_` prefix) — credentials stay server-side only.
 
 4. **Disable email confirmation** (recommended — free built-in SMTP is tiny):
    - **Authentication → Providers → Email**

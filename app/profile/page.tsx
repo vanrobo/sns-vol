@@ -76,7 +76,9 @@ export default function ProfilePage() {
     try {
       let avatarUrl = profile.avatar_url;
       if (pendingAvatar) {
-        avatarUrl = await uploadAvatar(pendingAvatar);
+        const formData = new FormData();
+        formData.append("file", pendingAvatar);
+        avatarUrl = await uploadAvatar(formData);
       }
       const updated = await updateProfile({
         name: profile.name,

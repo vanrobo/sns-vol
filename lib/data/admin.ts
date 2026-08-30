@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/client";
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
 import type {
   AdminData,
   Application,
@@ -9,7 +11,7 @@ import type {
 } from "@/types";
 
 export async function getAdminData(): Promise<AdminData> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [
     { data: events, error: e1 },
@@ -89,7 +91,7 @@ export async function createEvent(input: {
   category?: string;
   coordinator_phone?: string;
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
     .insert({
@@ -115,7 +117,7 @@ export async function updateApplicationStatus(
   eventId: string,
   status: ApplicationStatus,
 ) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("applications")
     .update({ status })
@@ -125,7 +127,7 @@ export async function updateApplicationStatus(
 }
 
 export async function approveICard(userId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const short = userId.replace(/-/g, "").slice(0, 6).toUpperCase();
   const volunteerId = `SNS-VOL-2026-${short}`;
   const validUntil = "2027-12-31";
@@ -144,7 +146,7 @@ export async function approveICard(userId: string) {
 }
 
 export async function resolveGrievance(id: string, adminNotes: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase
     .from("grievances")
     .update({ status: "resolved", admin_notes: adminNotes })

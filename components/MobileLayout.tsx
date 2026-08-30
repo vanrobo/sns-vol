@@ -4,8 +4,8 @@ import { Home, User, BadgeCheck, AlertCircle, Bell, Heart } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { hasUnreadNotifications } from "@/lib/data/notifications";
+import { getCurrentUser } from "@/lib/data/profiles";
 
 const InstagramIcon = ({ size = 20 }: { size?: number }) => (
   <svg
@@ -60,10 +60,7 @@ export default function MobileLayout({
     if (!mounted) return;
 
     const checkAuth = async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       if (!user) {
         router.push("/login");
         return;

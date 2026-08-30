@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/client";
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
 import type { Grievance } from "@/types";
 
 export async function getUserGrievances(): Promise<Grievance[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -19,7 +21,7 @@ export async function getUserGrievances(): Promise<Grievance[]> {
 }
 
 export async function submitGrievance(category: string, description: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -29,9 +29,9 @@ More detail: [`supabase/README.md`](supabase/README.md).
 ## Deploy on Vercel
 
 1. Import the GitHub repo: [vanrobo/sns-vol](https://github.com/vanrobo/sns-vol)
-2. Add environment variables (Production + Preview):
-   - `NEXT_PUBLIC_SUPABASE_URL` — Supabase **Project URL** (must end with `.supabase.co`)
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase **publishable** key (not the secret key)
+2. Add **Config** environment variables (Production + Preview) — no public prefix:
+   - `SUPABASE_URL` — Supabase **Project URL** (must end with `.supabase.co`)
+   - `SUPABASE_ANON_KEY` — Supabase **publishable** key (not the secret key)
 3. In Supabase **Authentication → URL Configuration**:
    - Site URL: `https://sns-vol.vercel.app`
    - Redirect URLs: `https://sns-vol.vercel.app/**`, `http://localhost:3000/**`

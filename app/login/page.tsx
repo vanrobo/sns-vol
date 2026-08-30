@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabase/client";
+import { signIn } from "@/lib/actions/auth";
 import { Loader2, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
@@ -17,30 +17,13 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) {
-        toast.error(error.message);
+      const result = await signIn(email, password);
+      if (result.error) {
+        toast.error(result.error);
         return;
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, status")
-        .eq("id", data.user.id)
-        .single();
-
-      if (profile?.status === "inactive") {
-        await supabase.auth.signOut();
-        toast.error("This account has been deactivated.");
-        return;
-      }
-
       toast.success("Welcome back!");
-      router.push(profile?.role === "admin" ? "/admin" : "/");
+      router.push(result.role === "admin" ? "/admin" : "/");
       router.refresh();
     } catch {
       toast.error("Sign-in failed. Check your connection and try again.");

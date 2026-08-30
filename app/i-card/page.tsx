@@ -2,10 +2,9 @@
 "use client";
 import MobileLayout from "@/components/MobileLayout";
 import { useState, useEffect } from "react";
-import { getProfile } from "@/lib/data/profiles";
+import { getProfile, getQrVerifyUrl } from "@/lib/data/profiles";
 import type { Profile } from "@/types";
 import {
-  Loader2,
   BadgeCheck,
   User,
   Building,
@@ -14,14 +13,19 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
+import { ICardSkeleton } from "@/components/ui/Skeleton";
 
 export default function ICardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getProfile()
-      .then(setProfile)
+    Promise.all([getProfile(), getQrVerifyUrl()])
+      .then(([p, url]) => {
+        setProfile(p);
+        setQrUrl(url);
+      })
       .catch(() => toast.error("Failed to load I-Card"))
       .finally(() => setLoading(false));
   }, []);
@@ -29,9 +33,7 @@ export default function ICardPage() {
   if (loading)
     return (
       <MobileLayout>
-        <div className="flex justify-center mt-32">
-          <Loader2 className="animate-spin text-emerald-600" size={32} />
-        </div>
+        <ICardSkeleton />
       </MobileLayout>
     );
 
@@ -78,71 +80,77 @@ export default function ICardPage() {
             <ShieldCheck size={28} className="opacity-80" />
           </div>
 
-          <div className="p-5 space-y-4">
-            <div className="flex justify-center">
-              <div className="w-20 h-20 bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-full flex items-center justify-center text-gray-400 overflow-hidden relative">
-                {profile.avatar_url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={profile.avatar_url}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User size={32} />
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3 text-center">
-              <div>
-                <h2 className="text-lg font-bold tracking-tight leading-tight">
-                  {profile.name}
-                </h2>
-                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
-                  {isActive ? "Verified Member" : "Pending Verification"}
+          <div className="p-5">
+            {!isActive ? (
+              <div className="text-center py-8 space-y-2">
+                <User className="mx-auto text-gray-400" size={40} />
+                <p className="text-sm font-bold text-amber-600">
+                  I-Card Pending Approval
+                </p>
+                <p className="text-xs text-gray-500">
+                  Your digital ID will appear here once approved by an admin.
                 </p>
               </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden border-2 border-emerald-200">
+                    {profile.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={profile.avatar_url}
+                        alt={profile.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="text-emerald-600" size={28} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg leading-tight">
+                      {profile.name}
+                    </p>
+                    <p className="text-xs font-mono text-emerald-600 font-bold">
+                      {profile.volunteer_id}
+                    </p>
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[var(--border)] text-left">
-                <div className="bg-slate-50 dark:bg-[#18181B] p-2.5 rounded-lg border border-[var(--border)]">
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <BadgeCheck size={10} /> ID Number
-                  </p>
-                  <p className="text-[11px] font-mono font-medium truncate">
-                    {profile.volunteer_id || "Pending"}
-                  </p>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="col-span-2 bg-slate-50 dark:bg-[#18181B] p-2.5 rounded-lg border border-[var(--border)]">
+                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Calendar size={10} /> Valid Until
+                    </p>
+                    <p className="text-[11px] font-medium">
+                      {profile.valid_until || "N/A"}
+                    </p>
+                  </div>
+                  <div className="col-span-2 bg-slate-50 dark:bg-[#18181B] p-2.5 rounded-lg border border-[var(--border)]">
+                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <Building size={10} /> Institution
+                    </p>
+                    <p className="text-xs font-medium truncate">
+                      {profile.college}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-slate-50 dark:bg-[#18181B] p-2.5 rounded-lg border border-[var(--border)]">
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Calendar size={10} /> Valid Until
-                  </p>
-                  <p className="text-[11px] font-medium">
-                    {profile.valid_until || "N/A"}
-                  </p>
-                </div>
-                <div className="col-span-2 bg-slate-50 dark:bg-[#18181B] p-2.5 rounded-lg border border-[var(--border)]">
-                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Building size={10} /> Institution
-                  </p>
-                  <p className="text-xs font-medium truncate">
-                    {profile.college}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            <div className="mt-4 flex flex-col items-center justify-center pt-4 border-t border-[var(--border)]">
-              <div className="bg-white p-2 rounded-xl border border-neutral-200/60 shadow-sm flex items-center justify-center">
-                <QRCodeSVG
-                  value={`SNS-VERIFY:${profile.volunteer_id || "PENDING"}`}
-                  size={90}
-                />
-              </div>
-              <p className="text-[9px] text-gray-400 mt-2 font-semibold uppercase tracking-wider">
-                Scan to Verify ID
-              </p>
-            </div>
+                <div className="mt-4 flex flex-col items-center justify-center pt-4 border-t border-[var(--border)]">
+                  <div className="bg-white p-2 rounded-xl border border-neutral-200/60 shadow-sm flex items-center justify-center">
+                    {qrUrl ? (
+                      <QRCodeSVG value={qrUrl} size={90} />
+                    ) : (
+                      <div className="w-[90px] h-[90px] bg-gray-100 rounded flex items-center justify-center text-[9px] text-gray-400 text-center p-2">
+                        QR unavailable
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[9px] text-gray-400 mt-2 font-semibold uppercase tracking-wider">
+                    Scan to Verify ID
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

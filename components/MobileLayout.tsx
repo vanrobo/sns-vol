@@ -1,11 +1,12 @@
 // components/MobileLayout.tsx
 "use client";
-import { Home, User, BadgeCheck, AlertCircle, Bell, Heart } from "lucide-react";
+import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { hasUnreadNotifications } from "@/lib/data/notifications";
-import { getCurrentUser } from "@/lib/data/profiles";
+import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
+import type { UserRole } from "@/types";
 
 const InstagramIcon = ({ size = 20 }: { size?: number }) => (
   <svg
@@ -50,6 +51,7 @@ export default function MobileLayout({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
+  const [staffRole, setStaffRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -68,6 +70,15 @@ export default function MobileLayout({
 
       try {
         setHasUnread(await hasUnreadNotifications());
+      } catch {
+        /* ignore */
+      }
+
+      try {
+        const session = await getMyRole();
+        if (session && (session.role === "admin" || session.role === "organiser")) {
+          setStaffRole(session.role);
+        }
       } catch {
         /* ignore */
       }
@@ -101,6 +112,14 @@ export default function MobileLayout({
         </h1>
 
         <div className="flex items-center gap-3">
+          {staffRole && (
+            <Link
+              href={staffRole === "admin" ? "/admin" : "/organiser"}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-md"
+            >
+              <LayoutDashboard size={12} /> Dashboard
+            </Link>
+          )}
           <div className="flex gap-2 text-slate-400">
             <a
               href="https://instagram.com"

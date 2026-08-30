@@ -15,6 +15,7 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 
 export default function GrievancePage() {
   const [description, setDescription] = useState("");
@@ -39,7 +40,7 @@ export default function GrievancePage() {
     const lowerText = text.toLowerCase();
     if (lowerText.includes("certificate") || lowerText.includes("badge")) {
       setRecommendation(
-        "Tip: Digital certificates are auto-generated 48 hours after event closure.",
+        "Tip: Contact your coordinator for certificate requests.",
       );
     } else if (
       lowerText.includes("harassment") ||
@@ -170,9 +171,7 @@ export default function GrievancePage() {
           </h3>
 
           {loadingTickets ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="animate-spin text-slate-400" />
-            </div>
+            <TableSkeleton rows={3} />
           ) : pastTickets.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)] text-center py-6 border border-dashed border-[var(--border)] rounded-xl">
               No complaints yet.

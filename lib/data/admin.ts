@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin, requireStaff } from "@/lib/auth/guards";
+import { resolveUniqueEventSlug } from "@/lib/events/slug-server";
 import type {
   AdminData,
   Application,
@@ -8,9 +10,11 @@ import type {
   Event,
   Grievance,
   Profile,
+  UserRole,
 } from "@/types";
 
 export async function getAdminData(): Promise<AdminData> {
+  await requireAdmin();
   const supabase = await createClient();
 
   const [
@@ -81,7 +85,7 @@ export async function getAdminData(): Promise<AdminData> {
   };
 }
 
-export async function createEvent(input: {
+export type EventInput = {
   title: string;
   date: string;
   venue: string;
@@ -90,11 +94,16 @@ export async function createEvent(input: {
   required_skills: string[];
   category?: string;
   coordinator_phone?: string;
-}) {
+};
+
+export async function createEvent(input: EventInput) {
+  await requireStaff();
   const supabase = await createClient();
+  const slug = await resolveUniqueEventSlug(supabase, input.title);
   const { data, error } = await supabase
     .from("events")
     .insert({
+      slug,
       title: input.title,
       date: input.date,
       venue: input.venue,
@@ -112,11 +121,47 @@ export async function createEvent(input: {
   return data as Event;
 }
 
+export async function updateEvent(id: string, input: EventInput) {
+  await requireStaff();
+  const supabase = await createClient();
+  const slug = await resolveUniqueEventSlug(supabase, input.title, id);
+  const { data, error } = await supabase
+    .from("events")
+    .update({
+      slug,
+      title: input.title,
+      date: input.date,
+      venue: input.venue,
+      description: input.description,
+      criteria: input.criteria ?? "Student",
+      required_skills: input.required_skills,
+      category: input.category ?? "Community",
+      coordinator_phone: input.coordinator_phone ?? "",
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Event;
+}
+
+export async function closeEvent(id: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ status: "closed" })
+    .eq("id", id);
+  if (error) throw error;
+}
+
 export async function updateApplicationStatus(
   userId: string,
   eventId: string,
   status: ApplicationStatus,
 ) {
+  await requireStaff();
   const supabase = await createClient();
   const { error } = await supabase
     .from("applications")
@@ -127,6 +172,7 @@ export async function updateApplicationStatus(
 }
 
 export async function approveICard(userId: string) {
+  await requireAdmin();
   const supabase = await createClient();
   const short = userId.replace(/-/g, "").slice(0, 6).toUpperCase();
   const volunteerId = `SNS-VOL-2026-${short}`;
@@ -146,10 +192,21 @@ export async function approveICard(userId: string) {
 }
 
 export async function resolveGrievance(id: string, adminNotes: string) {
+  await requireAdmin();
   const supabase = await createClient();
   const { error } = await supabase
     .from("grievances")
     .update({ status: "resolved", admin_notes: adminNotes })
     .eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateUserRole(userId: string, role: UserRole) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ role })
+    .eq("id", userId);
   if (error) throw error;
 }

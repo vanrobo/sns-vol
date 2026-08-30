@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireActiveVolunteer } from "@/lib/auth/guards";
 import type { Event, EventStatus } from "@/types";
 
 export async function getEvents(status: EventStatus | "attended"): Promise<Event[]> {
@@ -26,7 +27,7 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
   const [{ data: apps }, { data: att }, { data: feedbacks }] = await Promise.all([
     supabase
       .from("applications")
-      .select("event_id")
+      .select("event_id, status")
       .eq("user_id", user.id)
       .in("event_id", eventIds),
     supabase
@@ -41,7 +42,9 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
       .in("event_id", eventIds),
   ]);
 
-  const applied = new Set(apps?.map((a) => a.event_id) ?? []);
+  const appStatusMap = new Map(
+    apps?.map((a) => [a.event_id, a.status as Event["application_status"]]) ?? [],
+  );
   const attended = new Set(att?.map((a) => a.event_id) ?? []);
   const ratings = new Map(
     feedbacks?.map((f) => [f.event_id, f.star_rating]) ?? [],
@@ -50,7 +53,8 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
   let result: Event[] = events.map((e) => ({
     ...e,
     required_skills: e.required_skills ?? [],
-    has_applied: applied.has(e.id),
+    has_applied: appStatusMap.has(e.id),
+    application_status: appStatusMap.get(e.id) ?? null,
     has_attended: attended.has(e.id),
     rating: ratings.get(e.id) ?? null,
   }));
@@ -62,7 +66,44 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
   return result;
 }
 
+/** Public event view by slug — no login required. */
+export async function getPublicEventBySlug(slug: string): Promise<Event | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    ...data,
+    required_skills: data.required_skills ?? [],
+  } as Event;
+}
+
+/** Lookup by id for legacy ?id= links — no login required. */
+export async function getPublicEventById(id: string): Promise<Event | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return {
+    ...data,
+    required_skills: data.required_skills ?? [],
+  } as Event;
+}
+
 export async function applyToEvent(eventId: string) {
+  await requireActiveVolunteer();
   const supabase = await createClient();
   const {
     data: { user },
@@ -78,6 +119,7 @@ export async function applyToEvent(eventId: string) {
 }
 
 export async function withdrawApplication(eventId: string) {
+  await requireActiveVolunteer();
   const supabase = await createClient();
   const {
     data: { user },
@@ -93,6 +135,7 @@ export async function withdrawApplication(eventId: string) {
 }
 
 export async function markAttended(eventId: string) {
+  await requireActiveVolunteer();
   const supabase = await createClient();
   const {
     data: { user },
@@ -111,6 +154,7 @@ export async function submitFeedback(
   starRating: number,
   comment = "",
 ) {
+  await requireActiveVolunteer();
   const supabase = await createClient();
   const {
     data: { user },

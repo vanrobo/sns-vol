@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { signIn } from "@/lib/actions/auth";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { Loader2, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
@@ -12,6 +13,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const fillDemo = (email: string) => {
+    setEmail(email);
+    setPassword(DEMO_PASSWORD);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +29,10 @@ export default function LoginPage() {
         return;
       }
       toast.success("Welcome back!");
-      router.push(result.role === "admin" ? "/admin" : "/");
+      if (result.role === "admin") router.push("/admin");
+      else if (result.role === "organiser") router.push("/organiser");
+      else if (result.status === "pending") router.push("/pending");
+      else router.push("/");
       router.refresh();
     } catch {
       toast.error("Sign-in failed. Check your connection and try again.");
@@ -90,6 +99,33 @@ export default function LoginPage() {
             Create an Account
           </Link>
         </p>
+
+        <div className="mt-8 pt-6 border-t border-[var(--border)]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
+            Demo accounts
+          </p>
+          <div className="space-y-2">
+            {DEMO_ACCOUNTS.map((demo) => (
+              <button
+                key={demo.email}
+                type="button"
+                onClick={() => fillDemo(demo.email)}
+                className="w-full text-left p-3 rounded-xl border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] hover:border-emerald-500/50 transition-colors"
+              >
+                <p className="text-sm font-bold text-[var(--text)]">
+                  {demo.label}
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                  {demo.email}
+                </p>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-[var(--text-muted)] mt-3 text-center">
+            Password for all demos:{" "}
+            <span className="font-mono font-semibold">{DEMO_PASSWORD}</span>
+          </p>
+        </div>
       </form>
     </div>
   );

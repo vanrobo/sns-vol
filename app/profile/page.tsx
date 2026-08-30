@@ -13,6 +13,9 @@ import {
   deleteAccount,
 } from "@/lib/data/profiles";
 import type { Profile } from "@/types";
+import { ProfileSkeleton } from "@/components/ui/Skeleton";
+import { getMyAwards } from "@/lib/data/awards";
+import type { UserAward } from "@/types";
 import {
   User,
   Loader2,
@@ -56,15 +59,17 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
+  const [myAwards, setMyAwards] = useState<UserAward[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
 
   useEffect(() => {
-    getProfile()
-      .then((data) => {
+    Promise.all([getProfile(), getMyAwards()])
+      .then(([data, awards]) => {
         if (data) setProfile(data);
+        setMyAwards(awards);
       })
       .catch(() => toast.error("Failed to load profile"))
       .finally(() => setLoading(false));
@@ -134,9 +139,7 @@ export default function ProfilePage() {
   if (loading)
     return (
       <MobileLayout>
-        <div className="flex justify-center items-center h-[60vh]">
-          <Loader2 className="animate-spin text-slate-400" size={32} />
-        </div>
+        <ProfileSkeleton />
       </MobileLayout>
     );
   if (!profile) return null;
@@ -378,6 +381,30 @@ export default function ProfilePage() {
               "Save Changes"
             )}
           </button>
+        )}
+
+        {myAwards.length > 0 && (
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-5 space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+              <Award size={16} className="text-amber-500" /> My Awards
+            </h3>
+            <div className="space-y-2">
+              {myAwards.map((a) => (
+                <div
+                  key={a.id}
+                  className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40"
+                >
+                  <p className="font-bold text-sm">{a.title}</p>
+                  {a.description && (
+                    <p className="text-xs text-gray-500 mt-0.5">{a.description}</p>
+                  )}
+                  <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-1">
+                    {new Date(a.awarded_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         <div className="bg-gradient-to-br from-[var(--brand)] to-emerald-700 rounded-xl p-5 text-white shadow-md relative overflow-hidden">

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createVerifyToken, getVerifyUrl } from "@/lib/qr/verify-token";
 import type { Profile } from "@/types";
 
 export async function getCurrentUser() {
@@ -30,6 +31,39 @@ export async function getProfile(userId?: string): Promise<Profile | null> {
 
   if (error) throw error;
   return data as Profile;
+}
+
+export async function getMyRole(): Promise<{
+  role: Profile["role"];
+  status: Profile["status"];
+  name: string;
+} | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("role, status, name")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !data) return null;
+  return data as { role: Profile["role"]; status: Profile["status"]; name: string };
+}
+
+export async function getQrVerifyUrl(): Promise<string | null> {
+  const profile = await getProfile();
+  if (!profile?.volunteer_id || profile.status !== "active") return null;
+  const token = createVerifyToken({
+    volunteer_id: profile.volunteer_id,
+    name: profile.name,
+    status: profile.status,
+    valid_until: profile.valid_until,
+  });
+  return getVerifyUrl(token);
 }
 
 export async function updateProfile(

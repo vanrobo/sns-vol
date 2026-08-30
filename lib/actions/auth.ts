@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-export type AuthResult = { error?: string; role?: string };
+export type AuthResult = { error?: string; role?: string; status?: string };
 
 export async function signIn(
   email: string,
@@ -30,7 +30,10 @@ export async function signIn(
   }
 
   revalidatePath("/", "layout");
-  return { role: profile?.role ?? "volunteer" };
+  return {
+    role: profile?.role ?? "volunteer",
+    status: profile?.status ?? "pending",
+  };
 }
 
 export async function signUp(

@@ -2,17 +2,43 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 
+function redirectTo(request: NextRequest, pathname: string, keepSearch = false) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  if (!keepSearch) url.search = "";
+  return NextResponse.redirect(url);
+}
+
+const EVENT_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function updateSession(request: NextRequest) {
   const { url, key } = getSupabaseEnv();
   const path = request.nextUrl.pathname;
-  const isAuthPage = path === "/login" || path === "/signup";
+  const eventId = request.nextUrl.searchParams.get("id");
 
-  // Never crash the whole site if env is missing/misnamed on Vercel
+  // Legacy share links: /login?id=uuid → public event page
+  if (
+    eventId &&
+    EVENT_ID_RE.test(eventId) &&
+    (path === "/login" || path === "/signup")
+  ) {
+    const dest = request.nextUrl.clone();
+    dest.pathname = "/event";
+    return NextResponse.redirect(dest);
+  }
+
+  const isEventPage = path === "/event" || path.startsWith("/event/");
+  const isAuthPage = path === "/login" || path === "/signup";
+  const isPublicPage =
+    isEventPage ||
+    path.startsWith("/verify/") ||
+    path.startsWith("/_next") ||
+    path.includes(".");
+
   if (!url || !key || url.includes("YOUR_PROJECT")) {
-    if (!isAuthPage && path !== "/") {
-      const login = request.nextUrl.clone();
-      login.pathname = "/login";
-      return NextResponse.redirect(login);
+    if (!isAuthPage && path !== "/" && !isEventPage && !isPublicPage) {
+      return redirectTo(request, "/login");
     }
     return NextResponse.next({ request });
   }
@@ -43,39 +69,74 @@ export async function updateSession(request: NextRequest) {
 
     const isPublic =
       isAuthPage ||
-      path.startsWith("/_next") ||
-      path.startsWith("/favicon") ||
-      path.includes(".");
+      isPublicPage ||
+      path.startsWith("/favicon");
 
     if (!user && !isPublic) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/login";
-      return NextResponse.redirect(redirectUrl);
+      return redirectTo(request, "/login");
+    }
+
+    let profile: { role: string; status: string } | null = null;
+    if (user) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("role, status")
+        .eq("id", user.id)
+        .single();
+      profile = data;
     }
 
     if (user && isAuthPage) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = "/";
-      return NextResponse.redirect(redirectUrl);
+      if (profile?.role === "admin") return redirectTo(request, "/admin");
+      if (profile?.role === "organiser") return redirectTo(request, "/organiser");
+      if (profile?.role === "volunteer" && profile.status === "pending") {
+        return redirectTo(request, "/pending");
+      }
+      return redirectTo(request, "/");
     }
 
     if (user && path.startsWith("/admin")) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
       if (profile?.role !== "admin") {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/";
-        return NextResponse.redirect(redirectUrl);
+        return redirectTo(request, "/");
       }
+    }
+
+    if (user && path.startsWith("/organiser")) {
+      if (profile?.role !== "admin" && profile?.role !== "organiser") {
+        return redirectTo(request, "/");
+      }
+    }
+
+    const pendingAllowed =
+      path === "/pending" ||
+      path === "/profile" ||
+      path === "/login" ||
+      path === "/signup" ||
+      isPublicPage;
+
+    if (
+      user &&
+      profile?.role === "volunteer" &&
+      profile.status === "pending" &&
+      !pendingAllowed
+    ) {
+      return redirectTo(request, "/pending");
+    }
+
+    if (
+      user &&
+      profile?.status === "active" &&
+      path === "/pending"
+    ) {
+      return redirectTo(request, "/");
     }
 
     return supabaseResponse;
   } catch (err) {
     console.error("Supabase middleware error:", err);
+    if (!isAuthPage && path !== "/" && !isEventPage) {
+      return redirectTo(request, "/login");
+    }
     return NextResponse.next({ request });
   }
 }

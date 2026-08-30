@@ -1,9 +1,9 @@
-export type UserRole = "volunteer" | "admin";
+export type UserRole = "volunteer" | "organiser" | "admin";
 export type ProfileStatus = "pending" | "active" | "inactive";
 export type EventStatus = "active" | "closed";
 export type ApplicationStatus = "pending" | "approved" | "declined";
 export type GrievanceStatus = "open" | "resolved";
-export type NotificationType = "event" | "grievance" | "application" | "icard";
+export type NotificationType = "event" | "grievance" | "application" | "icard" | "award";
 
 export interface Profile {
   id: string;
@@ -25,6 +25,7 @@ export interface Profile {
 
 export interface Event {
   id: string;
+  slug: string;
   title: string;
   date: string;
   venue: string;
@@ -35,6 +36,7 @@ export interface Event {
   category: string;
   coordinator_phone: string;
   has_applied?: boolean;
+  application_status?: ApplicationStatus | null;
   has_attended?: boolean;
   rating?: number | null;
   created_at?: string;
@@ -76,6 +78,23 @@ export interface AdminData {
   users: Profile[];
   grievances: Grievance[];
   applications: Application[];
+}
+
+export interface Award {
+  id: string;
+  title: string;
+  description: string;
+  event_id: string | null;
+  created_at?: string;
+}
+
+export interface UserAward {
+  id: string;
+  user_id: string;
+  award_id: string;
+  awarded_at: string;
+  title: string;
+  description: string;
 }
 
 /** Display helpers for title-cased UI labels */

@@ -9,12 +9,14 @@ import {
   CalendarCheck,
   Loader2,
   BadgeCheck,
+  Award,
 } from "lucide-react";
 import {
   getNotifications,
   markNotificationsRead,
 } from "@/lib/data/notifications";
 import type { Notification } from "@/types";
+import { NotificationSkeleton } from "@/components/ui/Skeleton";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -43,6 +45,8 @@ export default function NotificationsPage() {
         return <AlertTriangle size={18} className="text-amber-500" />;
       case "icard":
         return <BadgeCheck size={18} className="text-emerald-600" />;
+      case "award":
+        return <Award size={18} className="text-amber-500" />;
       case "event":
       default:
         return <CalendarCheck size={18} className="text-blue-500" />;
@@ -78,9 +82,7 @@ export default function NotificationsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-gray-400" size={24} />
-          </div>
+          <NotificationSkeleton />
         ) : notifications.length === 0 ? (
           <div className="border border-dashed border-[var(--border)] rounded-xl p-10 text-center flex flex-col items-center gap-3">
             <Bell size={32} className="text-gray-300 dark:text-gray-700" />

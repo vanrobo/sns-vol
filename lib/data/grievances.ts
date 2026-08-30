@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireActiveVolunteer } from "@/lib/auth/guards";
 import type { Grievance } from "@/types";
 
 export async function getUserGrievances(): Promise<Grievance[]> {
@@ -21,6 +22,7 @@ export async function getUserGrievances(): Promise<Grievance[]> {
 }
 
 export async function submitGrievance(category: string, description: string) {
+  await requireActiveVolunteer();
   const supabase = await createClient();
   const {
     data: { user },

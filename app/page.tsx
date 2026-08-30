@@ -9,7 +9,8 @@ import {
   markAttended,
   submitFeedback,
 } from "@/lib/data/events";
-import type { Event } from "@/types";
+import type { Event, ApplicationStatus } from "@/types";
+import { titleCaseStatus } from "@/types";
 import toast from "react-hot-toast";
 import {
   Calendar,
@@ -24,6 +25,21 @@ import {
   Phone,
   Filter,
 } from "lucide-react";
+import { EventListSkeleton } from "@/components/ui/Skeleton";
+import StaffHomeBanner from "@/components/StaffHomeBanner";
+import { getMyRole } from "@/lib/data/profiles";
+import type { UserRole } from "@/types";
+
+function applicationStatusClass(status: ApplicationStatus) {
+  switch (status) {
+    case "approved":
+      return "border-emerald-500/30 bg-emerald-500/10 text-[var(--brand)]";
+    case "declined":
+      return "border-red-500/30 bg-red-500/10 text-red-600";
+    default:
+      return "border-amber-500/30 bg-amber-500/10 text-amber-700";
+  }
+}
 
 type Tab = "Active" | "Closed" | "Attended";
 
@@ -36,6 +52,16 @@ export default function VolunteeringDashboard() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [applying, setApplying] = useState(false);
   const [rating, setRating] = useState(0);
+  const [session, setSession] = useState<{
+    role: UserRole;
+    name: string;
+  } | null>(null);
+
+  useEffect(() => {
+    getMyRole().then((s) => {
+      if (s) setSession({ role: s.role, name: s.name });
+    });
+  }, []);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -89,7 +115,13 @@ export default function VolunteeringDashboard() {
         setEvents((prev) =>
           prev.map((e) =>
             e.id === selectedEvent.id
-              ? { ...e, has_applied: !selectedEvent.has_applied }
+              ? {
+                  ...e,
+                  has_applied: !selectedEvent.has_applied,
+                  application_status: selectedEvent.has_applied
+                    ? null
+                    : "pending",
+                }
               : e,
           ),
         );
@@ -140,6 +172,9 @@ export default function VolunteeringDashboard() {
   return (
     <MobileLayout>
       <div className="p-5 space-y-6 pb-28">
+        {session && (session.role === "admin" || session.role === "organiser") && (
+          <StaffHomeBanner role={session.role} name={session.name} />
+        )}
         <div className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -191,9 +226,7 @@ export default function VolunteeringDashboard() {
 
         <div className="space-y-4">
           {loading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="animate-spin text-[var(--brand)]" />
-            </div>
+            <EventListSkeleton count={4} />
           ) : events.length === 0 ? (
             <div className="text-center py-10 text-[var(--text-muted)] text-sm font-medium border border-dashed border-[var(--border)] rounded-xl">
               No events found match this selection.
@@ -213,7 +246,14 @@ export default function VolunteeringDashboard() {
                       <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
                         {evt.category || "Community"}
                       </span>
-                      {tab === "Active" && (
+                      {tab === "Active" && evt.has_applied && evt.application_status && (
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex items-center gap-1 ${applicationStatusClass(evt.application_status)}`}
+                        >
+                          {titleCaseStatus(evt.application_status)}
+                        </span>
+                      )}
+                      {tab === "Active" && !evt.has_applied && (
                         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-[var(--brand)]/10 text-[var(--brand)] flex items-center gap-1.5">
                           {isHighMatch && (
                             <span className="relative flex h-2 w-2">
@@ -266,6 +306,13 @@ export default function VolunteeringDashboard() {
                 <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-white/80 text-slate-900 mb-2 inline-block shadow-sm">
                   {tab === "Active" ? "Open for Registration" : "Event Closed"}
                 </span>
+                {selectedEvent.has_applied && selectedEvent.application_status && (
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border mb-2 ml-2 inline-block ${applicationStatusClass(selectedEvent.application_status)}`}
+                  >
+                    Application: {titleCaseStatus(selectedEvent.application_status)}
+                  </span>
+                )}
                 <h2 className="text-2xl font-black tracking-tight leading-tight">
                   {selectedEvent.title}
                 </h2>

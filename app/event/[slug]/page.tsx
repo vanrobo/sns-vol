@@ -7,15 +7,32 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getPublicEventBySlug, getPublicEventById } from "@/lib/data/events";
+import { getMyRole } from "@/lib/data/profiles";
 import { titleCaseStatus } from "@/types";
+import type { ProfileStatus, UserRole } from "@/types";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Props = { params: Promise<{ slug: string }> };
 
+function appHomeForUser(role: UserRole, status: ProfileStatus): string {
+  if (role === "admin") return "/admin";
+  if (role === "organiser") return "/organiser";
+  if (status === "pending") return "/pending";
+  return "/";
+}
+
+function appHomeLabel(role: UserRole, status: ProfileStatus): string {
+  if (role === "admin") return "Open Admin Dashboard";
+  if (role === "organiser") return "Open Organiser Dashboard";
+  if (status === "pending") return "Continue Your Application";
+  return "Open in SNS Vol";
+}
+
 export default async function PublicEventPage({ params }: Props) {
   const { slug } = await params;
+  const session = await getMyRole();
 
   if (UUID_RE.test(slug)) {
     const byId = await getPublicEventById(slug);
@@ -35,8 +52,8 @@ export default async function PublicEventPage({ params }: Props) {
           <p className="text-sm text-[var(--text-muted)]">
             This link may be invalid or the event was removed.
           </p>
-          <Link href="/login" className="text-[var(--brand)] font-bold text-sm">
-            Sign in to SNS Vol
+          <Link href={session ? appHomeForUser(session.role, session.status) : "/login"} className="text-[var(--brand)] font-bold text-sm">
+            {session ? "Back to SNS Vol" : "Sign in to SNS Vol"}
           </Link>
         </div>
       </div>
@@ -47,7 +64,9 @@ export default async function PublicEventPage({ params }: Props) {
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] tracking-tight">
       <header className="sticky top-0 z-50 px-5 py-4 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
         <p className="text-sm font-bold text-[var(--brand)]">SNS Vol</p>
-        <p className="text-xs text-[var(--text-muted)]">Public event preview</p>
+        <p className="text-xs text-[var(--text-muted)]">
+          {session ? `Signed in as ${session.name}` : "Public event preview"}
+        </p>
       </header>
 
       <div className="p-5 space-y-5 pb-10">
@@ -114,19 +133,39 @@ export default async function PublicEventPage({ params }: Props) {
 
         {event.status === "active" && (
           <div className="space-y-3 pt-2">
-            <Link
-              href="/signup"
-              className="block w-full text-center bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-xl shadow-lg"
-            >
-              Sign up to volunteer
-            </Link>
-            <Link
-              href="/login"
-              className="block w-full text-center bg-[var(--surface)] border border-[var(--border)] font-bold py-3.5 rounded-xl text-sm"
-            >
-              Already have an account? Log in
-            </Link>
+            {session ? (
+              <Link
+                href={appHomeForUser(session.role, session.status)}
+                className="block w-full text-center bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-xl shadow-lg"
+              >
+                {appHomeLabel(session.role, session.status)}
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="block w-full text-center bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-xl shadow-lg"
+                >
+                  Sign up to volunteer
+                </Link>
+                <Link
+                  href="/login"
+                  className="block w-full text-center bg-[var(--surface)] border border-[var(--border)] font-bold py-3.5 rounded-xl text-sm"
+                >
+                  Already have an account? Log in
+                </Link>
+              </>
+            )}
           </div>
+        )}
+
+        {event.status !== "active" && session && (
+          <Link
+            href={appHomeForUser(session.role, session.status)}
+            className="block w-full text-center bg-[var(--surface)] border border-[var(--border)] font-bold py-3.5 rounded-xl text-sm"
+          >
+            {appHomeLabel(session.role, session.status)}
+          </Link>
         )}
       </div>
     </div>

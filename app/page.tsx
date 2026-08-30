@@ -2,6 +2,7 @@
 "use client";
 import MobileLayout from "@/components/MobileLayout";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   getEvents,
   applyToEvent,
@@ -24,10 +25,12 @@ import {
   Target,
   Phone,
   Filter,
+  Share2,
 } from "lucide-react";
 import { EventListSkeleton } from "@/components/ui/Skeleton";
 import StaffHomeBanner from "@/components/StaffHomeBanner";
 import { getMyRole } from "@/lib/data/profiles";
+import { getEventPublicUrl } from "@/lib/events/share";
 import type { UserRole } from "@/types";
 
 function applicationStatusClass(status: ApplicationStatus) {
@@ -56,12 +59,26 @@ export default function VolunteeringDashboard() {
     role: UserRole;
     name: string;
   } | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   useEffect(() => {
     getMyRole().then((s) => {
       if (s) setSession({ role: s.role, name: s.name });
     });
   }, []);
+
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [selectedEvent]);
 
   const loadEvents = async () => {
     setLoading(true);
@@ -167,6 +184,33 @@ export default function VolunteeringDashboard() {
       default:
         return "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900";
     }
+  };
+
+  const shareEvent = async (event: Event) => {
+    const url = getEventPublicUrl(event.slug);
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: event.title,
+          text: `Check out "${event.title}" on SNS Vol`,
+          url,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Public link copied!");
+    } catch {
+      toast.error("Could not copy link");
+    }
+  };
+
+  const closeEventModal = () => {
+    setSelectedEvent(null);
+    setRating(0);
   };
 
   return (
@@ -289,46 +333,56 @@ export default function VolunteeringDashboard() {
         </div>
       </div>
 
-      {selectedEvent && (
-        <div className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/40 backdrop-blur-sm sm:items-center p-0">
-          <div
-            className="absolute inset-0"
-            onClick={() => {
-              setSelectedEvent(null);
-              setRating(0);
-            }}
-          />
-          <div className="relative bg-[#F4F4F5] dark:bg-black w-full max-w-md mx-auto rounded-t-3xl flex flex-col max-h-[90vh] shadow-2xl border-t border-[var(--border)] overflow-hidden animate-fadeIn">
-            <div
-              className={`shrink-0 p-6 pb-4 border-b border-black/5 dark:border-white/5 flex justify-between items-start z-10 ${getCardColor(selectedEvent.category)}`}
-            >
-              <div className="pr-4">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-white/80 text-slate-900 mb-2 inline-block shadow-sm">
-                  {tab === "Active" ? "Open for Registration" : "Event Closed"}
-                </span>
-                {selectedEvent.has_applied && selectedEvent.application_status && (
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border mb-2 ml-2 inline-block ${applicationStatusClass(selectedEvent.application_status)}`}
-                  >
-                    Application: {titleCaseStatus(selectedEvent.application_status)}
-                  </span>
-                )}
-                <h2 className="text-2xl font-black tracking-tight leading-tight">
-                  {selectedEvent.title}
-                </h2>
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedEvent(null);
-                  setRating(0);
-                }}
-                className="p-2 bg-black/5 dark:bg-white/10 rounded-full"
+      {portalReady &&
+        selectedEvent &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 backdrop-blur-sm">
+            <button
+              type="button"
+              aria-label="Close event details"
+              className="absolute inset-0"
+              onClick={closeEventModal}
+            />
+            <div className="relative z-10 w-full max-w-md flex flex-col max-h-[92dvh] rounded-t-3xl overflow-hidden shadow-2xl bg-[#F4F4F5] dark:bg-black border-t border-[var(--border)]">
+              <div
+                className={`shrink-0 p-6 pb-4 border-b border-black/5 dark:border-white/5 flex justify-between items-start gap-3 ${getCardColor(selectedEvent.category)}`}
               >
-                <X size={18} />
-              </button>
-            </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-white/80 text-slate-900 mb-2 inline-block shadow-sm">
+                    {tab === "Active" ? "Open for Registration" : "Event Closed"}
+                  </span>
+                  {selectedEvent.has_applied && selectedEvent.application_status && (
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border mb-2 ml-2 inline-block ${applicationStatusClass(selectedEvent.application_status)}`}
+                    >
+                      Application: {titleCaseStatus(selectedEvent.application_status)}
+                    </span>
+                  )}
+                  <h2 className="text-2xl font-black tracking-tight leading-tight">
+                    {selectedEvent.title}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    aria-label="Share event link"
+                    onClick={() => shareEvent(selectedEvent)}
+                    className="p-2 bg-black/5 dark:bg-white/10 rounded-full hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={closeEventModal}
+                    className="p-2 bg-black/5 dark:bg-white/10 rounded-full hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[var(--surface)]">
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 bg-[var(--surface)]">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] p-4 rounded-xl">
                   <Calendar size={16} className="text-[var(--brand)] mb-2" />
@@ -395,7 +449,7 @@ export default function VolunteeringDashboard() {
                 )}
             </div>
 
-            <div className="shrink-0 p-5 pb-[110px] bg-[var(--surface)] border-t border-[var(--border)]">
+            <div className="shrink-0 p-5 pb-6 bg-[var(--surface)] border-t border-[var(--border)]">
               {selectedEvent.has_applied && !selectedEvent.has_attended && (
                 <button
                   onClick={() => handleAction("mark_attended")}
@@ -470,10 +524,20 @@ export default function VolunteeringDashboard() {
                   Event has ended
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => shareEvent(selectedEvent)}
+                className="w-full flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3.5 rounded-lg text-[14px] mt-3"
+              >
+                <Share2 size={14} className="text-[var(--brand)]" />
+                <span>Share Event Link</span>
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </MobileLayout>
   );
 }

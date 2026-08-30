@@ -11,6 +11,7 @@ export function slugifyEventTitle(title: string): string {
 
 export function getEventPublicUrl(slug: string): string {
   const base =
+    (typeof window !== "undefined" ? window.location.origin : undefined) ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     (process.env.VERCEL_URL?.trim()
       ? `https://${process.env.VERCEL_URL}`

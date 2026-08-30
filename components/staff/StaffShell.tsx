@@ -30,7 +30,7 @@ export default function StaffShell({
   children,
 }: StaffShellProps) {
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] relative pb-24 tracking-tight">
+    <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] relative pb-24 tracking-tight overflow-x-hidden">
       <header className="sticky top-0 z-50 px-4 py-3 flex justify-between items-center bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
         <div className="flex items-center gap-2 min-w-0">
           <Link
@@ -66,22 +66,24 @@ export default function StaffShell({
         </div>
       </header>
 
-      <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-none border-b border-[var(--border)] bg-[var(--surface)]">
-        {tabs.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onTabChange(key)}
-            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-bold transition-all ${
-              activeTab === key
-                ? "bg-[var(--brand)] text-white shadow-sm"
-                : "bg-slate-100 dark:bg-[#18181B] text-[var(--text-muted)]"
-            }`}
-          >
-            <Icon size={14} />
-            {label}
-          </button>
-        ))}
+      <div className="border-b border-[var(--border)] bg-[var(--surface)] max-w-full overflow-x-auto overflow-y-hidden scrollbar-none overscroll-x-contain touch-pan-x">
+        <div className="flex flex-nowrap gap-2 px-4 py-3 w-max min-w-full">
+          {tabs.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onTabChange(key)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
+                activeTab === key
+                  ? "bg-[var(--brand)] text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-[#18181B] text-[var(--text-muted)]"
+              }`}
+            >
+              <Icon size={14} />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <main className="p-4 space-y-5 animate-fadeIn">

@@ -326,6 +326,10 @@ export default function AdminDashboard() {
         {activeTab === "volunteers" && (
           <div className="space-y-4">
             <h2 className="text-lg font-bold">Volunteers</h2>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              Pending users must be approved before they can use the app. Set their
+              role first, then tap the green approve button on their card.
+            </p>
             <input
               type="text"
               placeholder="Search name or college..."
@@ -368,13 +372,15 @@ export default function AdminDashboard() {
                     <option value="organiser">Organiser</option>
                     <option value="admin">Admin</option>
                   </select>
-                  {vol.role === "volunteer" && vol.status !== "active" && (
+                  {vol.status !== "active" && (
                     <button
                       disabled={actioningId === vol.id}
                       onClick={() => handleApproveICard(vol.id)}
-                      className="w-full bg-emerald-600 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
                     >
-                      Approve I-Card
+                      {vol.role === "volunteer"
+                        ? "Approve I-Card"
+                        : "Activate account"}
                     </button>
                   )}
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, MapPin, Pencil, Lock, Link2, Share2 } from "lucide-react";
+import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock } from "lucide-react";
 import type { Event } from "@/types";
 import { titleCaseStatus } from "@/types";
 import { getEventPublicUrl } from "@/lib/events/share";
@@ -13,6 +13,7 @@ type EventsTableProps = {
   onPageChange: (page: number) => void;
   onEdit: (event: Event) => void;
   onClose: (eventId: string) => void;
+  onReopen?: (eventId: string) => void;
   closingId: string | null;
 };
 
@@ -24,6 +25,7 @@ export default function EventsTable({
   onPageChange,
   onEdit,
   onClose,
+  onReopen,
   closingId,
 }: EventsTableProps) {
   const paged = paginate(events, page, PAGE_SIZE);
@@ -112,9 +114,19 @@ export default function EventsTable({
                 type="button"
                 disabled={closingId === evt.id}
                 onClick={() => onClose(evt.id)}
-                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-amber-100 text-amber-800 text-xs font-bold disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-bold disabled:opacity-50"
               >
                 <Lock size={14} /> Close
+              </button>
+            )}
+            {evt.status === "closed" && onReopen && (
+              <button
+                type="button"
+                disabled={closingId === evt.id}
+                onClick={() => onReopen(evt.id)}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-bold disabled:opacity-50"
+              >
+                <Unlock size={14} /> Reopen
               </button>
             )}
           </div>

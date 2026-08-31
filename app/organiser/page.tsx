@@ -8,13 +8,16 @@ import {
   createEvent,
   updateEvent,
   closeEvent,
+  reopenEvent,
   updateApplicationStatus,
   type EventInput,
 } from "@/lib/data/admin";
 import { getOrganiserData } from "@/lib/data/organiser";
 import { signOutAction } from "@/lib/actions/auth";
 import StaffShell from "@/components/staff/StaffShell";
+import StaffWelcome from "@/components/staff/StaffWelcome";
 import { APP_NAME } from "@/lib/brand";
+import { getMyRole } from "@/lib/data/profiles";
 import EventFormModal, {
   emptyEventForm,
 } from "@/components/staff/EventFormModal";
@@ -40,6 +43,7 @@ export default function OrganiserDashboard() {
   const [eventsPage, setEventsPage] = useState(1);
   const [appsPage, setAppsPage] = useState(1);
   const [actioningId, setActioningId] = useState<string | null>(null);
+  const [staffName, setStaffName] = useState("Organiser");
 
   const fetchData = useCallback(async () => {
     try {
@@ -53,6 +57,9 @@ export default function OrganiserDashboard() {
 
   useEffect(() => {
     fetchData();
+    getMyRole().then((s) => {
+      if (s?.name) setStaffName(s.name);
+    });
   }, [fetchData]);
 
   const openCreateModal = () => {
@@ -112,6 +119,19 @@ export default function OrganiserDashboard() {
       fetchData();
     } catch {
       toast.error("Failed to close event.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleReopenEvent = async (eventId: string) => {
+    setActioningId(eventId);
+    try {
+      await reopenEvent(eventId);
+      toast.success("Event reopened.");
+      fetchData();
+    } catch {
+      toast.error("Failed to reopen event.");
     } finally {
       setActioningId(null);
     }
@@ -179,6 +199,10 @@ export default function OrganiserDashboard() {
       >
         {activeTab === "events" && (
           <div className="space-y-4">
+            <StaffWelcome
+              name={staffName}
+              subtitle="Manage your events and review applications."
+            />
             <div className="flex justify-between items-center gap-3">
               <h2 className="text-lg font-bold">Events</h2>
               <button
@@ -195,6 +219,7 @@ export default function OrganiserDashboard() {
               onPageChange={setEventsPage}
               onEdit={openEditModal}
               onClose={handleCloseEvent}
+              onReopen={handleReopenEvent}
               closingId={actioningId}
             />
           </div>

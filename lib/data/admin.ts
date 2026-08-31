@@ -156,6 +156,81 @@ export async function closeEvent(id: string) {
   if (error) throw error;
 }
 
+export async function reopenEvent(id: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ status: "active" })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function adminDeleteVolunteer(userId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      status: "inactive",
+      name: "Deactivated User",
+      phone: "",
+      address: "",
+      avatar_url: null,
+      skills: [],
+      batch: null,
+    })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
+export async function broadcastNotification(input: {
+  title: string;
+  body: string;
+  userIds?: string[];
+  all?: boolean;
+  batch?: string;
+  region?: string;
+}): Promise<number> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  let userIds = input.userIds ?? [];
+
+  if (!userIds.length) {
+    let q = supabase
+      .from("profiles")
+      .select("id")
+      .eq("role", "volunteer")
+      .eq("status", "active");
+
+    if (input.batch) {
+      q = q.eq("batch", input.batch);
+    } else if (input.region) {
+      q = q.or(`batch.ilike.%${input.region}%,address.ilike.%${input.region}%`);
+    } else if (!input.all) {
+      return 0;
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+    userIds = (data ?? []).map((r) => r.id);
+  }
+
+  if (!userIds.length) return 0;
+
+  const rows = userIds.map((user_id) => ({
+    user_id,
+    title: input.title,
+    body: input.body,
+    type: "event" as const,
+  }));
+
+  const { error: insertError } = await supabase.from("notifications").insert(rows);
+  if (insertError) throw insertError;
+  return userIds.length;
+}
+
 export async function updateApplicationStatus(
   userId: string,
   eventId: string,

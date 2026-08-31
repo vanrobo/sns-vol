@@ -17,6 +17,7 @@ import {
   createEvent,
   updateEvent,
   closeEvent,
+  reopenEvent,
   updateApplicationStatus,
   approveICard,
   resolveGrievance,
@@ -34,7 +35,12 @@ import ApplicationsTable from "@/components/staff/ApplicationsTable";
 import Pagination, { paginate } from "@/components/staff/Pagination";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
+import StaffWelcome from "@/components/staff/StaffWelcome";
+import VolunteerDetailModal from "@/components/staff/VolunteerDetailModal";
+import NotificationBroadcastPanel from "@/components/staff/NotificationBroadcastPanel";
 import { APP_NAME } from "@/lib/brand";
+import { getMyRole } from "@/lib/data/profiles";
+import type { Profile } from "@/types";
 
 const VOL_PAGE_SIZE = 10;
 const GRIEV_PAGE_SIZE = 8;
@@ -65,6 +71,8 @@ export default function AdminDashboard() {
   const [grievanceNotes, setGrievanceNotes] = useState("");
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [volunteerSearch, setVolunteerSearch] = useState("");
+  const [staffName, setStaffName] = useState("Admin");
+  const [detailVolunteer, setDetailVolunteer] = useState<Profile | null>(null);
 
   const fetchAdminData = useCallback(async () => {
     try {
@@ -79,6 +87,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAdminData();
+    getMyRole().then((s) => {
+      if (s?.name) setStaffName(s.name);
+    });
   }, [fetchAdminData]);
 
   const openCreateModal = () => {
@@ -199,6 +210,24 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleReopenEvent = async (eventId: string) => {
+    setActioningId(eventId);
+    try {
+      await reopenEvent(eventId);
+      toast.success("Event reopened.");
+      setData((prev) => ({
+        ...prev,
+        events: prev.events.map((e) =>
+          e.id === eventId ? { ...e, status: "active" } : e,
+        ),
+      }));
+    } catch {
+      toast.error("Failed to reopen event.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
   const handleRoleChange = async (userId: string, role: UserRole) => {
     setActioningId(userId);
     try {
@@ -248,6 +277,17 @@ export default function AdminDashboard() {
   );
   const pagedVolunteers = paginate(filteredVolunteers, volPage, VOL_PAGE_SIZE);
   const pagedGrievances = paginate(data.grievances, grievPage, GRIEV_PAGE_SIZE);
+  const uniqueBatches = [
+    ...new Set(data.users.map((u) => u.batch).filter(Boolean) as string[]),
+  ];
+  const uniqueRegions = [
+    ...new Set(
+      data.events
+        .map((e) => e.region)
+        .filter(Boolean)
+        .filter((r) => !/mumbai/i.test(r as string)) as string[],
+    ),
+  ];
 
   const tabs = [
     { key: "events", label: "Events", icon: Calendar },
@@ -302,6 +342,11 @@ export default function AdminDashboard() {
           </div>
         }
       >
+        <StaffWelcome
+          name={staffName}
+          subtitle="Manage events, volunteers, notifications, and awards."
+        />
+
         {activeTab === "events" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center gap-3">
@@ -320,6 +365,7 @@ export default function AdminDashboard() {
               onPageChange={setEventsPage}
               onEdit={openEditModal}
               onClose={handleCloseEvent}
+              onReopen={handleReopenEvent}
               closingId={actioningId}
             />
           </div>
@@ -332,6 +378,10 @@ export default function AdminDashboard() {
               Pending users must be approved before they can use the app. Set their
               role first, then tap the green approve button on their card.
             </p>
+            <NotificationBroadcastPanel
+              batches={uniqueBatches}
+              regions={uniqueRegions}
+            />
             <input
               type="text"
               placeholder="Search name or college..."
@@ -409,6 +459,13 @@ export default function AdminDashboard() {
                         : "Activate account"}
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setDetailVolunteer(vol)}
+                    className="w-full border border-[var(--border)] py-2.5 rounded-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-[#18181B]"
+                  >
+                    View details & notify
+                  </button>
                 </div>
               ))}
             </div>
@@ -529,6 +586,12 @@ export default function AdminDashboard() {
           </div>
         )}
       </StaffShell>
+
+      <VolunteerDetailModal
+        volunteer={detailVolunteer}
+        onClose={() => setDetailVolunteer(null)}
+        onUpdated={fetchAdminData}
+      />
 
       <EventFormModal
         open={isModalOpen}

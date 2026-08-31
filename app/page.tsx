@@ -39,6 +39,7 @@ import { getMyRole, getVolunteerStats } from "@/lib/data/profiles";
 import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
 import { APP_NAME } from "@/lib/brand";
+import { readHomeCache, writeHomeCache } from "@/lib/home-cache";
 import type { UserRole, UserAward } from "@/types";
 
 function applicationStatusClass(status: ApplicationStatus) {
@@ -68,10 +69,12 @@ export default function VolunteeringDashboard() {
     role: UserRole;
     name: string;
     batch: string | null;
-  } | null>(null);
-  const [myAwards, setMyAwards] = useState<UserAward[]>([]);
+  } | null>(() => readHomeCache()?.session ?? null);
+  const [myAwards, setMyAwards] = useState<UserAward[]>(
+    () => readHomeCache()?.awards ?? [],
+  );
   const [stats, setStats] = useState<{ attended: number; totalActive: number } | null>(
-    null,
+    () => readHomeCache()?.stats ?? null,
   );
   const [allEventsForCalendar, setAllEventsForCalendar] = useState<Event[]>([]);
   const [portalReady, setPortalReady] = useState(false);
@@ -83,9 +86,17 @@ export default function VolunteeringDashboard() {
   useEffect(() => {
     Promise.all([getMyRole(), getMyAwards(), getVolunteerStats()]).then(
       ([s, awards, st]) => {
-        if (s) setSession({ role: s.role, name: s.name, batch: s.batch });
+        const nextSession = s
+          ? { role: s.role, name: s.name, batch: s.batch }
+          : null;
+        if (nextSession) setSession(nextSession);
         setMyAwards(awards);
         if (st) setStats(st);
+        writeHomeCache({
+          session: nextSession,
+          awards,
+          stats: st,
+        });
       },
     );
   }, []);
@@ -203,13 +214,13 @@ export default function VolunteeringDashboard() {
   const getCardColor = (category?: string) => {
     switch (category?.toLowerCase()) {
       case "stem":
-        return "bg-blue-50/50 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-blue-500 border border-[var(--border)]";
       case "education":
-        return "bg-purple-50/50 dark:bg-purple-950/10 border-purple-200 dark:border-purple-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-purple-500 border border-[var(--border)]";
       case "environment":
-        return "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-emerald-500 border border-[var(--border)]";
       default:
-        return "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-amber-500 border border-[var(--border)]";
     }
   };
 
@@ -229,7 +240,7 @@ export default function VolunteeringDashboard() {
     }
     try {
       await navigator.clipboard.writeText(url);
-      toast.success("Public link copied!");
+      toast.success("Link copied!", { id: "share-link" });
     } catch {
       toast.error("Could not copy link");
     }
@@ -243,7 +254,10 @@ export default function VolunteeringDashboard() {
   const regions = [
     "all",
     ...new Set(
-      allEventsForCalendar.map((e) => e.region || e.venue).filter(Boolean),
+      allEventsForCalendar
+        .map((e) => e.region || e.venue)
+        .filter(Boolean)
+        .filter((r) => !/mumbai/i.test(r)),
     ),
   ];
 
@@ -361,7 +375,7 @@ export default function VolunteeringDashboard() {
                 >
                   <div className="flex-1 pr-4">
                     <div className="flex gap-2 mb-2 flex-wrap items-center">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--border)] bg-slate-100 dark:bg-[#27272a] text-[var(--text)]">
                         {evt.category || "Community"}
                       </span>
                       {tab === "Active" && evt.has_applied && evt.application_status && (

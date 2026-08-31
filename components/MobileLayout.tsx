@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { hasUnreadNotifications, getLatestUnreadNotification } from "@/lib/data/notifications";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
-import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 import type { UserRole } from "@/types";
 import { getNotificationHref } from "@/lib/notifications-nav";
 import { showBrowserNotification } from "@/lib/push/browser-notifications";
@@ -115,9 +115,9 @@ function MobileLayoutInner({
   return (
     <div className="max-w-md mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">
       <header className="shrink-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
-        <h1 className="text-lg font-black tracking-tight text-[var(--text)]">
-          SNS <span className="text-[var(--brand)]">{APP_NAME_ACCENT}</span>
-        </h1>
+        <Link href="/" className="min-w-0">
+          <BrandLogo size={36} />
+        </Link>
 
         <div className="flex items-center gap-3">
           {staffRole && (

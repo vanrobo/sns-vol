@@ -6,7 +6,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { signIn } from "@/lib/actions/auth";
 import { clearAppCaches } from "@/lib/home-cache";
-import { APP_NAME } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 import { Loader2, Mail, Lock } from "lucide-react";
 
 const SHOW_DEMO =
@@ -47,10 +47,10 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="w-full max-w-md bg-[var(--surface)] dark:bg-[var(--surface-elevated)] p-8 rounded-2xl shadow-xl border border-[var(--border)]"
       >
-        <p className="text-sm font-bold text-[var(--brand)] tracking-tight mb-1">
-          {APP_NAME}
-        </p>
-        <h1 className="text-3xl font-extrabold text-[var(--text)] tracking-tight mb-2">
+        <div className="flex justify-center mb-6">
+          <BrandLogo size={72} showFamily={false} />
+        </div>
+        <h1 className="text-3xl font-extrabold text-[var(--text)] tracking-tight mb-2 text-center">
           Sign In
         </h1>
         <p className="text-[var(--text-muted)] mb-8 text-[15px]">

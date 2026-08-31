@@ -4,7 +4,7 @@ import { LogOut, Home, ChevronLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { APP_NAME } from "@/lib/brand";
+import BrandLogo from "@/components/BrandLogo";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 
@@ -58,10 +58,8 @@ export default function StaffShell({
             <ChevronLeft size={22} />
           </Link>
           <div className="min-w-0">
-            <p className="text-[10px] font-bold text-[var(--brand)] uppercase tracking-wider">
-              {APP_NAME}
-            </p>
-            <h1 className="text-base font-black truncate">{title}</h1>
+            <BrandLogo size={28} />
+            <h1 className="text-base font-black truncate mt-0.5">{title}</h1>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">

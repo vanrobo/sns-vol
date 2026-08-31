@@ -1,3 +1,5 @@
+import { LOGO_ICON_192 } from "@/lib/brand";
+
 const PUSH_PREF_KEY = "sns-push-enabled-v1";
 
 export function isPushEnabledLocally(): boolean {
@@ -39,7 +41,7 @@ export function showBrowserNotification(title: string, body: string, href?: stri
   try {
     const n = new Notification(title, {
       body,
-      icon: "/favicon.ico",
+      icon: LOGO_ICON_192,
       tag: `sns-${title.slice(0, 32)}`,
     });
     n.onclick = () => {

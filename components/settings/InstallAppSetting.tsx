@@ -46,7 +46,7 @@ export default function InstallAppSetting() {
           </div>
         </div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand)] shrink-0">
-          {canInstall ? "Install" : "How to"}
+          {canInstall ? "Install now" : "How to"}
         </span>
       </button>
 

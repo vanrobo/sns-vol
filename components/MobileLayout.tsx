@@ -4,13 +4,11 @@ import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard } fro
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { hasUnreadNotifications, getLatestUnreadNotification } from "@/lib/data/notifications";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
 import type { UserRole } from "@/types";
-import { getNotificationHref } from "@/lib/notifications-nav";
-import { showBrowserNotification } from "@/lib/push/browser-notifications";
-import toast from "react-hot-toast";
+import { useNotificationUnread } from "@/hooks/useNotificationUnread";
+import { clearNotificationUnread } from "@/lib/notification-poll-store";
 import {
   UnsavedChangesProvider,
   useUnsavedChangesOptional,
@@ -28,9 +26,8 @@ function MobileLayoutInner({
   const pathname = usePathname();
   const router = useRouter();
   const unsaved = useUnsavedChangesOptional();
-  const [hasUnread, setHasUnread] = useState(false);
+  const hasUnread = useNotificationUnread();
   const [staffRole, setStaffRole] = useState<UserRole | null>(null);
-  const seenNotifIds = useRef<Set<string>>(new Set());
   const mainRef = useRef<HTMLElement>(null);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const { pullDistance, refreshing, ready } = usePullToRefresh({
@@ -40,30 +37,6 @@ function MobileLayoutInner({
     disabled: !onRefresh,
   });
 
-  const pollNotifications = async () => {
-    try {
-      const unread = await hasUnreadNotifications();
-      if (unread) {
-        const latest = await getLatestUnreadNotification();
-        if (latest && !seenNotifIds.current.has(latest.id)) {
-          seenNotifIds.current.add(latest.id);
-          toast.success(`${latest.title}\n${latest.body}`, {
-            duration: 6000,
-            style: { whiteSpace: "pre-line" },
-          });
-          showBrowserNotification(
-            latest.title,
-            latest.body,
-            getNotificationHref(latest.type),
-          );
-        }
-      }
-      setHasUnread(unread);
-    } catch {
-      /* ignore */
-    }
-  };
-
   useEffect(() => {
     const checkAuth = async () => {
       const user = await getCurrentUser();
@@ -71,8 +44,6 @@ function MobileLayoutInner({
         router.push("/login");
         return;
       }
-
-      await pollNotifications();
 
       try {
         const session = await getMyRole();
@@ -85,8 +56,6 @@ function MobileLayoutInner({
     };
 
     checkAuth();
-    const interval = setInterval(pollNotifications, 30000);
-    return () => clearInterval(interval);
   }, [router]);
 
   const navItems = [
@@ -141,7 +110,7 @@ function MobileLayoutInner({
 
           <Link
             href="/notifications"
-            onClick={() => setHasUnread(false)}
+            onClick={() => clearNotificationUnread()}
             className="relative p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors ml-1"
           >
             <Bell size={22} />

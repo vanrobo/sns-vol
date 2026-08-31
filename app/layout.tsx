@@ -2,6 +2,7 @@
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 import PWARegister from "@/components/PWARegister";
+import NotificationPoller from "@/components/NotificationPoller";
 import type { Metadata, Viewport } from "next";
 import { APP_NAME, LOGO_ICON_192, BRAND_THEME_COLOR } from "@/lib/brand";
 import "./globals.css";
@@ -44,6 +45,7 @@ export default function RootLayout({
           enableSystem
         >
           <PWARegister />
+          <NotificationPoller />
           {children}
           <Toaster
             position="top-center"

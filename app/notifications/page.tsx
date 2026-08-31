@@ -25,6 +25,7 @@ import {
   readNotificationsCache,
   writeNotificationsCache,
 } from "@/lib/notifications-cache";
+import { setNotificationPollHasUnread } from "@/lib/notification-poll-store";
 import { haptic } from "@/lib/haptics";
 
 export default function NotificationsPage() {
@@ -42,6 +43,7 @@ export default function NotificationsPage() {
       setNotifications(data);
       if (me) writeNotificationsCache(me.id, data);
       await markNotificationsRead();
+      setNotificationPollHasUnread(false);
     } catch {
       /* keep cached list visible */
     } finally {

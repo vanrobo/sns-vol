@@ -338,22 +338,18 @@ export async function resolveGrievance(id: string, adminNotes: string) {
   const supabase = await createClient();
   const notes = adminNotes.trim();
 
-  const { data: grievance, error: fetchError } = await supabase
-    .from("grievances")
-    .select("user_id, status")
-    .eq("id", id)
-    .single();
-  if (fetchError) throw fetchError;
-
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("grievances")
     .update({ status: "resolved", admin_notes: notes })
-    .eq("id", id);
+    .eq("id", id)
+    .neq("status", "resolved")
+    .select("user_id")
+    .maybeSingle();
   if (error) throw error;
 
-  if (grievance.status !== "resolved") {
+  if (updated) {
     const { error: notifError } = await supabase.from("notifications").insert({
-      user_id: grievance.user_id,
+      user_id: updated.user_id,
       title: "Grievance resolved",
       body: notes || "Your complaint ticket has been resolved.",
       type: "grievance",

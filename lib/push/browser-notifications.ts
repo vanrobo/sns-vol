@@ -33,7 +33,12 @@ export async function requestBrowserNotificationPermission(): Promise<
   return Notification.requestPermission();
 }
 
-export function showBrowserNotification(title: string, body: string, href?: string) {
+export function showBrowserNotification(
+  title: string,
+  body: string,
+  href?: string,
+  notificationId?: string,
+) {
   if (!canUseBrowserNotifications()) return;
   if (Notification.permission !== "granted") return;
   if (!isPushEnabledLocally()) return;
@@ -42,7 +47,7 @@ export function showBrowserNotification(title: string, body: string, href?: stri
     const n = new Notification(title, {
       body,
       icon: LOGO_ICON_192,
-      tag: `sns-${title.slice(0, 32)}`,
+      tag: notificationId ? `sns-notif-${notificationId}` : `sns-${title.slice(0, 32)}`,
     });
     n.onclick = () => {
       window.focus();

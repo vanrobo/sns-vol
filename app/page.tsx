@@ -292,134 +292,137 @@ export default function VolunteeringDashboard() {
           </div>
         )}
 
-        <div className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Filter size={14} className="text-[var(--brand)]" /> Sort & Filter
-            </span>
-            {(dateFilter || regionFilter !== "all") && (
-              <button
-                onClick={() => {
-                  setDateFilter("");
-                  setRegionFilter("all");
-                }}
-                className="text-[11px] font-bold text-red-500 hover:underline"
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
+          <div className="p-4 space-y-3 border-b border-[var(--border)]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Filter size={14} className="text-[var(--brand)]" /> Sort & Filter
+              </span>
+              {(dateFilter || regionFilter !== "all") && (
+                <button
+                  onClick={() => {
+                    setDateFilter("");
+                    setRegionFilter("all");
+                  }}
+                  className="text-[11px] font-bold text-red-500 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)] col-span-2"
               >
-                Clear
+                {regions.map((r) => (
+                  <option key={r} value={r}>
+                    {r === "all" ? "All regions / venues" : r}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setCalendarView((v) => !v)}
+                className={`col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold border transition-all ${
+                  calendarView
+                    ? "bg-[var(--brand)] text-white border-[var(--brand)]"
+                    : "bg-slate-50 dark:bg-[#18181B] border-[var(--border)]"
+                }`}
+              >
+                <CalendarDays size={14} /> Calendar View
               </button>
+            </div>
+            {calendarView && (
+              <EventCalendarView
+                events={allEventsForCalendar}
+                selectedDate={dateFilter}
+                onSelectDate={(d) => setDateFilter(d)}
+              />
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <select
-              value={regionFilter}
-              onChange={(e) => setRegionFilter(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)] col-span-2"
-            >
-              {regions.map((r) => (
-                <option key={r} value={r}>
-                  {r === "all" ? "All regions / venues" : r}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => setCalendarView((v) => !v)}
-              className={`col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold border transition-all ${
-                calendarView
-                  ? "bg-[var(--brand)] text-white border-[var(--brand)]"
-                  : "bg-slate-50 dark:bg-[#18181B] border-[var(--border)]"
-              }`}
-            >
-              <CalendarDays size={14} /> Calendar View
-            </button>
-          </div>
-        </div>
 
-        {calendarView && (
-          <EventCalendarView
-            events={allEventsForCalendar}
-            selectedDate={dateFilter}
-            onSelectDate={(d) => setDateFilter(d)}
-          />
-        )}
-
-        <div className="flex bg-[#E4E4E7] dark:bg-[#121212] p-1 rounded-lg border border-[var(--border)]">
-          {(["Active", "Closed", "Attended"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                setTab(t);
-                setLoading(true);
-              }}
-              className={`flex-1 py-1.5 text-[14px] font-bold rounded-md transition-all duration-150 ${tab === t ? "bg-white dark:bg-black text-[var(--brand)] shadow-sm border border-[var(--border)]" : "text-slate-500"}`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          {loading ? (
-            <EventListSkeleton count={4} />
-          ) : events.length === 0 ? (
-            <div className="text-center py-10 text-[var(--text-muted)] text-sm font-medium border border-dashed border-[var(--border)] rounded-xl">
-              No events found match this selection.
-            </div>
-          ) : (
-            events.map((evt) => {
-              const matchPercentage = getSkillMatch(evt.id);
-              const isHighMatch = matchPercentage >= 75;
-              return (
-                <div
-                  key={evt.id}
-                  onClick={() => setSelectedEvent(evt)}
-                  className={`rounded-xl p-5 border cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center shadow-sm group ${getCardColor(evt.category)}`}
+          <div className="px-4 pt-3 pb-2 border-b border-[var(--border)]">
+            <div className="flex bg-[#E4E4E7] dark:bg-[#121212] p-1 rounded-lg">
+              {(["Active", "Closed", "Attended"] as Tab[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setTab(t);
+                    setLoading(true);
+                  }}
+                  className={`flex-1 py-1.5 text-[14px] font-bold rounded-md transition-all duration-150 ${tab === t ? "bg-white dark:bg-black text-[var(--brand)] shadow-sm border border-[var(--border)]" : "text-slate-500"}`}
                 >
-                  <div className="flex-1 pr-4">
-                    <div className="flex gap-2 mb-2 flex-wrap items-center">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
-                        {evt.category || "Community"}
-                      </span>
-                      {tab === "Active" && evt.has_applied && evt.application_status && (
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex items-center gap-1 ${applicationStatusClass(evt.application_status)}`}
-                        >
-                          {titleCaseStatus(evt.application_status)}
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 space-y-3">
+            {loading ? (
+              <EventListSkeleton count={4} />
+            ) : events.length === 0 ? (
+              <div className="text-center py-10 text-[var(--text-muted)] text-sm font-medium border border-dashed border-[var(--border)] rounded-xl">
+                No events found match this selection.
+              </div>
+            ) : (
+              events.map((evt) => {
+                const matchPercentage = getSkillMatch(evt.id);
+                const isHighMatch = matchPercentage >= 75;
+                return (
+                  <div
+                    key={evt.id}
+                    onClick={() => setSelectedEvent(evt)}
+                    className={`rounded-xl p-5 border cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center shadow-sm group ${getCardColor(evt.category)}`}
+                  >
+                    <div className="flex-1 pr-4">
+                      <div className="flex gap-2 mb-2 flex-wrap items-center">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
+                          {evt.category || "Community"}
                         </span>
-                      )}
-                      {tab === "Active" && !evt.has_applied && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-[var(--brand)]/10 text-[var(--brand)] flex items-center gap-1.5">
-                          {isHighMatch && (
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--brand)]" />
-                            </span>
-                          )}
-                          <Target size={10} /> {matchPercentage}% Match
-                        </span>
-                      )}
-                      {(tab === "Closed" || tab === "Attended") &&
-                        evt.has_attended && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-[var(--brand)] flex items-center gap-1">
-                            <CheckCircle2 size={10} /> Attended
+                        {tab === "Active" && evt.has_applied && evt.application_status && (
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex items-center gap-1 ${applicationStatusClass(evt.application_status)}`}
+                          >
+                            {titleCaseStatus(evt.application_status)}
                           </span>
                         )}
+                        {tab === "Active" && !evt.has_applied && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-[var(--brand)]/10 text-[var(--brand)] flex items-center gap-1.5">
+                            {isHighMatch && (
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--brand)]" />
+                              </span>
+                            )}
+                            <Target size={10} /> {matchPercentage}% Match
+                          </span>
+                        )}
+                        {(tab === "Closed" || tab === "Attended") &&
+                          evt.has_attended && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-[var(--brand)] flex items-center gap-1">
+                              <CheckCircle2 size={10} /> Attended
+                            </span>
+                          )}
+                      </div>
+                      <h3 className="font-bold text-[18px] tracking-tight leading-tight">
+                        {evt.title}
+                      </h3>
+                      <p className="text-[13px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-medium mt-1">
+                        <Calendar size={12} className="text-[var(--brand)]" />{" "}
+                        {evt.date}
+                      </p>
                     </div>
-                    <h3 className="font-bold text-[18px] tracking-tight leading-tight">
-                      {evt.title}
-                    </h3>
-                    <p className="text-[13px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-medium mt-1">
-                      <Calendar size={12} className="text-[var(--brand)]" />{" "}
-                      {evt.date}
-                    </p>
+                    <div className="text-slate-400 group-hover:text-black dark:group-hover:text-white transition-colors bg-white/50 dark:bg-black/10 p-2 rounded-full">
+                      <ChevronRight size={18} />
+                    </div>
                   </div>
-                  <div className="text-slate-400 group-hover:text-black dark:group-hover:text-white transition-colors bg-white/50 dark:bg-black/10 p-2 rounded-full">
-                    <ChevronRight size={18} />
-                  </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
 

@@ -45,6 +45,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
 import StaffWelcome from "@/components/staff/StaffWelcome";
 import AdminOverview from "@/components/staff/AdminOverview";
+import VolunteerBulkActions from "@/components/staff/VolunteerBulkActions";
 import VolunteerDetailModal from "@/components/staff/VolunteerDetailModal";
 import NotificationBroadcastPanel from "@/components/staff/NotificationBroadcastPanel";
 import { getMyRole } from "@/lib/data/profiles";
@@ -93,9 +94,6 @@ export default function AdminDashboard() {
   const [attendanceEvent, setAttendanceEvent] = useState<Event | null>(null);
   const [cancelEvent, setCancelEvent] = useState<Event | null>(null);
   const [selectedVolIds, setSelectedVolIds] = useState<Set<string>>(new Set());
-  const [bulkBatch, setBulkBatch] = useState("");
-  const [bulkNotifTitle, setBulkNotifTitle] = useState("");
-  const [bulkNotifBody, setBulkNotifBody] = useState("");
 
   const fetchAdminData = useCallback(async () => {
     try {
@@ -396,17 +394,17 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleBulkBatch = async () => {
+  const handleBulkBatch = async (batch: string) => {
     const ids = [...selectedVolIds];
     if (!ids.length) return;
     setActioningId("bulk-batch");
     try {
-      await bulkUpdateUserBatch(ids, bulkBatch);
+      await bulkUpdateUserBatch(ids, batch);
       toast.success(`Batch updated for ${ids.length} volunteer(s).`);
       setData((prev) => ({
         ...prev,
         users: prev.users.map((u) =>
-          ids.includes(u.id) ? { ...u, batch: bulkBatch.trim() || null } : u,
+          ids.includes(u.id) ? { ...u, batch: batch.trim() || null } : u,
         ),
       }));
     } catch {
@@ -416,22 +414,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleBulkNotify = async () => {
+  const handleBulkNotify = async (title: string, body: string) => {
     const ids = [...selectedVolIds];
-    if (!ids.length || !bulkNotifTitle.trim() || !bulkNotifBody.trim()) {
+    if (!ids.length || !title.trim() || !body.trim()) {
       toast.error("Select volunteers and enter title + message.");
       return;
     }
     setActioningId("bulk-notify");
     try {
       const count = await broadcastNotification({
-        title: bulkNotifTitle.trim(),
-        body: bulkNotifBody.trim(),
+        title: title.trim(),
+        body: body.trim(),
         userIds: ids,
       });
       toast.success(`In-app alert sent to ${count} volunteer(s).`);
-      setBulkNotifTitle("");
-      setBulkNotifBody("");
     } catch {
       toast.error("Failed to send alerts.");
     } finally {
@@ -573,76 +569,10 @@ export default function AdminDashboard() {
                   >
                     Select all filtered
                   </button>
-                  {selectedVolIds.size > 0 && (
-                    <button
-                      type="button"
-                      onClick={clearVolunteerSelection}
-                      className="text-[10px] font-bold px-2 py-1 rounded-lg border border-[var(--border)] text-red-500"
-                    >
-                      Clear ({selectedVolIds.size})
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {selectedVolIds.size > 0 && (
-                <div className="mx-4 p-4 rounded-xl border border-[var(--brand)]/30 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-3">
-                  <p className="text-xs font-bold text-[var(--brand)]">
-                    {selectedVolIds.size} selected
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      disabled={actioningId === "bulk-approve"}
-                      onClick={handleBulkApprove}
-                      className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50"
-                    >
-                      Bulk approve
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Batch for selected"
-                      value={bulkBatch}
-                      onChange={(e) => setBulkBatch(e.target.value)}
-                      className="flex-1 text-xs p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]"
-                    />
-                    <button
-                      type="button"
-                      disabled={actioningId === "bulk-batch"}
-                      onClick={handleBulkBatch}
-                      className="text-xs font-bold px-3 py-2 rounded-lg border border-[var(--border)]"
-                    >
-                      Set batch
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="In-app alert title"
-                    value={bulkNotifTitle}
-                    onChange={(e) => setBulkNotifTitle(e.target.value)}
-                    className="w-full text-xs p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]"
-                  />
-                  <textarea
-                    placeholder="In-app alert message"
-                    value={bulkNotifBody}
-                    onChange={(e) => setBulkNotifBody(e.target.value)}
-                    rows={2}
-                    className="w-full text-xs p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] resize-none"
-                  />
-                  <button
-                    type="button"
-                    disabled={actioningId === "bulk-notify"}
-                    onClick={handleBulkNotify}
-                    className="w-full text-xs font-bold py-2 rounded-lg bg-[var(--brand)] text-white disabled:opacity-50"
-                  >
-                    Send in-app alert to selected
-                  </button>
-                </div>
-              )}
-
-              <div className="p-4 space-y-3">
+              <div className={`p-4 space-y-3 ${selectedVolIds.size > 0 ? "pb-36" : ""}`}>
                 {pagedVolunteers.length === 0 ? (
                   <p className="text-center text-sm text-[var(--text-muted)] py-8">
                     No volunteers match this filter.
@@ -900,6 +830,15 @@ export default function AdminDashboard() {
         event={cancelEvent}
         onClose={() => setCancelEvent(null)}
         onConfirm={handleCancelOccurrence}
+      />
+
+      <VolunteerBulkActions
+        count={selectedVolIds.size}
+        actioningId={actioningId}
+        onClear={clearVolunteerSelection}
+        onApprove={handleBulkApprove}
+        onSetBatch={handleBulkBatch}
+        onSendAlert={handleBulkNotify}
       />
 
       <EventFormModal

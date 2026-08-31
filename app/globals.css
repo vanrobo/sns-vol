@@ -41,6 +41,23 @@ body {
   scrollbar-width: none;
 }
 
+.staff-tab-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--brand) 35%, transparent) transparent;
+}
+
+.staff-tab-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.staff-tab-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--brand) 35%, transparent);
+  border-radius: 9999px;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

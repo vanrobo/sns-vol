@@ -30,6 +30,7 @@ export async function updateSession(request: NextRequest) {
 
   const isEventPage = path === "/event" || path.startsWith("/event/");
   const isAuthPage = path === "/login" || path === "/signup";
+  const isCronRoute = path.startsWith("/api/cron");
   const isPublicPage =
     isEventPage ||
     path.startsWith("/verify/") ||
@@ -70,6 +71,7 @@ export async function updateSession(request: NextRequest) {
     const isPublic =
       isAuthPage ||
       isPublicPage ||
+      isCronRoute ||
       path.startsWith("/favicon");
 
     if (!user && !isPublic) {

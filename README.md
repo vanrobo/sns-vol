@@ -63,6 +63,25 @@ git log -1 --format="%an <%ae>"
 - **Backend:** Supabase Auth + Postgres (RLS) + Storage (`avatars`)
 - No XAMPP / PHP
 
+## Production (100+ users)
+
+See **[PRODUCTION.md](./PRODUCTION.md)** for the full launch checklist, env vars, and demo account policy.
+
+### Vercel plan limits (what to expect)
+
+| | Hobby (free) | Pro (~$20/mo) |
+|---|--------------|---------------|
+| **100+ volunteers browsing daily** | Usually fine | Fine |
+| **Bandwidth** | 100 GB/mo — enough for ~100 active users unless heavy image uploads | 1 TB+ |
+| **Serverless function time** | 100 GB-hrs/mo — OK at this scale | Higher limits |
+| **Cron (event reminders)** | 1 cron job allowed; timing can drift; must set `CRON_SECRET` manually | Reliable scheduled cron |
+| **Team / support** | Personal project | Better for NGO production |
+| **Build minutes** | 6,000/mo | More headroom |
+
+**Supabase** (separate from Vercel): Free tier supports 100+ monthly active users. Watch avatar storage and burst signups (auth rate limits). Pro if you need more storage or support.
+
+**What won't break on Hobby at 100 users:** page loads, login, events, admin panel, PWA install. **What might need attention:** daily reminder cron reliability (use Pro or external cron hitting `/api/cron/event-reminders`), and spike traffic on event day (still usually OK).
+
 ## Scripts
 
 - `npm run dev` — local development

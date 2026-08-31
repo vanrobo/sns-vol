@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { enforceRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export type AuthResult = {
   error?: string;
@@ -15,6 +16,10 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<AuthResult> {
+  const ip = await getClientIp();
+  const limited = await enforceRateLimit("auth", ip);
+  if (limited) return { error: limited };
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -48,6 +53,10 @@ export async function signUp(
   college: string,
   password: string,
 ): Promise<AuthResult> {
+  const ip = await getClientIp();
+  const limited = await enforceRateLimit("signup", ip);
+  if (limited) return { error: limited };
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,

@@ -43,7 +43,6 @@ import {
   Moon,
   AlertTriangle,
   Settings,
-  Mail,
   Shield,
   BookOpen,
   Camera,
@@ -586,34 +585,6 @@ export default function ProfilePage() {
               <span className="font-semibold text-sm">In-app alert history</span>
             <ChevronDown size={14} className="-rotate-90 text-slate-400" />
           </Link>
-          <div className="p-4 px-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <Mail size={16} className="text-slate-400 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-semibold text-sm block">Email preference</span>
-                <p className="text-[10px] text-[var(--text-muted)]">
-                  Saved for later — emails are not sent yet
-                </p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={profile.email_notifs}
-                onChange={async () => {
-                  const next = !profile.email_notifs;
-                  setProfile({ ...profile, email_notifs: next });
-                  try {
-                    await updateProfile({ email_notifs: next });
-                  } catch {
-                    toast.error("Could not update preference");
-                  }
-                }}
-              />
-              <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--brand)]" />
-            </label>
-          </div>
           <div className="p-4 px-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield size={16} className="text-slate-400" />

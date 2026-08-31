@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveVolunteer } from "@/lib/auth/guards";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import type { Grievance } from "@/types";
 
 export async function getUserGrievances(): Promise<Grievance[]> {
@@ -28,6 +29,9 @@ export async function submitGrievance(category: string, description: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
+
+  const limited = await enforceRateLimit("grievance", user.id);
+  if (limited) throw new Error(limited);
 
   const { data, error } = await supabase
     .from("grievances")

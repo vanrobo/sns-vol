@@ -10,6 +10,7 @@ import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
 import type { UserRole } from "@/types";
 import { getNotificationHref } from "@/lib/notifications-nav";
 import { showBrowserNotification } from "@/lib/push/browser-notifications";
+import toast from "react-hot-toast";
 import {
   UnsavedChangesProvider,
   useUnsavedChangesOptional,
@@ -46,6 +47,10 @@ function MobileLayoutInner({
         const latest = await getLatestUnreadNotification();
         if (latest && !seenNotifIds.current.has(latest.id)) {
           seenNotifIds.current.add(latest.id);
+          toast.success(`${latest.title}\n${latest.body}`, {
+            duration: 6000,
+            style: { whiteSpace: "pre-line" },
+          });
           showBrowserNotification(
             latest.title,
             latest.body,
@@ -118,7 +123,7 @@ function MobileLayoutInner({
           {staffRole && (
             <Link
               href={staffRole === "admin" ? "/admin" : "/organiser"}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-md"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md shadow-emerald-600/20 transition-all"
             >
               <LayoutDashboard size={12} /> Dashboard
             </Link>

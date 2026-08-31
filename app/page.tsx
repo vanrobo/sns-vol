@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   getEvents,
+  getUpcomingEvents,
+  getCheckInStatus,
   applyToEvent,
   withdrawApplication,
   markAttended,
@@ -36,6 +38,7 @@ import { EventListSkeleton } from "@/components/ui/Skeleton";
 import SkillChips from "@/components/ui/SkillChips";
 import StaffHomeBanner from "@/components/StaffHomeBanner";
 import QuickAccessGrid from "@/components/home/QuickAccessGrid";
+import UpcomingEvents from "@/components/home/UpcomingEvents";
 import AwardsCarousel from "@/components/home/AwardsCarousel";
 import EventCalendarView, {
   expandEventDates,
@@ -104,6 +107,7 @@ export default function VolunteeringDashboard() {
     date: string;
     events: Event[];
   } | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
@@ -127,6 +131,11 @@ export default function VolunteeringDashboard() {
             awards,
             stats: st,
           });
+          if (s.role === "volunteer") {
+            getUpcomingEvents()
+              .then(setUpcomingEvents)
+              .catch(() => setUpcomingEvents([]));
+          }
         }
       },
     );
@@ -237,6 +246,11 @@ export default function VolunteeringDashboard() {
       });
     }
     await loadEvents({ silent: true });
+    if (s?.role === "volunteer") {
+      getUpcomingEvents()
+        .then(setUpcomingEvents)
+        .catch(() => setUpcomingEvents([]));
+    }
     haptic("success");
   }, [loadEvents]);
 
@@ -264,7 +278,7 @@ export default function VolunteeringDashboard() {
       if (overrideAction === "mark_attended") {
         await markAttended(selectedEvent.id);
         haptic("success");
-        toast.success("Marked as Attended!");
+        toast.success("Checked in — attendance recorded!");
         setEvents((prev) =>
           prev.map((e) =>
             e.id === selectedEvent.id ? { ...e, has_attended: true } : e,
@@ -414,6 +428,10 @@ export default function VolunteeringDashboard() {
               batch={session.batch}
               awardCount={myAwards.length}
               onEventsClick={() => setCalendarView(true)}
+            />
+            <UpcomingEvents
+              events={upcomingEvents}
+              onSelect={setSelectedEvent}
             />
             <AwardsCarousel awards={myAwards} />
           </div>
@@ -682,25 +700,45 @@ export default function VolunteeringDashboard() {
             </div>
 
             <div className="shrink-0 p-5 pb-6 bg-[var(--surface)] border-t border-[var(--border)]">
-              {selectedEvent.has_applied && !selectedEvent.has_attended && (
-                <button
-                  onClick={() => handleAction("mark_attended")}
-                  disabled={applying}
-                  className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white shadow-lg shadow-emerald-500/20 font-bold py-3.5 rounded-lg text-[14px] transition-all flex justify-center items-center mb-3"
-                >
-                  <CheckCircle2 size={16} className="mr-2" /> Mark as Attended
-                </button>
-              )}
+              {selectedEvent.has_applied &&
+                selectedEvent.application_status === "approved" &&
+                !selectedEvent.has_attended &&
+                (() => {
+                  const checkIn = getCheckInStatus(selectedEvent);
+                  if (checkIn.allowed) {
+                    return (
+                      <button
+                        onClick={() => handleAction("mark_attended")}
+                        disabled={applying}
+                        className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white shadow-lg shadow-emerald-500/20 font-bold py-3.5 rounded-lg text-[14px] transition-all flex justify-center items-center mb-3"
+                      >
+                        <CheckCircle2 size={16} className="mr-2" /> Check in
+                        (I&apos;m here)
+                      </button>
+                    );
+                  }
+                  return (
+                    <p className="text-xs text-center text-[var(--text-muted)] font-medium mb-3 leading-relaxed px-2">
+                      {checkIn.message}
+                    </p>
+                  );
+                })()}
 
               {tab === "Active" ? (
                 <div className="space-y-2">
-                  <a
-                    href={`tel:${selectedEvent.coordinator_phone || "+919876543210"}`}
-                    className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-xl text-[14px] shadow-lg"
-                  >
-                    <Phone size={16} />
-                    Call Coordinator
-                  </a>
+                  {selectedEvent.coordinator_phone?.trim() ? (
+                    <a
+                      href={`tel:${selectedEvent.coordinator_phone.trim()}`}
+                      className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-xl text-[14px] shadow-lg"
+                    >
+                      <Phone size={16} />
+                      Call Coordinator
+                    </a>
+                  ) : (
+                    <p className="text-center text-xs text-[var(--text-muted)] font-medium py-2">
+                      No coordinator phone listed for this event.
+                    </p>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleAction()}

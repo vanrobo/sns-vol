@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireStaff } from "@/lib/auth/guards";
 import { resolveUniqueEventSlug } from "@/lib/events/slug-server";
+import { createServiceClient } from "@/lib/supabase/service";
 import type {
   AdminData,
   Application,
@@ -94,7 +95,30 @@ export type EventInput = {
   required_skills: string[];
   category?: string;
   coordinator_phone?: string;
+  region?: string;
+  end_date?: string | null;
+  time_start?: string | null;
+  time_end?: string | null;
+  is_recurring?: boolean;
 };
+
+function eventPayload(input: EventInput) {
+  return {
+    title: input.title,
+    date: input.date,
+    venue: input.venue,
+    description: input.description,
+    criteria: input.criteria ?? "Student",
+    required_skills: input.required_skills,
+    category: input.category ?? "Community",
+    coordinator_phone: input.coordinator_phone ?? "",
+    region: input.region?.trim() || null,
+    end_date: input.end_date || null,
+    time_start: input.time_start || null,
+    time_end: input.time_end || null,
+    is_recurring: input.is_recurring ?? false,
+  };
+}
 
 export async function createEvent(input: EventInput) {
   await requireStaff();
@@ -104,14 +128,7 @@ export async function createEvent(input: EventInput) {
     .from("events")
     .insert({
       slug,
-      title: input.title,
-      date: input.date,
-      venue: input.venue,
-      description: input.description,
-      criteria: input.criteria ?? "Student",
-      required_skills: input.required_skills,
-      category: input.category ?? "Community",
-      coordinator_phone: input.coordinator_phone ?? "",
+      ...eventPayload(input),
       status: "active",
     })
     .select()
@@ -129,14 +146,7 @@ export async function updateEvent(id: string, input: EventInput) {
     .from("events")
     .update({
       slug,
-      title: input.title,
-      date: input.date,
-      venue: input.venue,
-      description: input.description,
-      criteria: input.criteria ?? "Student",
-      required_skills: input.required_skills,
-      category: input.category ?? "Community",
-      coordinator_phone: input.coordinator_phone ?? "",
+      ...eventPayload(input),
     })
     .eq("id", id)
     .select()
@@ -179,6 +189,46 @@ export async function adminDeleteVolunteer(userId: string) {
       avatar_url: null,
       skills: [],
       batch: null,
+    })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
+export async function completeAccountDeletion(userId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: profile, error: fetchError } = await supabase
+    .from("profiles")
+    .select("delete_requested_at")
+    .eq("id", userId)
+    .single();
+  if (fetchError) throw fetchError;
+  if (!profile.delete_requested_at) {
+    throw new Error("User has not requested account deletion.");
+  }
+
+  const service = createServiceClient();
+  if (service) {
+    const { error: authError } = await service.auth.admin.deleteUser(userId);
+    if (authError) throw authError;
+    return;
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      status: "inactive",
+      name: "Deleted User",
+      phone: "",
+      address: "",
+      college: "",
+      avatar_url: null,
+      skills: [],
+      batch: null,
+      delete_requested_at: null,
+      volunteer_id: null,
+      valid_until: null,
     })
     .eq("id", userId);
   if (error) throw error;
@@ -280,11 +330,30 @@ export async function approveICard(userId: string) {
 export async function resolveGrievance(id: string, adminNotes: string) {
   await requireAdmin();
   const supabase = await createClient();
+  const notes = adminNotes.trim();
+
+  const { data: grievance, error: fetchError } = await supabase
+    .from("grievances")
+    .select("user_id, status")
+    .eq("id", id)
+    .single();
+  if (fetchError) throw fetchError;
+
   const { error } = await supabase
     .from("grievances")
-    .update({ status: "resolved", admin_notes: adminNotes })
+    .update({ status: "resolved", admin_notes: notes })
     .eq("id", id);
   if (error) throw error;
+
+  if (grievance.status !== "resolved") {
+    const { error: notifError } = await supabase.from("notifications").insert({
+      user_id: grievance.user_id,
+      title: "Grievance resolved",
+      body: notes || "Your complaint ticket has been resolved.",
+      type: "grievance",
+    });
+    if (notifError) throw notifError;
+  }
 }
 
 export async function updateUserBatch(userId: string, batch: string) {

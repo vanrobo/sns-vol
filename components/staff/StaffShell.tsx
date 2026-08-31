@@ -47,7 +47,7 @@ export default function StaffShell({
   }, [activeTab]);
 
   return (
-    <div className="max-w-md mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight w-full">
+    <div className="w-full mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight max-w-md md:max-w-5xl lg:max-w-6xl">
       <header className="shrink-0 z-50 px-4 py-3 flex justify-between items-center bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
         <div className="flex items-center gap-2 min-w-0">
           <Link
@@ -93,7 +93,7 @@ export default function StaffShell({
           mainRef.current = el;
           setScrollEl(el);
         }}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 pt-4 pb-4 animate-fadeIn"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 md:px-8 pt-4 pb-4 animate-fadeIn"
       >
         {children}
       </main>

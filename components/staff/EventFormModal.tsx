@@ -3,33 +3,29 @@
 import { X } from "lucide-react";
 import type { Event } from "@/types";
 import type { EventInput } from "@/lib/data/admin";
+import VenuePicker from "@/components/staff/VenuePicker";
+import SkillPicker from "@/components/ui/SkillPicker";
 
 type EventFormModalProps = {
   open: boolean;
   editing: Event | null;
   form: EventInput;
-  tempSkill: string;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   onChange: (form: EventInput) => void;
-  onTempSkillChange: (value: string) => void;
-  onAddSkill: (e: React.FormEvent) => void;
-  onRemoveSkill: (skill: string) => void;
 };
 
 export default function EventFormModal({
   open,
   editing,
   form,
-  tempSkill,
   onClose,
   onSubmit,
   onChange,
-  onTempSkillChange,
-  onAddSkill,
-  onRemoveSkill,
 }: EventFormModalProps) {
   if (!open) return null;
+
+  const venueFieldKey = editing?.id ?? "new-event";
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -48,8 +44,8 @@ export default function EventFormModal({
         </div>
 
         <form onSubmit={onSubmit} className="p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-5">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="md:col-span-2">
               <label className="block text-sm font-bold mb-2">Event Title</label>
               <input
                 required
@@ -60,7 +56,7 @@ export default function EventFormModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-2">Date</label>
+              <label className="block text-sm font-bold mb-2">Start Date</label>
               <input
                 required
                 type="date"
@@ -70,12 +66,58 @@ export default function EventFormModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-2">Venue</label>
+              <label className="block text-sm font-bold mb-2">
+                End Date{" "}
+                <span className="font-normal text-slate-500">(recurring)</span>
+              </label>
               <input
-                required
-                type="text"
+                type="date"
+                value={form.end_date ?? ""}
+                min={form.date}
+                onChange={(e) =>
+                  onChange({ ...form, end_date: e.target.value || null })
+                }
+                className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-2">Start Time</label>
+              <input
+                type="time"
+                value={form.time_start ?? ""}
+                onChange={(e) =>
+                  onChange({ ...form, time_start: e.target.value || null })
+                }
+                className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-2">End Time</label>
+              <input
+                type="time"
+                value={form.time_end ?? ""}
+                onChange={(e) =>
+                  onChange({ ...form, time_end: e.target.value || null })
+                }
+                className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold mb-2">Venue</label>
+              <VenuePicker
+                fieldKey={venueFieldKey}
                 value={form.venue}
-                onChange={(e) => onChange({ ...form, venue: e.target.value })}
+                onChange={(venue) => onChange({ ...form, venue })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold mb-2">Region / Area</label>
+              <input
+                type="text"
+                value={form.region ?? ""}
+                onChange={(e) => onChange({ ...form, region: e.target.value })}
+                placeholder="e.g. Dwarka, South Delhi"
                 className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
               />
             </div>
@@ -102,10 +144,25 @@ export default function EventFormModal({
                 onChange={(e) =>
                   onChange({ ...form, coordinator_phone: e.target.value })
                 }
+                placeholder="Auto-filled from your profile if set"
                 className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
               />
             </div>
-            <div className="col-span-2">
+            <div className="md:col-span-2 flex items-center gap-3">
+              <input
+                id="is-recurring"
+                type="checkbox"
+                checked={form.is_recurring ?? false}
+                onChange={(e) =>
+                  onChange({ ...form, is_recurring: e.target.checked })
+                }
+                className="w-4 h-4 accent-emerald-600"
+              />
+              <label htmlFor="is-recurring" className="text-sm font-bold">
+                Recurring weekly event (shows on calendar until end date)
+              </label>
+            </div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-bold mb-2">Description</label>
               <textarea
                 required
@@ -117,41 +174,16 @@ export default function EventFormModal({
                 className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
               />
             </div>
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <label className="block text-sm font-bold mb-2">
                 Required Skills
               </label>
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={tempSkill}
-                  onChange={(e) => onTempSkillChange(e.target.value)}
-                  className="flex-1 border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
-                  placeholder="e.g. Mathematics"
-                />
-                <button
-                  type="button"
-                  onClick={onAddSkill}
-                  className="bg-gray-800 text-white px-4 rounded-xl font-bold"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {form.required_skills.map((s) => (
-                  <span
-                    key={s}
-                    className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1"
-                  >
-                    {s}
-                    <X
-                      size={14}
-                      className="cursor-pointer"
-                      onClick={() => onRemoveSkill(s)}
-                    />
-                  </span>
-                ))}
-              </div>
+              <SkillPicker
+                selected={form.required_skills}
+                onChange={(required_skills) =>
+                  onChange({ ...form, required_skills })
+                }
+              />
             </div>
           </div>
 
@@ -176,13 +208,43 @@ export default function EventFormModal({
   );
 }
 
-export const emptyEventForm = {
+export const emptyEventForm: EventInput = {
   title: "",
   date: "",
   venue: "",
   description: "",
   criteria: "Student",
-  required_skills: [] as string[],
+  required_skills: [],
   category: "Community",
   coordinator_phone: "",
+  region: "",
+  end_date: null,
+  time_start: null,
+  time_end: null,
+  is_recurring: false,
 };
+
+export function createEventForm(staffPhone?: string): EventInput {
+  return {
+    ...emptyEventForm,
+    coordinator_phone: staffPhone?.trim() ?? "",
+  };
+}
+
+export function eventToForm(event: Event): EventInput {
+  return {
+    title: event.title,
+    date: event.date,
+    venue: event.venue,
+    description: event.description,
+    criteria: event.criteria,
+    required_skills: event.required_skills,
+    category: event.category,
+    coordinator_phone: event.coordinator_phone,
+    region: event.region ?? "",
+    end_date: event.end_date ?? null,
+    time_start: event.time_start ?? null,
+    time_end: event.time_end ?? null,
+    is_recurring: event.is_recurring ?? false,
+  };
+}

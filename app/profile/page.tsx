@@ -51,18 +51,8 @@ import {
   Bell,
 } from "lucide-react";
 
-const SKILL_DB = [
-  "Teaching",
-  "Mentoring",
-  "STEM",
-  "Robotics",
-  "Event Management",
-  "Social Change",
-  "Logistics",
-  "Content Writing",
-  "Photography",
-  "Public Speaking",
-];
+import { SKILL_DB } from "@/lib/skills";
+import { GOOGLE_REVIEW_URL } from "@/lib/brand";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -506,14 +496,19 @@ export default function ProfilePage() {
           </p>
         )}
 
-        {myAwards.length > 0 && (
-          <div
-            id="awards"
-            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-5 space-y-3"
-          >
-            <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-              <Award size={16} className="text-amber-500" /> My Awards
-            </h3>
+        <div
+          id="awards"
+          className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-5 space-y-3"
+        >
+          <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+            <Award size={16} className="text-amber-500" /> My Awards
+          </h3>
+          {myAwards.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+              No awards yet — keep volunteering and your coordinator may recognize
+              you here.
+            </p>
+          ) : (
             <div className="space-y-2">
               {myAwards.map((a) => (
                 <div
@@ -530,8 +525,8 @@ export default function ProfilePage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="bg-gradient-to-br from-[var(--brand)] to-emerald-700 rounded-xl p-5 text-white shadow-md relative overflow-hidden">
           <Award
@@ -547,7 +542,7 @@ export default function ProfilePage() {
               Page reviews to support our outreach.
             </p>
             <a
-              href="https://g.page/r/your-google-review-link/review"
+              href={GOOGLE_REVIEW_URL}
               target="_blank"
               rel="noreferrer"
               className="inline-block bg-white text-emerald-800 font-bold py-1.5 px-4 rounded-full text-xs shadow hover:bg-slate-50 transition-colors"

@@ -36,7 +36,9 @@ import CancelOccurrenceModal from "@/components/staff/CancelOccurrenceModal";
 import { signOutAction } from "@/lib/actions/auth";
 import StaffShell from "@/components/staff/StaffShell";
 import EventFormModal, {
+  createEventForm,
   emptyEventForm,
+  eventToForm,
 } from "@/components/staff/EventFormModal";
 import EventsTable from "@/components/staff/EventsTable";
 import ApplicationsTable from "@/components/staff/ApplicationsTable";
@@ -73,7 +75,7 @@ export default function AdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [eventForm, setEventForm] = useState<EventInput>(emptyEventForm);
-  const [tempSkill, setTempSkill] = useState("");
+  const [staffPhone, setStaffPhone] = useState("");
 
   const [eventsPage, setEventsPage] = useState(1);
   const [appsPage, setAppsPage] = useState(1);
@@ -111,39 +113,20 @@ export default function AdminDashboard() {
     fetchAdminData();
     getMyRole().then((s) => {
       if (s?.name) setStaffName(s.name);
+      if (s?.phone) setStaffPhone(s.phone);
     });
   }, [fetchAdminData]);
 
   const openCreateModal = () => {
     setEditingEvent(null);
-    setEventForm(emptyEventForm);
+    setEventForm(createEventForm(staffPhone));
     setIsModalOpen(true);
   };
 
   const openEditModal = (event: Event) => {
     setEditingEvent(event);
-    setEventForm({
-      title: event.title,
-      date: event.date,
-      venue: event.venue,
-      description: event.description,
-      criteria: event.criteria,
-      required_skills: event.required_skills,
-      category: event.category,
-      coordinator_phone: event.coordinator_phone,
-    });
+    setEventForm(eventToForm(event));
     setIsModalOpen(true);
-  };
-
-  const handleAddSkill = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tempSkill && !eventForm.required_skills.includes(tempSkill)) {
-      setEventForm({
-        ...eventForm,
-        required_skills: [...eventForm.required_skills, tempSkill],
-      });
-      setTempSkill("");
-    }
   };
 
   const submitEvent = async (e: React.FormEvent) => {
@@ -340,6 +323,8 @@ export default function AdminDashboard() {
     }
   };
 
+  const deletionRequests = data.users.filter((u) => u.delete_requested_at);
+
   const filteredVolunteers = data.users.filter((v) => {
     const q = volunteerSearch.toLowerCase();
     const matchesSearch =
@@ -504,6 +489,30 @@ export default function AdminDashboard() {
 
         {activeTab === "volunteers" && (
           <div className="space-y-4">
+            {deletionRequests.length > 0 && (
+              <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-4 space-y-2">
+                <h3 className="text-sm font-bold text-red-800 dark:text-red-300">
+                  {deletionRequests.length} account deletion request
+                  {deletionRequests.length === 1 ? "" : "s"}
+                </h3>
+                <p className="text-xs text-red-700/80 dark:text-red-400/80 leading-relaxed">
+                  Open the volunteer card and tap Confirm permanent deletion after
+                  reviewing.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {deletionRequests.map((u) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() => setDetailVolunteer(u)}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white dark:bg-[#18181B] border border-red-200 dark:border-red-900/50"
+                    >
+                      {u.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <StaffWelcome
               name={staffName}
               subtitle="Search, approve, batch, and notify volunteers."
@@ -845,21 +854,12 @@ export default function AdminDashboard() {
         open={isModalOpen}
         editing={editingEvent}
         form={eventForm}
-        tempSkill={tempSkill}
         onClose={() => {
           setIsModalOpen(false);
           setEditingEvent(null);
         }}
         onSubmit={submitEvent}
         onChange={setEventForm}
-        onTempSkillChange={setTempSkill}
-        onAddSkill={handleAddSkill}
-        onRemoveSkill={(skill) =>
-          setEventForm({
-            ...eventForm,
-            required_skills: eventForm.required_skills.filter((s) => s !== skill),
-          })
-        }
       />
     </>
   );

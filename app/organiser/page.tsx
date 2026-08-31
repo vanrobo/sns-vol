@@ -23,7 +23,9 @@ import { getMyRole } from "@/lib/data/profiles";
 import { readOrganiserCache, writeOrganiserCache } from "@/lib/organiser-cache";
 import { haptic } from "@/lib/haptics";
 import EventFormModal, {
+  createEventForm,
   emptyEventForm,
+  eventToForm,
 } from "@/components/staff/EventFormModal";
 import EventsTable from "@/components/staff/EventsTable";
 import EventAttendanceModal from "@/components/staff/EventAttendanceModal";
@@ -49,7 +51,7 @@ export default function OrganiserDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [eventForm, setEventForm] = useState<EventInput>(emptyEventForm);
-  const [tempSkill, setTempSkill] = useState("");
+  const [staffPhone, setStaffPhone] = useState("");
   const [eventsPage, setEventsPage] = useState(1);
   const [appsPage, setAppsPage] = useState(1);
   const [actioningId, setActioningId] = useState<string | null>(null);
@@ -79,39 +81,20 @@ export default function OrganiserDashboard() {
     fetchData();
     getMyRole().then((s) => {
       if (s?.name) setStaffName(s.name);
+      if (s?.phone) setStaffPhone(s.phone);
     });
   }, [fetchData]);
 
   const openCreateModal = () => {
     setEditingEvent(null);
-    setEventForm(emptyEventForm);
+    setEventForm(createEventForm(staffPhone));
     setIsModalOpen(true);
   };
 
   const openEditModal = (event: Event) => {
     setEditingEvent(event);
-    setEventForm({
-      title: event.title,
-      date: event.date,
-      venue: event.venue,
-      description: event.description,
-      criteria: event.criteria,
-      required_skills: event.required_skills,
-      category: event.category,
-      coordinator_phone: event.coordinator_phone,
-    });
+    setEventForm(eventToForm(event));
     setIsModalOpen(true);
-  };
-
-  const handleAddSkill = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tempSkill && !eventForm.required_skills.includes(tempSkill)) {
-      setEventForm({
-        ...eventForm,
-        required_skills: [...eventForm.required_skills, tempSkill],
-      });
-      setTempSkill("");
-    }
   };
 
   const submitEvent = async (e: React.FormEvent) => {
@@ -308,18 +291,9 @@ export default function OrganiserDashboard() {
         open={isModalOpen}
         editing={editingEvent}
         form={eventForm}
-        tempSkill={tempSkill}
         onClose={() => setIsModalOpen(false)}
         onSubmit={submitEvent}
         onChange={setEventForm}
-        onTempSkillChange={setTempSkill}
-        onAddSkill={handleAddSkill}
-        onRemoveSkill={(skill) =>
-          setEventForm({
-            ...eventForm,
-            required_skills: eventForm.required_skills.filter((s) => s !== skill),
-          })
-        }
       />
 
       <EventAttendanceModal

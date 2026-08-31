@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { getEvents, submitFeedback } from "@/lib/data/events";
 import type { Event } from "@/types";
 import { Star, Loader2, Award } from "lucide-react";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, GOOGLE_REVIEW_URL } from "@/lib/brand";
 
 export default function FeedbacksPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -134,7 +134,7 @@ export default function FeedbacksPage() {
             Support us by leaving a review on Google Business Profile.
           </p>
           <a
-            href="https://g.page/r/your-google-review-link/review"
+            href={GOOGLE_REVIEW_URL}
             target="_blank"
             rel="noreferrer"
             className="inline-block bg-white text-emerald-800 font-bold py-2 px-6 rounded-full text-sm shadow hover:bg-gray-100 transition-colors"

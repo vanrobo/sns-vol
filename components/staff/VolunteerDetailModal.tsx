@@ -16,6 +16,7 @@ import { titleCaseStatus } from "@/types";
 import {
   adminDeleteVolunteer,
   broadcastNotification,
+  completeAccountDeletion,
 } from "@/lib/data/admin";
 
 type Props = {
@@ -74,6 +75,26 @@ export default function VolunteerDetailModal({
       onClose();
     } catch {
       toast.error("Failed to deactivate account.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCompleteDeletion = async () => {
+    if (
+      !confirm(
+        `Permanently delete ${volunteer.name}'s account? This cannot be undone.`,
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await completeAccountDeletion(volunteer.id);
+      toast.success("Account deletion completed.");
+      onUpdated();
+      onClose();
+    } catch {
+      toast.error("Failed to complete deletion.");
     } finally {
       setBusy(false);
     }
@@ -163,6 +184,23 @@ export default function VolunteerDetailModal({
               Send in-app alert
             </button>
           </div>
+
+          {volunteer.delete_requested_at && (
+            <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-3 space-y-2">
+              <p className="text-xs font-bold text-red-700 dark:text-red-400">
+                Deletion requested{" "}
+                {new Date(volunteer.delete_requested_at).toLocaleDateString()}
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleCompleteDeletion}
+                className="w-full flex items-center justify-center gap-2 bg-red-700 text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50"
+              >
+                <Trash2 size={16} /> Confirm permanent deletion
+              </button>
+            </div>
+          )}
 
           <button
             type="button"

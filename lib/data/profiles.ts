@@ -39,6 +39,7 @@ export async function getMyRole(): Promise<{
   status: Profile["status"];
   name: string;
   batch: string | null;
+  phone: string;
 } | null> {
   const supabase = await createClient();
   const {
@@ -48,7 +49,7 @@ export async function getMyRole(): Promise<{
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, role, status, name, batch")
+    .select("id, role, status, name, batch, phone")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -59,6 +60,7 @@ export async function getMyRole(): Promise<{
     status: Profile["status"];
     name: string;
     batch: string | null;
+    phone: string;
   };
 }
 

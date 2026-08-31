@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
-import { APP_NAME_ACCENT } from "@/lib/brand";
+import { APP_NAME_ACCENT, DONATE_URL } from "@/lib/brand";
 import type { UserRole } from "@/types";
 import { useNotificationUnread } from "@/hooks/useNotificationUnread";
 import { clearNotificationUnread } from "@/lib/notification-poll-store";
@@ -92,7 +92,7 @@ export default function MobileLayout({
             </Link>
           )}
           <a
-            href="https://rzp.io/l/snsdonate"
+            href={DONATE_URL}
             target="_blank"
             rel="noreferrer"
             className="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md shadow-rose-500/20 transition-all"

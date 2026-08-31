@@ -12,3 +12,6 @@ export const BRAND_THEME_COLOR = "#34c759";
 /** Stand N Stride Foundation — official Google review link */
 export const GOOGLE_REVIEW_URL =
   "https://g.page/r/CY98E0HsTIUWEA0/review";
+
+/** Stand N Stride Foundation — donations */
+export const DONATE_URL = "https://dev.standnstride.org/donate";

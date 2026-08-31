@@ -43,12 +43,22 @@ export function usePWAInstall() {
       setPromptEvent(null);
     };
 
+    const onDisplayMode = () => {
+      setInstalled(isStandalone());
+    };
+
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
+    window
+      .matchMedia("(display-mode: standalone)")
+      .addEventListener("change", onDisplayMode);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
+      window
+        .matchMedia("(display-mode: standalone)")
+        .removeEventListener("change", onDisplayMode);
     };
   }, []);
 
@@ -65,12 +75,16 @@ export function usePWAInstall() {
     return false;
   }, [promptEvent]);
 
-  const showInstallOption = !installed && (canInstall || isIOSDevice);
+  /** True when already opened from home screen — hide install row */
+  const isInstalledApp = installed;
+
+  /** True when opened in browser and install guidance makes sense */
+  const showInstallOption = !installed;
 
   return {
     canInstall,
     isIOSDevice,
-    installed,
+    installed: isInstalledApp,
     showInstallOption,
     install,
   };

@@ -66,10 +66,93 @@ export async function getStaffAwards(): Promise<StaffAwardRow[]> {
       title: row.title,
       description: row.description,
       event_id: row.event_id,
+      icon: row.icon,
+      color: row.color,
       created_at: row.created_at,
       recipient_count: row.user_awards?.[0]?.count ?? 0,
     };
   });
+}
+
+export type AwardRecipient = {
+  id: string;
+  user_id: string;
+  name: string;
+  college: string;
+  awarded_at: string;
+};
+
+export async function getAwardRecipients(
+  awardId: string,
+): Promise<AwardRecipient[]> {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("user_awards")
+    .select("id, user_id, awarded_at, profiles(name, college)")
+    .eq("award_id", awardId)
+    .order("awarded_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const r = row as {
+      id: string;
+      user_id: string;
+      awarded_at: string;
+      profiles:
+        | { name: string; college: string }
+        | { name: string; college: string }[]
+        | null;
+    };
+    const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+    return {
+      id: r.id,
+      user_id: r.user_id,
+      name: profile?.name ?? "Volunteer",
+      college: profile?.college ?? "",
+      awarded_at: r.awarded_at,
+    };
+  });
+}
+
+export async function updateAward(
+  awardId: string,
+  input: {
+    title: string;
+    description?: string;
+    event_id?: string | null;
+    icon?: string;
+    color?: string;
+  },
+) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("awards")
+    .update({
+      title: input.title.trim(),
+      description: input.description?.trim() ?? "",
+      event_id: input.event_id || null,
+      icon: input.icon ?? "award",
+      color: input.color ?? "#34c759",
+    })
+    .eq("id", awardId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Award;
+}
+
+export async function revokeAward(userAwardId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("user_awards")
+    .delete()
+    .eq("id", userAwardId);
+  if (error) throw error;
 }
 
 export async function createAward(input: {

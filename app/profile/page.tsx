@@ -10,6 +10,12 @@ import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
 import Link from "next/link";
 import {
+  canUseBrowserNotifications,
+  isPushEnabledLocally,
+  requestBrowserNotificationPermission,
+  setPushEnabledLocally,
+} from "@/lib/push/browser-notifications";
+import {
   getProfile,
   updateProfile,
   uploadAvatar,
@@ -89,9 +95,11 @@ export default function ProfilePage() {
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
 
   useEffect(() => {
     setPortalReady(true);
+    setPushEnabled(isPushEnabledLocally());
   }, []);
 
   const profileSnapshot = useMemo(() => {
@@ -546,6 +554,46 @@ export default function ProfilePage() {
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
+          <div className="p-4 px-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Bell size={16} className="text-[var(--brand)] shrink-0" />
+              <div className="min-w-0">
+                <span className="font-semibold text-sm block">Phone Alerts</span>
+                <p className="text-[10px] text-[var(--text-muted)] leading-snug">
+                  Native notifications when the app is open or in background
+                </p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={pushEnabled}
+                disabled={!canUseBrowserNotifications()}
+                onChange={async () => {
+                  if (!canUseBrowserNotifications()) {
+                    toast.error("Notifications not supported on this device.");
+                    return;
+                  }
+                  if (!pushEnabled) {
+                    const perm = await requestBrowserNotificationPermission();
+                    if (perm !== "granted") {
+                      toast.error("Enable notifications in browser settings.");
+                      return;
+                    }
+                    setPushEnabled(true);
+                    setPushEnabledLocally(true);
+                    toast.success("Phone alerts enabled");
+                  } else {
+                    setPushEnabled(false);
+                    setPushEnabledLocally(false);
+                    toast.success("Phone alerts disabled");
+                  }
+                }}
+              />
+              <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--brand)] peer-disabled:opacity-40" />
+            </label>
+          </div>
           <Link
             href="/notifications"
             onClick={(e) => {
@@ -564,10 +612,7 @@ export default function ProfilePage() {
             }}
             className="p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <div className="flex items-center gap-3">
-              <Bell size={16} className="text-[var(--brand)]" />
-              <span className="font-semibold text-sm">Push Notifications</span>
-            </div>
+            <span className="font-semibold text-sm">Notification History</span>
             <ChevronDown size={14} className="-rotate-90 text-slate-400" />
           </Link>
           <div className="p-4 px-5 flex items-center justify-between">

@@ -110,6 +110,7 @@ export async function updateSession(request: NextRequest) {
     const pendingAllowed =
       path === "/pending" ||
       path === "/profile" ||
+      path === "/notifications" ||
       path === "/login" ||
       path === "/signup" ||
       isPublicPage;

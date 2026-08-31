@@ -3,11 +3,13 @@
 import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { hasUnreadNotifications } from "@/lib/data/notifications";
+import { useEffect, useState, useRef } from "react";
+import { hasUnreadNotifications, getLatestUnreadNotification } from "@/lib/data/notifications";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
 import type { UserRole } from "@/types";
+import { getNotificationHref } from "@/lib/notifications-nav";
+import { showBrowserNotification } from "@/lib/push/browser-notifications";
 import {
   UnsavedChangesProvider,
   useUnsavedChangesOptional,
@@ -24,6 +26,27 @@ function MobileLayoutInner({
   const [mounted, setMounted] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [staffRole, setStaffRole] = useState<UserRole | null>(null);
+  const seenNotifIds = useRef<Set<string>>(new Set());
+
+  const pollNotifications = async () => {
+    try {
+      const unread = await hasUnreadNotifications();
+      if (unread) {
+        const latest = await getLatestUnreadNotification();
+        if (latest && !seenNotifIds.current.has(latest.id)) {
+          seenNotifIds.current.add(latest.id);
+          showBrowserNotification(
+            latest.title,
+            latest.body,
+            getNotificationHref(latest.type),
+          );
+        }
+      }
+      setHasUnread(unread);
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -40,11 +63,7 @@ function MobileLayoutInner({
         return;
       }
 
-      try {
-        setHasUnread(await hasUnreadNotifications());
-      } catch {
-        /* ignore */
-      }
+      await pollNotifications();
 
       try {
         const session = await getMyRole();
@@ -57,13 +76,7 @@ function MobileLayoutInner({
     };
 
     checkAuth();
-    const interval = setInterval(async () => {
-      try {
-        setHasUnread(await hasUnreadNotifications());
-      } catch {
-        /* ignore */
-      }
-    }, 30000);
+    const interval = setInterval(pollNotifications, 30000);
     return () => clearInterval(interval);
   }, [mounted, router]);
 

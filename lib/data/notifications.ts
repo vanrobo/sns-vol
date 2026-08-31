@@ -38,6 +38,26 @@ export async function hasUnreadNotifications(): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
+export async function getLatestUnreadNotification(): Promise<Notification | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", user.id)
+    .is("read_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as Notification;
+}
+
 export async function markNotificationsRead() {
   const supabase = await createClient();
   const {

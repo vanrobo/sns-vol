@@ -44,6 +44,11 @@ import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
 import { APP_NAME } from "@/lib/brand";
 import { readHomeCache, writeHomeCache } from "@/lib/home-cache";
+import {
+  eventsCacheKey,
+  readEventsCache,
+  writeEventsCache,
+} from "@/lib/events-cache";
 import type { UserRole, UserAward } from "@/types";
 
 function applicationStatusClass(status: ApplicationStatus) {
@@ -74,6 +79,9 @@ export default function VolunteeringDashboard() {
     name: string;
     batch: string | null;
   } | null>(() => readHomeCache()?.session ?? null);
+  const [userId, setUserId] = useState<string | undefined>(
+    () => readHomeCache()?.userId,
+  );
   const [myAwards, setMyAwards] = useState<UserAward[]>(
     () => readHomeCache()?.awards ?? [],
   );
@@ -98,6 +106,7 @@ export default function VolunteeringDashboard() {
           ? { role: s.role, name: s.name, batch: s.batch }
           : null;
         if (nextSession && s) {
+          setUserId(s.id);
           setSession(nextSession);
           setMyAwards(awards);
           if (st) setStats(st);
@@ -121,8 +130,19 @@ export default function VolunteeringDashboard() {
     };
   }, [selectedEvent]);
 
-  const loadEvents = async () => {
-    setLoading(true);
+  const loadEvents = async (opts?: { silent?: boolean }) => {
+    const cacheKey = eventsCacheKey(tab, dateFilter, regionFilter);
+    const cached = userId ? readEventsCache(userId, cacheKey) : null;
+
+    if (!opts?.silent && !cached) {
+      setLoading(true);
+    } else if (cached) {
+      setEvents(cached.events);
+      if (cached.calendarEvents.length > 0) {
+        setAllEventsForCalendar(cached.calendarEvents);
+      }
+    }
+
     try {
       const status =
         tab === "Attended" ? "attended" : tab === "Active" ? "active" : "closed";
@@ -138,7 +158,6 @@ export default function VolunteeringDashboard() {
           (e) => (e.region || e.venue) === regionFilter,
         );
       }
-      // Recurring sessions only appear in list when a calendar date is selected
       if (!dateFilter) {
         fetched = fetched.filter((e) => !e.is_recurring);
       }
@@ -147,21 +166,38 @@ export default function VolunteeringDashboard() {
       );
       setEvents(fetched);
 
+      let calendarEvents: Event[] = [];
       if (tab === "Active") {
-        const allActive = await getEvents("active");
-        setAllEventsForCalendar(allActive);
+        calendarEvents = await getEvents("active");
+        setAllEventsForCalendar(calendarEvents);
+      }
+
+      if (userId) {
+        writeEventsCache(userId, cacheKey, fetched, calendarEvents);
       }
     } catch {
-      toast.error("Connection failed");
+      if (!cached) toast.error("Connection failed");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadEvents();
+    if (!userId) return;
+    const cacheKey = eventsCacheKey(tab, dateFilter, regionFilter);
+    const cached = readEventsCache(userId, cacheKey);
+    if (cached) {
+      setEvents(cached.events);
+      if (cached.calendarEvents.length > 0) {
+        setAllEventsForCalendar(cached.calendarEvents);
+      }
+      setLoading(false);
+      loadEvents({ silent: true });
+    } else {
+      loadEvents();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, dateFilter, regionFilter]);
+  }, [tab, dateFilter, regionFilter, userId]);
 
   const handleAction = async (overrideAction?: string) => {
     if (!selectedEvent) return;
@@ -234,13 +270,13 @@ export default function VolunteeringDashboard() {
   const getCardColor = (category?: string) => {
     switch (category?.toLowerCase()) {
       case "stem":
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-blue-500 border border-[var(--border)]";
+        return "bg-blue-50/50 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900";
       case "education":
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-purple-500 border border-[var(--border)]";
+        return "bg-purple-50/50 dark:bg-purple-950/10 border-purple-200 dark:border-purple-900";
       case "environment":
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-emerald-500 border border-[var(--border)]";
+        return "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900";
       default:
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-amber-500 border border-[var(--border)]";
+        return "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900";
     }
   };
 

@@ -2,6 +2,7 @@
 "use client";
 import MobileLayout from "@/components/MobileLayout";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   CheckCircle,
@@ -10,31 +11,57 @@ import {
   Loader2,
   BadgeCheck,
   Award,
+  ChevronRight,
 } from "lucide-react";
 import {
   getNotifications,
   markNotificationsRead,
 } from "@/lib/data/notifications";
+import { getMyRole } from "@/lib/data/profiles";
 import type { Notification } from "@/types";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
+import { getNotificationHref } from "@/lib/notifications-nav";
+import {
+  readNotificationsCache,
+  writeNotificationsCache,
+} from "@/lib/notifications-cache";
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const data = await getNotifications();
-        setNotifications(data);
-        await markNotificationsRead();
-      } catch {
-        /* ignore */
-      } finally {
+    let cancelled = false;
+
+    (async () => {
+      const me = await getMyRole();
+      const cached = me ? readNotificationsCache(me.id) : null;
+      if (cached?.length) {
+        setNotifications(cached);
         setLoading(false);
       }
+
+      try {
+        const data = await getNotifications();
+        if (cancelled) return;
+        setNotifications(data);
+        if (me) writeNotificationsCache(me.id, data);
+        await markNotificationsRead();
+      } catch {
+        if (!cached && !cancelled) setLoading(false);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
     };
-    fetchNotifications();
   }, []);
 
   const getIconData = (type: string) => {
@@ -62,6 +89,10 @@ export default function NotificationsPage() {
     return d.toLocaleDateString();
   };
 
+  const openNotification = (notif: Notification) => {
+    router.push(getNotificationHref(notif.type));
+  };
+
   return (
     <MobileLayout>
       <div className="p-5 space-y-6 pb-24">
@@ -70,14 +101,18 @@ export default function NotificationsPage() {
             className="absolute -right-4 -bottom-4 text-white/5"
             size={120}
           />
-          <div className="relative z-10">
-            <h2 className="text-[22px] font-bold tracking-tight mb-2">
-              Alert Hub
-            </h2>
-            <p className="text-[#98989D] text-[13px] leading-relaxed">
-              Stay updated on skill matches, application status, and grievance
-              ticket solutions.
-            </p>
+          <div className="relative z-10 flex justify-between items-start gap-3">
+            <div>
+              <h2 className="text-[22px] font-bold tracking-tight mb-2">
+                Alert Hub
+              </h2>
+              <p className="text-[#98989D] text-[13px] leading-relaxed">
+                Tap any alert to jump to the relevant screen.
+              </p>
+            </div>
+            {refreshing && (
+              <Loader2 className="animate-spin text-white/60 shrink-0" size={18} />
+            )}
           </div>
         </div>
 
@@ -95,15 +130,17 @@ export default function NotificationsPage() {
             {notifications.map((notif) => {
               const isRead = !!notif.read_at;
               return (
-                <div
+                <button
                   key={notif.id}
-                  className={`p-4 rounded-xl flex gap-4 transition-all border ${!isRead ? "bg-[var(--surface)] border-[var(--border)] shadow-sm" : "bg-transparent border-transparent opacity-70"}`}
+                  type="button"
+                  onClick={() => openNotification(notif)}
+                  className={`w-full text-left p-4 rounded-xl flex gap-4 transition-all border active:scale-[0.99] ${!isRead ? "bg-[var(--surface)] border-[var(--border)] shadow-sm" : "bg-transparent border-transparent opacity-70 hover:opacity-100"}`}
                 >
                   <div className="w-10 h-10 shrink-0 rounded-full border border-[var(--border)] bg-gray-50 dark:bg-[#18181B] flex items-center justify-center">
                     {getIconData(notif.type)}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1 gap-2">
                       <h4 className="font-semibold text-sm">{notif.title}</h4>
                       {!isRead && (
                         <span className="w-2 h-2 rounded-full bg-[var(--brand)] mt-1.5 shrink-0" />
@@ -116,7 +153,11 @@ export default function NotificationsPage() {
                       {formatTime(notif.created_at)}
                     </p>
                   </div>
-                </div>
+                  <ChevronRight
+                    size={16}
+                    className="text-slate-400 shrink-0 self-center"
+                  />
+                </button>
               );
             })}
           </div>

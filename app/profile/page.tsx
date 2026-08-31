@@ -51,8 +51,8 @@ import {
   Bell,
 } from "lucide-react";
 
-import { SKILL_DB } from "@/lib/skills";
 import { GOOGLE_REVIEW_URL } from "@/lib/brand";
+import SkillPicker from "@/components/ui/SkillPicker";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -429,62 +429,27 @@ export default function ProfilePage() {
             </button>
           </div>
           <div className="p-5 space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {profile.skills.length === 0 && !isEditingSkills && (
-                <p className="text-xs text-slate-500 font-medium">
-                  No skills added yet.
-                </p>
-              )}
-              {profile.skills.map((skill) => (
-                <div
-                  key={skill}
-                  className="px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 border border-[var(--border)] bg-gray-50 dark:bg-[#1C1C1E]"
-                >
-                  <span>{skill}</span>
-                  {isEditingSkills && (
-                    <X
-                      size={12}
-                      className="cursor-pointer hover:text-red-500"
-                      onClick={() =>
-                        setProfile({
-                          ...profile,
-                          skills: profile.skills.filter((s) => s !== skill),
-                        })
-                      }
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-            {isEditingSkills && (
-              <div className="relative mt-4">
-                <select
-                  onChange={(e) => {
-                    if (
-                      e.target.value &&
-                      !profile.skills.includes(e.target.value)
-                    )
-                      setProfile({
-                        ...profile,
-                        skills: [...profile.skills, e.target.value],
-                      });
-                    e.target.value = "";
-                  }}
-                  className="w-full bg-slate-50 dark:bg-[#1C1C1E] border border-[var(--border)] rounded-lg p-3.5 pr-10 text-sm outline-none appearance-none font-bold"
-                >
-                  <option value="">+ Add a skill...</option>
-                  {SKILL_DB.filter((s) => !profile.skills.includes(s)).map(
-                    (s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ),
-                  )}
-                </select>
-                <ChevronDown
-                  size={14}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
-                />
+            {isEditingSkills ? (
+              <SkillPicker
+                selected={profile.skills}
+                onChange={(skills) => setProfile({ ...profile, skills })}
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {profile.skills.length === 0 ? (
+                  <p className="text-xs text-slate-500 font-medium">
+                    No skills added yet.
+                  </p>
+                ) : (
+                  profile.skills.map((skill) => (
+                    <div
+                      key={skill}
+                      className="px-3 py-1.5 rounded-full text-xs font-bold border border-[var(--border)] bg-gray-50 dark:bg-[#1C1C1E]"
+                    >
+                      {skill}
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>

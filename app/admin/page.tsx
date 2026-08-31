@@ -518,6 +518,7 @@ export default function AdminDashboard() {
               subtitle="Search, approve, batch, and notify volunteers."
             />
             <NotificationBroadcastPanel
+              users={data.users}
               batches={uniqueBatches}
               regions={uniqueRegions}
             />

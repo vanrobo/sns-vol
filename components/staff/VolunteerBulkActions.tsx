@@ -86,7 +86,7 @@ export default function VolunteerBulkActions({
               className="flex flex-col items-center gap-1 py-2.5 rounded-xl bg-slate-100 dark:bg-[#18181B] text-[10px] font-bold"
             >
               <Bell size={16} className="text-[var(--brand)]" />
-              Alert
+              Alert selected
             </button>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function VolunteerBulkActions({
           <div className="w-full max-w-md bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-xl p-5 space-y-4 animate-fadeIn">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base">
-                {panel === "batch" ? "Set batch" : "Send in-app alert"}
+                {panel === "batch" ? "Set batch" : "Alert selected volunteers"}
               </h3>
               <button type="button" onClick={closePanel} aria-label="Close">
                 <X size={20} className="text-[var(--text-muted)]" />
@@ -131,7 +131,8 @@ export default function VolunteerBulkActions({
             ) : (
               <>
                 <p className="text-xs text-[var(--text-muted)]">
-                  Sends to Alert Hub for {count} selected — not phone push.
+                  Sends only to the {count} checked volunteer
+                  {count === 1 ? "" : "s"} — use Broadcast above for all active.
                 </p>
                 <input
                   type="text"

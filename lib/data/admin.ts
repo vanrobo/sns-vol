@@ -245,9 +245,11 @@ export async function broadcastNotification(input: {
   await requireAdmin();
   const supabase = await createClient();
 
-  let userIds = input.userIds ?? [];
+  let userIds: string[];
 
-  if (!userIds.length) {
+  const isBroadcast = Boolean(input.all || input.batch || input.region);
+
+  if (isBroadcast) {
     let q = supabase
       .from("profiles")
       .select("id")
@@ -257,14 +259,18 @@ export async function broadcastNotification(input: {
     if (input.batch) {
       q = q.eq("batch", input.batch);
     } else if (input.region) {
-      q = q.or(`batch.ilike.%${input.region}%,address.ilike.%${input.region}%`);
-    } else if (!input.all) {
-      return 0;
+      q = q.or(
+        `batch.ilike.%${input.region}%,address.ilike.%${input.region}%`,
+      );
     }
 
     const { data, error } = await q;
     if (error) throw error;
     userIds = (data ?? []).map((r) => r.id);
+  } else if (input.userIds?.length) {
+    userIds = input.userIds;
+  } else {
+    return 0;
   }
 
   if (!userIds.length) return 0;

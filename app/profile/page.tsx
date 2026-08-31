@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
 import { haptic } from "@/lib/haptics";
+import InstallAppSetting from "@/components/settings/InstallAppSetting";
+import AppDataSettings from "@/components/settings/AppDataSettings";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
 import Link from "next/link";
 import {
@@ -37,6 +39,8 @@ import {
   Check,
   ChevronDown,
   LogOut,
+  Sun,
+  Moon,
   AlertTriangle,
   Settings,
   Mail,
@@ -63,7 +67,7 @@ const SKILL_DB = [
 export default function ProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const unsavedCtx = useUnsavedChangesOptional();
 
   const cached = readProfileCache();
@@ -553,6 +557,12 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)] overflow-hidden">
+          <InstallAppSetting />
+        </div>
+
+        <AppDataSettings />
+
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
           <div className="p-4 px-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -670,32 +680,37 @@ export default function ProfilePage() {
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
-          <div className="p-4 px-5">
-            <div className="flex items-center gap-3 mb-3">
+          <div className="p-4 px-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <Settings size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">Theme</span>
+              <span className="font-semibold text-sm">Theme Mode</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              {(
-                [
-                  ["light", "Light"],
-                  ["dark", "Dark"],
-                  ["system", "System"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setTheme(value)}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all ${
-                    (theme ?? "system") === value
-                      ? "bg-[var(--brand)] text-white"
-                      : "bg-slate-100 dark:bg-[#18181B] text-[var(--text-muted)]"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTheme("system")}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-all ${
+                  theme === "system"
+                    ? "bg-[var(--brand)] text-white"
+                    : "bg-slate-100 dark:bg-[#18181B] text-[var(--text-muted)]"
+                }`}
+              >
+                Auto
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                }
+                className="p-1.5 bg-slate-100 dark:bg-[#1C1C1E] rounded-md active:scale-95 transition-transform"
+                aria-label="Toggle light or dark"
+              >
+                {resolvedTheme === "dark" ? (
+                  <Sun size={14} className="text-yellow-500" />
+                ) : (
+                  <Moon size={14} className="text-blue-500" />
+                )}
+              </button>
             </div>
           </div>
         </div>

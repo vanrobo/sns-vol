@@ -108,8 +108,8 @@ function MobileLayoutInner({
   };
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] relative overflow-hidden pb-20 tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">
-      <header className="sticky top-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
+    <div className="max-w-md mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">
+      <header className="shrink-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
         <h1 className="text-lg font-black tracking-tight text-[var(--text)]">
           SNS <span className="text-[var(--brand)]">{APP_NAME_ACCENT}</span>
         </h1>
@@ -155,17 +155,12 @@ function MobileLayoutInner({
           mainRef.current = el;
           setScrollEl(el);
         }}
-        className="h-full overflow-y-auto overscroll-y-contain animate-fadeIn"
-        style={{
-          transform:
-            pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
-          transition: pullDistance > 0 ? "none" : "transform 0.2s ease-out",
-        }}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain animate-fadeIn pb-20"
       >
         {children}
       </main>
 
-      <nav className="fixed bottom-0 w-full max-w-md bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-t border-[var(--border)] flex justify-around p-4 z-50 pb-safe">
+      <nav className="fixed bottom-0 w-full max-w-md bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-t border-[var(--border)] flex justify-around p-4 z-50 pb-safe shrink-0">
         {navItems.map((item) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;

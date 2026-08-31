@@ -20,7 +20,6 @@ type StaffShellProps = {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onSignOut: () => void;
-  stats?: React.ReactNode;
   children: React.ReactNode;
   onRefresh?: () => Promise<void>;
 };
@@ -31,56 +30,25 @@ export default function StaffShell({
   activeTab,
   onTabChange,
   onSignOut,
-  stats,
   children,
   onRefresh,
 }: StaffShellProps) {
-  const tabScrollRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const { pullDistance, refreshing, ready } = usePullToRefresh({
+    scrollRef: mainRef,
+    scrollElement: scrollEl,
     onRefresh: onRefresh ?? (async () => {}),
     disabled: !onRefresh,
   });
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollHints = () => {
-    const el = tabScrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  };
 
   useEffect(() => {
-    updateScrollHints();
-    const el = tabScrollRef.current;
-    if (!el) return;
-
-    const onScroll = () => updateScrollHints();
-    el.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", updateScrollHints);
-
-    const ro = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(updateScrollHints)
-      : null;
-    ro?.observe(el);
-
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", updateScrollHints);
-      ro?.disconnect();
-    };
-  }, [tabs.length]);
-
-  const scrollTabs = (direction: "left" | "right") => {
-    tabScrollRef.current?.scrollBy({
-      left: direction === "left" ? -160 : 160,
-      behavior: "smooth",
-    });
-  };
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeTab]);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] relative pb-24 tracking-tight w-full">
-      <header className="sticky top-0 z-50 px-4 py-3 flex justify-between items-center bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
+    <div className="max-w-md mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight w-full">
+      <header className="shrink-0 z-50 px-4 py-3 flex justify-between items-center bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
         <div className="flex items-center gap-2 min-w-0">
           <Link
             href="/"
@@ -115,67 +83,46 @@ export default function StaffShell({
         </div>
       </header>
 
-      <div className="relative border-b border-[var(--border)] bg-[var(--surface)]">
-        {canScrollLeft && (
-          <button
-            type="button"
-            aria-label="Scroll tabs left"
-            onClick={() => scrollTabs("left")}
-            className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-[var(--surface)] to-transparent flex items-center justify-start pl-1 text-[var(--text-muted)] hover:text-[var(--text)]"
-          >
-            <ChevronLeft size={18} />
-          </button>
-        )}
-        {canScrollRight && (
-          <button
-            type="button"
-            aria-label="Scroll tabs right"
-            onClick={() => scrollTabs("right")}
-            className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent flex items-center justify-end pr-1 text-[var(--text-muted)] hover:text-[var(--text)]"
-          >
-            <ChevronLeft size={18} className="rotate-180" />
-          </button>
-        )}
-        <div
-          ref={tabScrollRef}
-          className="staff-tab-scroll w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain"
-        >
-          <div className="flex flex-nowrap gap-2 px-4 py-3 w-max min-w-full">
-            {tabs.map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onTabChange(key)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${
-                  activeTab === key
-                    ? "bg-[var(--brand)] text-white shadow-sm"
-                    : "bg-slate-100 dark:bg-[#18181B] text-[var(--text-muted)]"
-                }`}
-              >
-                <Icon size={14} />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <PullToRefreshIndicator
         pullDistance={pullDistance}
         refreshing={refreshing}
         ready={ready}
       />
       <main
-        className="p-4 space-y-5 animate-fadeIn"
-        style={{
-          transform:
-            pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
-          transition: pullDistance > 0 ? "none" : "transform 0.2s ease-out",
+        ref={(el) => {
+          mainRef.current = el;
+          setScrollEl(el);
         }}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 pt-4 pb-4 animate-fadeIn"
       >
-        {stats}
         {children}
       </main>
+
+      <nav className="shrink-0 border-t border-[var(--border)] bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md px-1 pt-1.5 pb-safe z-50">
+        <div className="flex justify-around">
+          {tabs.map(({ key, label, icon: Icon }) => {
+            const active = activeTab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onTabChange(key)}
+                className={`flex flex-col items-center gap-0.5 min-w-0 flex-1 py-1.5 px-0.5 transition-colors ${
+                  active ? "text-[var(--brand)]" : "text-[var(--text-muted)]"
+                }`}
+              >
+                <Icon
+                  size={20}
+                  className={active ? "stroke-[var(--brand)]" : "stroke-current"}
+                />
+                <span className="text-[9px] font-bold truncate max-w-full">
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

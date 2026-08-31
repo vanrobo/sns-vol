@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 type PullToRefreshIndicatorProps = {
   pullDistance: number;
@@ -13,32 +13,21 @@ export default function PullToRefreshIndicator({
   refreshing,
   ready,
 }: PullToRefreshIndicatorProps) {
-  if (pullDistance <= 4 && !refreshing) return null;
+  if (!refreshing && pullDistance <= 8 && !ready) return null;
+
+  const scale = refreshing
+    ? 1
+    : Math.min(0.5 + pullDistance / 120, 1);
 
   return (
-    <div
-      className="flex justify-center pointer-events-none z-30 -mb-2"
-      style={{ height: Math.max(pullDistance, refreshing ? 48 : 0) }}
-    >
-      <div
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm text-xs font-bold text-[var(--text-muted)] transition-colors ${
-          ready || refreshing ? "text-[var(--brand)]" : ""
+    <div className="flex justify-center py-2 pointer-events-none z-30 shrink-0">
+      <Loader2
+        size={22}
+        className={`animate-spin text-[var(--brand)] transition-transform ${
+          refreshing || ready ? "opacity-100" : "opacity-60"
         }`}
-      >
-        {refreshing ? (
-          <Loader2 size={14} className="animate-spin text-[var(--brand)]" />
-        ) : (
-          <ArrowDown
-            size={14}
-            className={`transition-transform duration-150 ${ready ? "rotate-180 text-[var(--brand)]" : ""}`}
-          />
-        )}
-        {refreshing
-          ? "Refreshing…"
-          : ready
-            ? "Release to refresh"
-            : "Pull to refresh"}
-      </div>
+        style={{ transform: `scale(${scale})` }}
+      />
     </div>
   );
 }

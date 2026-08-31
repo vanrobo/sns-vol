@@ -224,7 +224,7 @@ export default function OrganiserDashboard() {
   return (
     <>
       <StaffShell
-        title={`${APP_NAME} Organiser`}
+        title="Organiser"
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(tab) => {
@@ -233,29 +233,27 @@ export default function OrganiserDashboard() {
         }}
         onRefresh={refreshOrganiser}
         onSignOut={() => signOutAction()}
-        stats={
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
-              <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
-                Active
-              </p>
-              <p className="text-2xl font-black text-emerald-600">
-                {data.events.filter((e) => e.status === "active").length}
-              </p>
-            </div>
-            <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
-              <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
-                Pending apps
-              </p>
-              <p className="text-2xl font-black text-amber-500">
-                {data.applications.filter((a) => a.status === "pending").length}
-              </p>
-            </div>
-          </div>
-        }
       >
         {activeTab === "events" && (
           <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
+                <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
+                  Active
+                </p>
+                <p className="text-2xl font-black text-emerald-600">
+                  {data.events.filter((e) => e.status === "active").length}
+                </p>
+              </div>
+              <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
+                <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
+                  Pending apps
+                </p>
+                <p className="text-2xl font-black text-amber-500">
+                  {data.applications.filter((a) => a.status === "pending").length}
+                </p>
+              </div>
+            </div>
             <StaffWelcome
               name={staffName}
               subtitle="Manage your events and review applications."

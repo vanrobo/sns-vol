@@ -10,7 +10,8 @@ import {
   Loader2,
   BadgeCheck,
   Award,
-  ChevronRight,
+  ChevronDown,
+  ExternalLink,
 } from "lucide-react";
 import {
   getNotifications,
@@ -31,6 +32,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const loadNotifications = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setRefreshing(true);
@@ -41,9 +43,7 @@ export default function NotificationsPage() {
       if (me) writeNotificationsCache(me.id, data);
       await markNotificationsRead();
     } catch {
-      if (!opts?.silent) {
-        /* keep cached list visible */
-      }
+      /* keep cached list visible */
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,8 +101,13 @@ export default function NotificationsPage() {
     return d.toLocaleDateString();
   };
 
-  const openNotification = (notif: Notification) => {
+  const toggleNotification = (notif: Notification) => {
     haptic("selection");
+    setExpandedId((prev) => (prev === notif.id ? null : notif.id));
+  };
+
+  const openNotification = (notif: Notification) => {
+    haptic("light");
     router.push(getNotificationHref(notif.type));
   };
 
@@ -120,7 +125,7 @@ export default function NotificationsPage() {
                 In-app alerts
               </h2>
               <p className="text-[#98989D] text-[13px] leading-relaxed">
-                Messages stored in your account — tap to open the relevant screen.
+                Tap an alert to expand. Use Open to go to the related screen.
               </p>
             </div>
             {refreshing && (
@@ -142,35 +147,59 @@ export default function NotificationsPage() {
           <div className="space-y-3">
             {notifications.map((notif) => {
               const isRead = !!notif.read_at;
+              const isExpanded = expandedId === notif.id;
               return (
-                <button
+                <div
                   key={notif.id}
-                  type="button"
-                  onClick={() => openNotification(notif)}
-                  className={`w-full text-left p-4 rounded-xl flex gap-4 transition-all border active:scale-[0.99] ${!isRead ? "bg-[var(--surface)] border-[var(--border)] shadow-sm" : "bg-transparent border-transparent opacity-70 hover:opacity-100"}`}
+                  className={`rounded-xl border transition-all ${!isRead ? "bg-[var(--surface)] border-[var(--border)] shadow-sm" : "bg-transparent border-transparent opacity-80"}`}
                 >
-                  <div className="w-10 h-10 shrink-0 rounded-full border border-[var(--border)] bg-gray-50 dark:bg-[#18181B] flex items-center justify-center">
-                    {getIconData(notif.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1 gap-2">
-                      <h4 className="font-semibold text-sm">{notif.title}</h4>
-                      {!isRead && (
-                        <span className="w-2 h-2 rounded-full bg-[var(--brand)] mt-1.5 shrink-0" />
-                      )}
+                  <button
+                    type="button"
+                    onClick={() => toggleNotification(notif)}
+                    className="w-full text-left p-4 flex gap-4 active:scale-[0.99] transition-transform"
+                  >
+                    <div className="w-10 h-10 shrink-0 rounded-full border border-[var(--border)] bg-gray-50 dark:bg-[#18181B] flex items-center justify-center">
+                      {getIconData(notif.type)}
                     </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2">
-                      {notif.body}
-                    </p>
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-                      {formatTime(notif.created_at)}
-                    </p>
-                  </div>
-                  <ChevronRight
-                    size={16}
-                    className="text-slate-400 shrink-0 self-center"
-                  />
-                </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1 gap-2">
+                        <h4 className="font-semibold text-sm">{notif.title}</h4>
+                        {!isRead && (
+                          <span className="w-2 h-2 rounded-full bg-[var(--brand)] mt-1.5 shrink-0" />
+                        )}
+                      </div>
+                      <p
+                        className={`text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2 ${
+                          isExpanded ? "" : "line-clamp-2"
+                        }`}
+                      >
+                        {notif.body}
+                      </p>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                        {formatTime(notif.created_at)}
+                      </p>
+                    </div>
+                    <ChevronDown
+                      size={16}
+                      className={`text-slate-400 shrink-0 self-center transition-transform ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-0">
+                      <button
+                        type="button"
+                        onClick={() => openNotification(notif)}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[var(--brand)] text-white text-xs font-bold"
+                      >
+                        <ExternalLink size={14} />
+                        Open related screen
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

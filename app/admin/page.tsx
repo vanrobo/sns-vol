@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Award,
   Trophy,
+  LayoutDashboard,
 } from "lucide-react";
 import type { AdminData, ApplicationStatus, Event, UserRole } from "@/types";
 import { titleCaseStatus } from "@/types";
@@ -43,9 +44,9 @@ import Pagination, { paginate } from "@/components/staff/Pagination";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
 import StaffWelcome from "@/components/staff/StaffWelcome";
+import AdminOverview from "@/components/staff/AdminOverview";
 import VolunteerDetailModal from "@/components/staff/VolunteerDetailModal";
 import NotificationBroadcastPanel from "@/components/staff/NotificationBroadcastPanel";
-import { APP_NAME } from "@/lib/brand";
 import { getMyRole } from "@/lib/data/profiles";
 import { readAdminCache, writeAdminCache } from "@/lib/admin-cache";
 import type { Profile } from "@/types";
@@ -66,7 +67,7 @@ export default function AdminDashboard() {
       },
   );
   const [loading, setLoading] = useState(!cachedAdmin);
-  const [activeTab, setActiveTab] = useState("events");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -439,10 +440,11 @@ export default function AdminDashboard() {
   };
 
   const tabs = [
+    { key: "overview", label: "Home", icon: LayoutDashboard },
     { key: "events", label: "Events", icon: Calendar },
-    { key: "volunteers", label: "Volunteers", icon: Users },
-    { key: "grievances", label: "Grievances", icon: AlertCircle },
-    { key: "applications", label: "Applications", icon: Award },
+    { key: "volunteers", label: "People", icon: Users },
+    { key: "grievances", label: "Cases", icon: AlertCircle },
+    { key: "applications", label: "Apps", icon: Award },
     { key: "awards", label: "Awards", icon: Trophy },
   ];
 
@@ -457,47 +459,28 @@ export default function AdminDashboard() {
   return (
     <>
       <StaffShell
-        title={`${APP_NAME} Admin`}
+        title="Admin"
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(tab) => startTransition(() => setActiveTab(tab))}
+        onRefresh={fetchAdminData}
         onSignOut={() => signOutAction()}
-        stats={
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
-              <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
-                Live
-              </p>
-              <p className="text-2xl font-black text-emerald-600">
-                {data.events.filter((e) => e.status === "active").length}
-              </p>
-            </div>
-            <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
-              <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
-                Volunteers
-              </p>
-              <p className="text-2xl font-black text-emerald-600">
-                {data.users.filter((u) => u.role === "volunteer").length}
-              </p>
-            </div>
-            <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
-              <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
-                Grievances
-              </p>
-              <p className="text-2xl font-black text-red-500">
-                {data.grievances.filter((g) => g.status === "open").length}
-              </p>
-            </div>
-          </div>
-        }
       >
-        <StaffWelcome
-          name={staffName}
-          subtitle="Manage events, volunteers, notifications, and awards."
-        />
+        {activeTab === "overview" && (
+          <AdminOverview
+            data={data}
+            staffName={staffName}
+            onNavigate={(tab) => startTransition(() => setActiveTab(tab))}
+            onCreateEvent={openCreateModal}
+          />
+        )}
 
         {activeTab === "events" && (
           <div className="space-y-4">
+            <StaffWelcome
+              name={staffName}
+              subtitle="Create, duplicate, and manage volunteer events."
+            />
             <div className="flex justify-between items-center gap-3">
               <h2 className="text-lg font-bold">Events</h2>
               <button
@@ -525,6 +508,10 @@ export default function AdminDashboard() {
 
         {activeTab === "volunteers" && (
           <div className="space-y-4">
+            <StaffWelcome
+              name={staffName}
+              subtitle="Search, approve, batch, and notify volunteers."
+            />
             <NotificationBroadcastPanel
               batches={uniqueBatches}
               regions={uniqueRegions}

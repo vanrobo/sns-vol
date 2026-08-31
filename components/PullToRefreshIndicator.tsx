@@ -21,13 +21,17 @@ export default function PullToRefreshIndicator({
 
   return (
     <div className="flex justify-center py-2 pointer-events-none z-30 shrink-0">
-      <Loader2
-        size={22}
-        className={`animate-spin text-[var(--brand)] transition-transform ${
-          refreshing || ready ? "opacity-100" : "opacity-60"
-        }`}
+      <div
+        className="transition-transform"
         style={{ transform: `scale(${scale})` }}
-      />
+      >
+        <Loader2
+          size={22}
+          className={`animate-spin text-[var(--brand)] ${
+            refreshing || ready ? "opacity-100" : "opacity-60"
+          }`}
+        />
+      </div>
     </div>
   );
 }

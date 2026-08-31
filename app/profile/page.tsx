@@ -1,10 +1,13 @@
 // app/profile/page.tsx
 "use client";
 import MobileLayout from "@/components/MobileLayout";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
+import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
+import Link from "next/link";
 import {
   getProfile,
   updateProfile,
@@ -35,6 +38,7 @@ import {
   BookOpen,
   Camera,
   Award,
+  Bell,
 } from "lucide-react";
 
 const SKILL_DB = [
@@ -54,22 +58,83 @@ export default function ProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { resolvedTheme, setTheme } = useTheme();
+  const unsavedCtx = useUnsavedChangesOptional();
 
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = readProfileCache();
+  const savedBaseline = useRef<string>(
+    cached?.profile
+      ? JSON.stringify({
+          name: cached.profile.name,
+          college: cached.profile.college,
+          phone: cached.profile.phone ?? "",
+          address: cached.profile.address ?? "",
+          skills: cached.profile.skills,
+          hasAvatar: false,
+        })
+      : "",
+  );
+
+  const [profile, setProfile] = useState<Profile | null>(
+    () => cached?.profile ?? null,
+  );
+  const [loading, setLoading] = useState(!cached?.profile);
   const [saving, setSaving] = useState(false);
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
-  const [myAwards, setMyAwards] = useState<UserAward[]>([]);
+  const [myAwards, setMyAwards] = useState<UserAward[]>(
+    () => cached?.awards ?? [],
+  );
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
 
+  const profileSnapshot = useMemo(() => {
+    if (!profile) return "";
+    return JSON.stringify({
+      name: profile.name,
+      college: profile.college,
+      phone: profile.phone ?? "",
+      address: profile.address ?? "",
+      skills: profile.skills,
+      hasAvatar: Boolean(pendingAvatar),
+    });
+  }, [profile, pendingAvatar]);
+
+  const hasUnsavedChanges =
+    Boolean(profile) &&
+    savedBaseline.current !== "" &&
+    profileSnapshot !== savedBaseline.current;
+
+  useEffect(() => {
+    unsavedCtx?.setHasUnsaved(hasUnsavedChanges);
+  }, [hasUnsavedChanges, unsavedCtx]);
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   useEffect(() => {
     Promise.all([getProfile(), getMyAwards()])
       .then(([data, awards]) => {
-        if (data) setProfile(data);
+        if (data) {
+          setProfile(data);
+          savedBaseline.current = JSON.stringify({
+            name: data.name,
+            college: data.college,
+            phone: data.phone ?? "",
+            address: data.address ?? "",
+            skills: data.skills,
+            hasAvatar: false,
+          });
+        }
         setMyAwards(awards);
+        if (data) writeProfileCache({ profile: data, awards });
       })
       .catch(() => toast.error("Failed to load profile"))
       .finally(() => setLoading(false));
@@ -98,6 +163,16 @@ export default function ProfilePage() {
       setProfile(updated);
       setPendingAvatar(null);
       setPreviewUrl(null);
+      savedBaseline.current = JSON.stringify({
+        name: updated.name,
+        college: updated.college,
+        phone: updated.phone ?? "",
+        address: updated.address ?? "",
+        skills: updated.skills,
+        hasAvatar: false,
+      });
+      writeProfileCache({ profile: updated, awards: myAwards });
+      unsavedCtx?.setHasUnsaved(false);
       toast.success("Profile saved");
       setIsEditingInfo(false);
       setIsEditingSkills(false);
@@ -374,17 +449,27 @@ export default function ProfilePage() {
         </div>
 
         {(isEditingInfo || isEditingSkills || pendingAvatar) && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-semibold text-sm py-4 rounded-xl flex justify-center shadow-lg shadow-emerald-500/10"
-          >
-            {saving ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              "Save Changes"
-            )}
-          </button>
+          <p className="text-[11px] text-center text-[var(--text-muted)] font-medium -mt-2">
+            Tap Save when you&apos;re done editing
+          </p>
+        )}
+
+        {hasUnsavedChanges && (
+          <div className="fixed bottom-[4.5rem] left-0 right-0 max-w-md mx-auto px-5 z-[55] pointer-events-none">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`pointer-events-auto w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold text-sm py-3.5 rounded-xl flex justify-center items-center gap-2 shadow-xl shadow-emerald-500/25 border border-emerald-400/30 ${unsavedCtx?.shaking ? "animate-shake" : ""}`}
+            >
+              {saving ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <>
+                  <Check size={16} /> Save Changes
+                </>
+              )}
+            </button>
+          </div>
         )}
 
         {myAwards.length > 0 && (
@@ -439,24 +524,30 @@ export default function ProfilePage() {
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
-          <div className="p-4 px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Settings size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">Theme Mode</span>
-            </div>
-            <button
-              onClick={() =>
-                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+          <Link
+            href="/notifications"
+            onClick={(e) => {
+              if (hasUnsavedChanges) {
+                e.preventDefault();
+                unsavedCtx?.triggerShake();
+                if (
+                  window.confirm(
+                    "You have unsaved changes. Leave without saving?",
+                  )
+                ) {
+                  unsavedCtx?.setHasUnsaved(false);
+                  router.push("/notifications");
+                }
               }
-              className="p-1.5 bg-slate-100 dark:bg-[#1C1C1E] rounded-md active:scale-95 transition-transform"
-            >
-              {resolvedTheme === "dark" ? (
-                <Sun size={14} className="text-yellow-500" />
-              ) : (
-                <Moon size={14} className="text-blue-500" />
-              )}
-            </button>
-          </div>
+            }}
+            className="p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Bell size={16} className="text-[var(--brand)]" />
+              <span className="font-semibold text-sm">Push Notifications</span>
+            </div>
+            <ChevronDown size={14} className="-rotate-90 text-slate-400" />
+          </Link>
           <div className="p-4 px-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Mail size={16} className="text-slate-400" />
@@ -502,6 +593,27 @@ export default function ProfilePage() {
               />
               <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--brand)]" />
             </label>
+          </div>
+        </div>
+
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
+          <div className="p-4 px-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Settings size={16} className="text-slate-400" />
+              <span className="font-semibold text-sm">Theme Mode</span>
+            </div>
+            <button
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
+              className="p-1.5 bg-slate-100 dark:bg-[#1C1C1E] rounded-md active:scale-95 transition-transform"
+            >
+              {resolvedTheme === "dark" ? (
+                <Sun size={14} className="text-yellow-500" />
+              ) : (
+                <Moon size={14} className="text-blue-500" />
+              )}
+            </button>
           </div>
         </div>
 

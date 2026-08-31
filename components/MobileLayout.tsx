@@ -8,14 +8,19 @@ import { hasUnreadNotifications } from "@/lib/data/notifications";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
 import type { UserRole } from "@/types";
+import {
+  UnsavedChangesProvider,
+  useUnsavedChangesOptional,
+} from "@/components/UnsavedChangesProvider";
 
-export default function MobileLayout({
+function MobileLayoutInner({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const unsaved = useUnsavedChangesOptional();
   const [mounted, setMounted] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [staffRole, setStaffRole] = useState<UserRole | null>(null);
@@ -71,6 +76,22 @@ export default function MobileLayout({
     { name: "Grievance", path: "/grievance", icon: AlertCircle },
   ];
 
+  const tryNavigate = (e: React.MouseEvent, path: string) => {
+    if (path === pathname) return;
+    if (unsaved?.hasUnsaved && pathname === "/profile") {
+      e.preventDefault();
+      unsaved.triggerShake();
+      if (
+        window.confirm(
+          "You have unsaved changes on your profile. Leave without saving?",
+        )
+      ) {
+        unsaved.setHasUnsaved(false);
+        router.push(path);
+      }
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] relative overflow-hidden pb-20 tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">
       <header className="sticky top-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
@@ -119,6 +140,7 @@ export default function MobileLayout({
             <Link
               key={item.name}
               href={item.path}
+              onClick={(e) => tryNavigate(e, item.path)}
               className={`flex flex-col items-center gap-1 transition-all ${isActive ? "text-[var(--brand)]" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}
             >
               <Icon
@@ -137,5 +159,17 @@ export default function MobileLayout({
         })}
       </nav>
     </div>
+  );
+}
+
+export default function MobileLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <UnsavedChangesProvider>
+      <MobileLayoutInner>{children}</MobileLayoutInner>
+    </UnsavedChangesProvider>
   );
 }

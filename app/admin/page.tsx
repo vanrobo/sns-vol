@@ -40,19 +40,25 @@ import VolunteerDetailModal from "@/components/staff/VolunteerDetailModal";
 import NotificationBroadcastPanel from "@/components/staff/NotificationBroadcastPanel";
 import { APP_NAME } from "@/lib/brand";
 import { getMyRole } from "@/lib/data/profiles";
+import { readAdminCache, writeAdminCache } from "@/lib/admin-cache";
 import type { Profile } from "@/types";
+import { Phone, MapPin, Search } from "lucide-react";
 
 const VOL_PAGE_SIZE = 10;
 const GRIEV_PAGE_SIZE = 8;
 
 export default function AdminDashboard() {
-  const [data, setData] = useState<AdminData>({
-    events: [],
-    users: [],
-    grievances: [],
-    applications: [],
-  });
-  const [loading, setLoading] = useState(true);
+  const cachedAdmin = readAdminCache();
+  const [data, setData] = useState<AdminData>(
+    () =>
+      cachedAdmin ?? {
+        events: [],
+        users: [],
+        grievances: [],
+        applications: [],
+      },
+  );
+  const [loading, setLoading] = useState(!cachedAdmin);
   const [activeTab, setActiveTab] = useState("events");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,6 +77,9 @@ export default function AdminDashboard() {
   const [grievanceNotes, setGrievanceNotes] = useState("");
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [volunteerSearch, setVolunteerSearch] = useState("");
+  const [volFilter, setVolFilter] = useState<"all" | "pending" | "active">(
+    "all",
+  );
   const [staffName, setStaffName] = useState("Admin");
   const [detailVolunteer, setDetailVolunteer] = useState<Profile | null>(null);
 
@@ -78,6 +87,7 @@ export default function AdminDashboard() {
     try {
       const result = await getAdminData();
       setData(result);
+      writeAdminCache(result);
     } catch {
       toast.error("Failed to sync admin data.");
     } finally {
@@ -270,11 +280,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredVolunteers = data.users.filter(
-    (v) =>
-      v.name.toLowerCase().includes(volunteerSearch.toLowerCase()) ||
-      v.college.toLowerCase().includes(volunteerSearch.toLowerCase()),
-  );
+  const filteredVolunteers = data.users.filter((v) => {
+    const q = volunteerSearch.toLowerCase();
+    const matchesSearch =
+      !q ||
+      v.name.toLowerCase().includes(q) ||
+      v.college.toLowerCase().includes(q) ||
+      (v.phone ?? "").includes(q) ||
+      (v.batch ?? "").toLowerCase().includes(q);
+    const matchesFilter =
+      volFilter === "all" ||
+      (volFilter === "pending" && v.status !== "active") ||
+      (volFilter === "active" && v.status === "active");
+    return matchesSearch && matchesFilter;
+  });
   const pagedVolunteers = paginate(filteredVolunteers, volPage, VOL_PAGE_SIZE);
   const pagedGrievances = paginate(data.grievances, grievPage, GRIEV_PAGE_SIZE);
   const uniqueBatches = [
@@ -373,108 +392,176 @@ export default function AdminDashboard() {
 
         {activeTab === "volunteers" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold">Volunteers</h2>
-            <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-              Pending users must be approved before they can use the app. Set their
-              role first, then tap the green approve button on their card.
-            </p>
             <NotificationBroadcastPanel
               batches={uniqueBatches}
               regions={uniqueRegions}
             />
-            <input
-              type="text"
-              placeholder="Search name or college..."
-              value={volunteerSearch}
-              onChange={(e) => {
-                setVolunteerSearch(e.target.value);
-                setVolPage(1);
-              }}
-              className="w-full p-3 border rounded-xl bg-[var(--surface)] border-[var(--border)] outline-emerald-600 text-sm"
-            />
-            <div className="space-y-3">
-              {pagedVolunteers.map((vol) => (
-                <div
-                  key={vol.id}
-                  className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 space-y-3"
-                >
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <p className="font-bold">{vol.name}</p>
-                      <p className="text-xs text-[var(--text-muted)]">{vol.college}</p>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${vol.status === "active" ? "bg-emerald-100 text-emerald-800" : "bg-yellow-100 text-yellow-800"}`}
-                    >
-                      {titleCaseStatus(vol.status)}
-                    </span>
-                  </div>
-                  <p className="text-xs font-mono text-[var(--text-muted)]">
-                    {vol.volunteer_id || "No ID yet"}
-                  </p>
-                  <select
-                    value={vol.role}
-                    disabled={actioningId === vol.id}
-                    onChange={(e) =>
-                      handleRoleChange(vol.id, e.target.value as UserRole)
-                    }
-                    className="w-full text-xs font-bold border border-[var(--border)] rounded-lg p-2.5 bg-slate-50 dark:bg-[#18181B] outline-emerald-600"
-                  >
-                    <option value="volunteer">Volunteer</option>
-                    <option value="organiser">Organiser</option>
-                    <option value="admin">Admin</option>
-                  </select>
+
+            <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-[var(--border)] space-y-3">
+                <h2 className="text-lg font-bold">Volunteers</h2>
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  Set role and batch, then approve pending users. Tap a card for
+                  full details, phone, address, and notifications.
+                </p>
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                  />
                   <input
                     type="text"
-                    placeholder="Batch (e.g. Dwarka Sector 2)"
-                    defaultValue={vol.batch ?? ""}
-                    disabled={actioningId === vol.id}
-                    onBlur={(e) => {
-                      const next = e.target.value.trim();
-                      if (next === (vol.batch ?? "")) return;
-                      setActioningId(vol.id);
-                      updateUserBatch(vol.id, next)
-                        .then(() => {
-                          toast.success("Batch updated");
-                          setData((prev) => ({
-                            ...prev,
-                            users: prev.users.map((u) =>
-                              u.id === vol.id ? { ...u, batch: next || null } : u,
-                            ),
-                          }));
-                        })
-                        .catch(() => toast.error("Failed to update batch"))
-                        .finally(() => setActioningId(null));
+                    placeholder="Search name, college, phone, batch..."
+                    value={volunteerSearch}
+                    onChange={(e) => {
+                      setVolunteerSearch(e.target.value);
+                      setVolPage(1);
                     }}
-                    className="w-full text-xs border border-[var(--border)] rounded-lg p-2.5 bg-slate-50 dark:bg-[#18181B] outline-emerald-600"
+                    className="w-full pl-9 p-3 border rounded-xl bg-slate-50 dark:bg-[#18181B] border-[var(--border)] outline-emerald-600 text-sm"
                   />
-                  {vol.status !== "active" && (
-                    <button
-                      disabled={actioningId === vol.id}
-                      onClick={() => handleApproveICard(vol.id)}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
-                    >
-                      {vol.role === "volunteer"
-                        ? "Approve I-Card"
-                        : "Activate account"}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setDetailVolunteer(vol)}
-                    className="w-full border border-[var(--border)] py-2.5 rounded-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-[#18181B]"
-                  >
-                    View details & notify
-                  </button>
                 </div>
-              ))}
+                <div className="flex bg-slate-100 dark:bg-[#18181B] p-1 rounded-lg">
+                  {(
+                    [
+                      ["all", "All"],
+                      ["pending", "Pending"],
+                      ["active", "Active"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setVolFilter(key);
+                        setVolPage(1);
+                      }}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                        volFilter === key
+                          ? "bg-white dark:bg-black text-[var(--brand)] shadow-sm"
+                          : "text-slate-500"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 space-y-3">
+                {pagedVolunteers.length === 0 ? (
+                  <p className="text-center text-sm text-[var(--text-muted)] py-8">
+                    No volunteers match this filter.
+                  </p>
+                ) : (
+                  pagedVolunteers.map((vol) => (
+                    <div
+                      key={vol.id}
+                      className="rounded-xl border border-[var(--border)] bg-slate-50/50 dark:bg-[#18181B]/50 p-4 space-y-3"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold truncate">{vol.name}</p>
+                          <p className="text-xs text-[var(--text-muted)] truncate">
+                            {vol.college}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${vol.status === "active" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
+                        >
+                          {titleCaseStatus(vol.status)}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <p className="flex items-center gap-1.5 text-[var(--text-muted)] truncate">
+                          <Phone size={11} className="shrink-0 text-[var(--brand)]" />
+                          {vol.phone || "No phone"}
+                        </p>
+                        <p className="flex items-center gap-1.5 text-[var(--text-muted)] truncate">
+                          <MapPin size={11} className="shrink-0 text-[var(--brand)]" />
+                          {vol.batch || "No batch"}
+                        </p>
+                      </div>
+
+                      <p className="text-[10px] font-mono text-[var(--text-muted)]">
+                        {vol.volunteer_id || "No ID yet"} · {titleCaseStatus(vol.role)}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={vol.role}
+                          disabled={actioningId === vol.id}
+                          onChange={(e) =>
+                            handleRoleChange(vol.id, e.target.value as UserRole)
+                          }
+                          className="text-xs font-bold border border-[var(--border)] rounded-lg p-2 bg-[var(--surface)] outline-emerald-600"
+                        >
+                          <option value="volunteer">Volunteer</option>
+                          <option value="organiser">Organiser</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Batch / area"
+                          defaultValue={vol.batch ?? ""}
+                          disabled={actioningId === vol.id}
+                          onBlur={(e) => {
+                            const next = e.target.value.trim();
+                            if (next === (vol.batch ?? "")) return;
+                            setActioningId(vol.id);
+                            updateUserBatch(vol.id, next)
+                              .then(() => {
+                                toast.success("Batch updated");
+                                setData((prev) => ({
+                                  ...prev,
+                                  users: prev.users.map((u) =>
+                                    u.id === vol.id
+                                      ? { ...u, batch: next || null }
+                                      : u,
+                                  ),
+                                }));
+                              })
+                              .catch(() => toast.error("Failed to update batch"))
+                              .finally(() => setActioningId(null));
+                          }}
+                          className="text-xs border border-[var(--border)] rounded-lg p-2 bg-[var(--surface)] outline-emerald-600"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        {vol.status !== "active" && (
+                          <button
+                            disabled={actioningId === vol.id}
+                            onClick={() => handleApproveICard(vol.id)}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                          >
+                            {vol.role === "volunteer"
+                              ? "Approve"
+                              : "Activate"}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setDetailVolunteer(vol)}
+                          className="flex-1 border border-[var(--border)] py-2.5 rounded-lg text-xs font-bold hover:bg-[var(--surface)]"
+                        >
+                          Details
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="px-4 pb-4">
+                <Pagination
+                  total={filteredVolunteers.length}
+                  pageSize={VOL_PAGE_SIZE}
+                  page={volPage}
+                  onPageChange={setVolPage}
+                />
+              </div>
             </div>
-            <Pagination
-              total={filteredVolunteers.length}
-              pageSize={VOL_PAGE_SIZE}
-              page={volPage}
-              onPageChange={setVolPage}
-            />
           </div>
         )}
 

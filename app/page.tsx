@@ -26,15 +26,19 @@ import {
   Phone,
   Filter,
   Share2,
-  Heart,
+  HeartOff,
+  BookmarkPlus,
   CalendarDays,
+  Clock,
 } from "lucide-react";
 import { EventListSkeleton } from "@/components/ui/Skeleton";
 import SkillChips from "@/components/ui/SkillChips";
 import StaffHomeBanner from "@/components/StaffHomeBanner";
 import QuickAccessGrid from "@/components/home/QuickAccessGrid";
 import AwardsCarousel from "@/components/home/AwardsCarousel";
-import EventCalendarView from "@/components/events/EventCalendarView";
+import EventCalendarView, {
+  expandEventDates,
+} from "@/components/events/EventCalendarView";
 import { getMyRole, getVolunteerStats } from "@/lib/data/profiles";
 import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
@@ -77,6 +81,10 @@ export default function VolunteeringDashboard() {
     () => readHomeCache()?.stats ?? null,
   );
   const [allEventsForCalendar, setAllEventsForCalendar] = useState<Event[]>([]);
+  const [calendarDayPopup, setCalendarDayPopup] = useState<{
+    date: string;
+    events: Event[];
+  } | null>(null);
   const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
@@ -118,15 +126,19 @@ export default function VolunteeringDashboard() {
       let fetched = await getEvents(status);
 
       if (dateFilter) {
-        fetched = fetched.filter((e) => e.date === dateFilter);
+        fetched = fetched.filter((e) =>
+          expandEventDates(e).includes(dateFilter),
+        );
       }
       if (regionFilter !== "all") {
         fetched = fetched.filter(
           (e) => (e.region || e.venue) === regionFilter,
         );
       }
-      // Recurring sessions (e.g. daily classes) appear in calendar only
-      fetched = fetched.filter((e) => !e.is_recurring);
+      // Recurring sessions only appear in list when a calendar date is selected
+      if (!dateFilter) {
+        fetched = fetched.filter((e) => !e.is_recurring);
+      }
       fetched = [...fetched].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
@@ -160,7 +172,7 @@ export default function VolunteeringDashboard() {
             e.id === selectedEvent.id ? { ...e, has_attended: true } : e,
           ),
         );
-        setSelectedEvent(null);
+        setSelectedEvent({ ...selectedEvent, has_attended: true });
       } else if (tab === "Active") {
         if (selectedEvent.has_applied) {
           await withdrawApplication(selectedEvent.id);
@@ -169,20 +181,23 @@ export default function VolunteeringDashboard() {
           await applyToEvent(selectedEvent.id);
           toast.success("Marked as Interested!");
         }
+        const nextApplied = !selectedEvent.has_applied;
         setEvents((prev) =>
           prev.map((e) =>
             e.id === selectedEvent.id
               ? {
                   ...e,
-                  has_applied: !selectedEvent.has_applied,
-                  application_status: selectedEvent.has_applied
-                    ? null
-                    : "pending",
+                  has_applied: nextApplied,
+                  application_status: nextApplied ? "pending" : null,
                 }
               : e,
           ),
         );
-        setSelectedEvent(null);
+        setSelectedEvent({
+          ...selectedEvent,
+          has_applied: nextApplied,
+          application_status: nextApplied ? "pending" : null,
+        });
       } else {
         if (rating === 0) {
           toast.error("Please select a star rating");
@@ -216,13 +231,13 @@ export default function VolunteeringDashboard() {
   const getCardColor = (category?: string) => {
     switch (category?.toLowerCase()) {
       case "stem":
-        return "bg-blue-50/50 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-blue-500 border border-[var(--border)]";
       case "education":
-        return "bg-purple-50/50 dark:bg-purple-950/10 border-purple-200 dark:border-purple-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-purple-500 border border-[var(--border)]";
       case "environment":
-        return "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-emerald-500 border border-[var(--border)]";
       default:
-        return "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900";
+        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-[3px] border-l-amber-500 border border-[var(--border)]";
     }
   };
 
@@ -293,10 +308,10 @@ export default function VolunteeringDashboard() {
         )}
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
-          <div className="p-4 space-y-3 border-b border-[var(--border)]">
+          <div className="p-4 space-y-3 border-b border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Filter size={14} className="text-[var(--brand)]" /> Sort & Filter
+                <Filter size={14} className="text-[var(--brand)]" /> Events
               </span>
               {(dateFilter || regionFilter !== "all") && (
                 <button
@@ -310,41 +325,44 @@ export default function VolunteeringDashboard() {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <select
-                value={regionFilter}
-                onChange={(e) => setRegionFilter(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)] col-span-2"
-              >
-                {regions.map((r) => (
-                  <option key={r} value={r}>
-                    {r === "all" ? "All regions / venues" : r}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setCalendarView((v) => !v)}
-                className={`col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold border transition-all ${
-                  calendarView
-                    ? "bg-[var(--brand)] text-white border-[var(--brand)]"
-                    : "bg-slate-50 dark:bg-[#18181B] border-[var(--border)]"
-                }`}
-              >
-                <CalendarDays size={14} /> Calendar View
-              </button>
-            </div>
+            <select
+              value={regionFilter}
+              onChange={(e) => setRegionFilter(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)]"
+            >
+              {regions.map((r) => (
+                <option key={r} value={r}>
+                  {r === "all" ? "All regions / venues" : r}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setCalendarView((v) => !v)}
+              className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+                calendarView
+                  ? "bg-[var(--brand)] text-white"
+                  : "text-[var(--brand)] bg-[var(--brand)]/10 hover:bg-[var(--brand)]/15"
+              }`}
+            >
+              <CalendarDays size={14} />
+              {calendarView ? "Hide Calendar" : "Calendar View"}
+            </button>
             {calendarView && (
               <EventCalendarView
+                embedded
                 events={allEventsForCalendar}
                 selectedDate={dateFilter}
                 onSelectDate={(d) => setDateFilter(d)}
+                onDayOpen={(date, dayEvents) =>
+                  setCalendarDayPopup({ date, events: dayEvents })
+                }
               />
             )}
           </div>
 
-          <div className="px-4 pt-3 pb-2 border-b border-[var(--border)]">
-            <div className="flex bg-[#E4E4E7] dark:bg-[#121212] p-1 rounded-lg">
+          <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]">
+            <div className="flex bg-slate-100 dark:bg-[#18181B] p-1 rounded-lg">
               {(["Active", "Closed", "Attended"] as Tab[]).map((t) => (
                 <button
                   key={t}
@@ -360,7 +378,7 @@ export default function VolunteeringDashboard() {
             </div>
           </div>
 
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-3 bg-[var(--surface)]">
             {loading ? (
               <EventListSkeleton count={4} />
             ) : events.length === 0 ? (
@@ -544,59 +562,40 @@ export default function VolunteeringDashboard() {
               )}
 
               {tab === "Active" ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <a
                     href={`tel:${selectedEvent.coordinator_phone || "+919876543210"}`}
-                    className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-lg text-[14px] shadow-lg"
+                    className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-xl text-[14px] shadow-lg"
                   >
                     <Phone size={16} />
-                    <span>Call Coordinator</span>
+                    Call Coordinator
                   </a>
                   <div className="grid grid-cols-2 gap-2">
-                    {selectedEvent.has_applied ? (
-                      <>
-                        <button
-                          onClick={() => handleAction()}
-                          disabled={applying}
-                          className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 text-red-600 border border-red-200 dark:border-red-900/50 font-bold py-3 rounded-lg text-[13px]"
-                        >
-                          {applying ? (
-                            <Loader2 className="animate-spin" size={16} />
-                          ) : (
-                            <>
-                              <Heart size={14} /> Remove
-                            </>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => shareEvent(selectedEvent)}
-                          className="flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3 rounded-lg text-[13px]"
-                        >
-                          <Share2 size={14} className="text-[var(--brand)]" />
-                          Share
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => handleAction()}
-                        disabled={applying}
-                        className="flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-bold py-3 rounded-lg text-[13px]"
-                      >
-                        {applying ? (
-                          <Loader2 className="animate-spin" size={16} />
-                        ) : (
-                          <>
-                            <Heart size={14} className="text-[var(--brand)]" />{" "}
-                            Interested
-                          </>
-                        )}
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleAction()}
+                      disabled={applying}
+                      className={`flex items-center justify-center gap-2 font-bold py-3 rounded-xl text-[13px] disabled:opacity-50 ${
+                        selectedEvent.has_applied
+                          ? "bg-red-50 dark:bg-red-950/20 text-red-600 border border-red-200 dark:border-red-900/50"
+                          : "bg-[var(--brand)]/10 text-[var(--brand)] border border-[var(--brand)]/25"
+                      }`}
+                    >
+                      {applying ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : selectedEvent.has_applied ? (
+                        <>
+                          <HeartOff size={14} /> Withdraw
+                        </>
+                      ) : (
+                        <>
+                          <BookmarkPlus size={14} /> Interested
+                        </>
+                      )}
+                    </button>
                     <button
                       type="button"
                       onClick={() => shareEvent(selectedEvent)}
-                      className="flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3 rounded-lg text-[13px]"
+                      className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-[#18181B] border border-[var(--border)] font-semibold py-3 rounded-xl text-[13px]"
                     >
                       <Share2 size={14} className="text-[var(--brand)]" />
                       Share
@@ -646,6 +645,77 @@ export default function VolunteeringDashboard() {
             </div>
           </div>
         </div>,
+          document.body,
+        )}
+
+      {portalReady &&
+        calendarDayPopup &&
+        createPortal(
+          <div className="fixed inset-0 z-[9998] flex items-end justify-center bg-black/50 backdrop-blur-sm">
+            <button
+              type="button"
+              aria-label="Close calendar events"
+              className="absolute inset-0"
+              onClick={() => setCalendarDayPopup(null)}
+            />
+            <div className="relative z-10 w-full max-w-md max-h-[70dvh] flex flex-col rounded-t-3xl overflow-hidden shadow-2xl bg-[var(--surface)] border-t border-[var(--border)]">
+              <div className="p-5 border-b border-[var(--border)] flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-wider">
+                    Events on
+                  </p>
+                  <h3 className="text-lg font-black">
+                    {new Date(
+                      `${calendarDayPopup.date}T12:00:00`,
+                    ).toLocaleDateString(undefined, {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCalendarDayPopup(null)}
+                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-[#18181B]"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {calendarDayPopup.events.map((evt) => (
+                  <button
+                    key={evt.id}
+                    type="button"
+                    onClick={() => {
+                      setCalendarDayPopup(null);
+                      setSelectedEvent(evt);
+                    }}
+                    className={`w-full text-left rounded-xl p-4 border cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center ${getCardColor(evt.category)}`}
+                  >
+                    <div className="flex-1 min-w-0 pr-3">
+                      <p className="font-bold text-sm truncate">{evt.title}</p>
+                      <p className="text-xs text-[var(--text-muted)] flex items-center gap-2 mt-1">
+                        <Calendar size={11} className="text-[var(--brand)] shrink-0" />
+                        {calendarDayPopup.date}
+                        {evt.time_start && (
+                          <>
+                            <Clock size={11} className="shrink-0" />
+                            {evt.time_start.slice(0, 5)}
+                            {evt.time_end ? `–${evt.time_end.slice(0, 5)}` : ""}
+                          </>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">
+                        {evt.venue}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400 shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>,
           document.body,
         )}
     </MobileLayout>

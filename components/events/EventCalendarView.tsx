@@ -7,6 +7,8 @@ type Props = {
   events: Event[];
   selectedDate: string;
   onSelectDate: (date: string) => void;
+  onDayOpen?: (date: string, dayEvents: Event[]) => void;
+  embedded?: boolean;
 };
 
 function pad(n: number) {
@@ -17,7 +19,7 @@ function toIso(y: number, m: number, d: number) {
   return `${y}-${pad(m + 1)}-${pad(d)}`;
 }
 
-function expandEventDates(event: Event): string[] {
+export function expandEventDates(event: Event): string[] {
   const dates: string[] = [];
   const start = event.date;
   if (!start) return dates;
@@ -43,6 +45,8 @@ export default function EventCalendarView({
   events,
   selectedDate,
   onSelectDate,
+  onDayOpen,
+  embedded = false,
 }: Props) {
   const anchor = selectedDate
     ? new Date(`${selectedDate}T12:00:00`)
@@ -57,7 +61,7 @@ export default function EventCalendarView({
   for (const evt of events) {
     for (const d of expandEventDates(evt)) {
       const list = byDate.get(d) ?? [];
-      list.push(evt);
+      if (!list.some((e) => e.id === evt.id)) list.push(evt);
       byDate.set(d, list);
     }
   }
@@ -77,8 +81,14 @@ export default function EventCalendarView({
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
 
+  const handleDayClick = (iso: string) => {
+    onSelectDate(iso);
+    const dayEvents = byDate.get(iso) ?? [];
+    if (dayEvents.length > 0) onDayOpen?.(iso, dayEvents);
+  };
+
   return (
-    <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 space-y-3">
+    <div className={embedded ? "space-y-3 pt-1" : "bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 space-y-3"}>
       <div className="flex items-center justify-between">
         <button
           type="button"
@@ -112,39 +122,38 @@ export default function EventCalendarView({
           const dayEvents = byDate.get(iso) ?? [];
           const isSelected = selectedDate === iso;
           const primary = dayEvents[0];
-          const hasCancelled =
-            primary &&
-            (primary.cancelled_dates ?? []).includes(iso) &&
-            !dayEvents.some((e) => expandEventDates(e).includes(iso));
 
           return (
             <button
               key={iso}
               type="button"
-              onClick={() => onSelectDate(iso)}
+              onClick={() => handleDayClick(iso)}
               className={`aspect-square rounded-lg text-xs font-bold flex flex-col items-center justify-center gap-0.5 transition-all ${
                 isSelected
                   ? "ring-2 ring-[var(--brand)] bg-[var(--brand)]/10"
-                  : "hover:bg-slate-100 dark:hover:bg-[#18181B]"
+                  : dayEvents.length > 0
+                    ? "bg-slate-100/80 dark:bg-[#18181B]"
+                    : "hover:bg-slate-100 dark:hover:bg-[#18181B]"
               }`}
             >
               <span>{day}</span>
               {dayEvents.length > 0 && (
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{
-                    backgroundColor: hasCancelled
-                      ? "#ef4444"
-                      : primary?.color ?? "var(--brand)",
-                  }}
-                />
+                <span className="flex gap-0.5">
+                  {dayEvents.slice(0, 3).map((e) => (
+                    <span
+                      key={e.id}
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: e.color ?? "var(--brand)" }}
+                    />
+                  ))}
+                </span>
               )}
             </button>
           );
         })}
       </div>
 
-      {selectedDate && (
+      {selectedDate && !onDayOpen && (
         <p className="text-[11px] text-[var(--text-muted)] text-center">
           {(byDate.get(selectedDate) ?? []).length} event
           {(byDate.get(selectedDate) ?? []).length === 1 ? "" : "s"} on{" "}

@@ -3,7 +3,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 import PWARegister from "@/components/PWARegister";
 import type { Metadata, Viewport } from "next";
-import { APP_NAME, LOGO_APPLE, LOGO_ICON_192, BRAND_THEME_COLOR } from "@/lib/brand";
+import { APP_NAME, LOGO_ICON_192, BRAND_THEME_COLOR } from "@/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,12 +11,10 @@ export const metadata: Metadata = {
   description: "SNS Family volunteer campaigns and digital I-Card",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/branding/favicon.png", type: "image/png" },
-      { url: LOGO_ICON_192, sizes: "192x192", type: "image/png" },
+      { url: "/icon.png", type: "image/png", sizes: "192x192" },
+      { url: LOGO_ICON_192, type: "image/png", sizes: "192x192" },
     ],
-    shortcut: "/favicon.ico",
-    apple: [{ url: LOGO_APPLE, sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,

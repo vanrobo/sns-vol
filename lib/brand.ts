@@ -14,4 +14,6 @@ export const GOOGLE_REVIEW_URL =
   "https://g.page/r/CY98E0HsTIUWEA0/review";
 
 /** Stand N Stride Foundation — donations */
-export const DONATE_URL = "https://dev.standnstride.org/donate";
+export const DONATE_URL =
+  process.env.NEXT_PUBLIC_DONATE_URL?.trim() ||
+  "https://dev.standnstride.org/donate";

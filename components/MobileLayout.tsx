@@ -94,7 +94,11 @@ export default function MobileLayout({
           <a
             href={DONATE_URL}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(DONATE_URL, "_blank", "noopener,noreferrer");
+            }}
             className="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md shadow-rose-500/20 transition-all"
           >
             <Heart size={12} className="fill-white" /> Donate

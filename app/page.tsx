@@ -26,13 +26,20 @@ import {
   Phone,
   Filter,
   Share2,
+  Heart,
+  CalendarDays,
 } from "lucide-react";
 import { EventListSkeleton } from "@/components/ui/Skeleton";
+import SkillChips from "@/components/ui/SkillChips";
 import StaffHomeBanner from "@/components/StaffHomeBanner";
-import { getMyRole } from "@/lib/data/profiles";
+import QuickAccessGrid from "@/components/home/QuickAccessGrid";
+import AwardsCarousel from "@/components/home/AwardsCarousel";
+import EventCalendarView from "@/components/events/EventCalendarView";
+import { getMyRole, getVolunteerStats } from "@/lib/data/profiles";
+import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
 import { APP_NAME } from "@/lib/brand";
-import type { UserRole } from "@/types";
+import type { UserRole, UserAward } from "@/types";
 
 function applicationStatusClass(status: ApplicationStatus) {
   switch (status) {
@@ -52,14 +59,21 @@ export default function VolunteeringDashboard() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("Active");
   const [dateFilter, setDateFilter] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
+  const [regionFilter, setRegionFilter] = useState("all");
+  const [calendarView, setCalendarView] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [applying, setApplying] = useState(false);
   const [rating, setRating] = useState(0);
   const [session, setSession] = useState<{
     role: UserRole;
     name: string;
+    batch: string | null;
   } | null>(null);
+  const [myAwards, setMyAwards] = useState<UserAward[]>([]);
+  const [stats, setStats] = useState<{ attended: number; totalActive: number } | null>(
+    null,
+  );
+  const [allEventsForCalendar, setAllEventsForCalendar] = useState<Event[]>([]);
   const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
@@ -67,9 +81,13 @@ export default function VolunteeringDashboard() {
   }, []);
 
   useEffect(() => {
-    getMyRole().then((s) => {
-      if (s) setSession({ role: s.role, name: s.name });
-    });
+    Promise.all([getMyRole(), getMyAwards(), getVolunteerStats()]).then(
+      ([s, awards, st]) => {
+        if (s) setSession({ role: s.role, name: s.name, batch: s.batch });
+        setMyAwards(awards);
+        if (st) setStats(st);
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -91,12 +109,20 @@ export default function VolunteeringDashboard() {
       if (dateFilter) {
         fetched = fetched.filter((e) => e.date === dateFilter);
       }
-      fetched = [...fetched].sort((a, b) => {
-        const timeA = new Date(a.date).getTime();
-        const timeB = new Date(b.date).getTime();
-        return sortBy === "newest" ? timeB - timeA : timeA - timeB;
-      });
+      if (regionFilter !== "all") {
+        fetched = fetched.filter(
+          (e) => (e.region || e.venue) === regionFilter,
+        );
+      }
+      fetched = [...fetched].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
       setEvents(fetched);
+
+      if (tab === "Active") {
+        const allActive = await getEvents("active");
+        setAllEventsForCalendar(allActive);
+      }
     } catch {
       toast.error("Connection failed");
     } finally {
@@ -107,7 +133,7 @@ export default function VolunteeringDashboard() {
   useEffect(() => {
     loadEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, dateFilter, sortBy]);
+  }, [tab, dateFilter, regionFilter]);
 
   const handleAction = async (overrideAction?: string) => {
     if (!selectedEvent) return;
@@ -214,45 +240,92 @@ export default function VolunteeringDashboard() {
     setRating(0);
   };
 
+  const regions = [
+    "all",
+    ...new Set(
+      allEventsForCalendar.map((e) => e.region || e.venue).filter(Boolean),
+    ),
+  ];
+
   return (
     <MobileLayout>
       <div className="p-5 space-y-6 pb-28">
         {session && (session.role === "admin" || session.role === "organiser") && (
           <StaffHomeBanner role={session.role} name={session.name} />
         )}
+
+        {session && session.role === "volunteer" && (
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-2xl font-black tracking-tight">
+                Welcome, {session.name.split(" ")[0]}
+              </h1>
+              {stats && (
+                <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
+                  {stats.attended} events attended · {stats.totalActive} active
+                  now
+                </p>
+              )}
+            </div>
+            <QuickAccessGrid
+              batch={session.batch}
+              awardCount={myAwards.length}
+              onEventsClick={() => setCalendarView(true)}
+            />
+            <AwardsCarousel awards={myAwards} />
+          </div>
+        )}
+
         <div className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
               <Filter size={14} className="text-[var(--brand)]" /> Sort & Filter
             </span>
-            {dateFilter && (
+            {(dateFilter || regionFilter !== "all") && (
               <button
-                onClick={() => setDateFilter("")}
+                onClick={() => {
+                  setDateFilter("");
+                  setRegionFilter("all");
+                }}
                 className="text-[11px] font-bold text-red-500 hover:underline"
               >
-                Clear Date
+                Clear
               </button>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)]"
-            />
             <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as "newest" | "oldest")
-              }
-              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)]"
+              value={regionFilter}
+              onChange={(e) => setRegionFilter(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)] col-span-2"
             >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
+              {regions.map((r) => (
+                <option key={r} value={r}>
+                  {r === "all" ? "All regions / venues" : r}
+                </option>
+              ))}
             </select>
+            <button
+              type="button"
+              onClick={() => setCalendarView((v) => !v)}
+              className={`col-span-2 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold border transition-all ${
+                calendarView
+                  ? "bg-[var(--brand)] text-white border-[var(--brand)]"
+                  : "bg-slate-50 dark:bg-[#18181B] border-[var(--border)]"
+              }`}
+            >
+              <CalendarDays size={14} /> Calendar View
+            </button>
           </div>
         </div>
+
+        {calendarView && (
+          <EventCalendarView
+            events={allEventsForCalendar}
+            selectedDate={dateFilter}
+            onSelectDate={(d) => setDateFilter(d)}
+          />
+        )}
 
         <div className="flex bg-[#E4E4E7] dark:bg-[#121212] p-1 rounded-lg border border-[var(--border)]">
           {(["Active", "Closed", "Attended"] as Tab[]).map((t) => (
@@ -366,14 +439,6 @@ export default function VolunteeringDashboard() {
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    aria-label="Share event link"
-                    onClick={() => shareEvent(selectedEvent)}
-                    className="p-2 bg-black/5 dark:bg-white/10 rounded-full hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
-                  >
-                    <Share2 size={18} />
-                  </button>
-                  <button
-                    type="button"
                     aria-label="Close"
                     onClick={closeEventModal}
                     className="p-2 bg-black/5 dark:bg-white/10 rounded-full hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
@@ -420,12 +485,10 @@ export default function VolunteeringDashboard() {
                     <Target size={12} className="text-[var(--brand)]" /> Skill
                     Requirements
                   </p>
-                  <p className="text-sm font-medium">
-                    {selectedEvent.criteria}
-                    {selectedEvent.required_skills?.length
-                      ? ` · ${selectedEvent.required_skills.join(", ")}`
-                      : ""}
-                  </p>
+                  <SkillChips
+                    criteria={selectedEvent.criteria}
+                    skills={selectedEvent.required_skills}
+                  />
                 </div>
               </div>
 
@@ -463,38 +526,63 @@ export default function VolunteeringDashboard() {
 
               {tab === "Active" ? (
                 <div className="space-y-3">
-                  {selectedEvent.has_applied ? (
-                    <button
-                      onClick={() => handleAction()}
-                      disabled={applying}
-                      className="w-full bg-red-50 dark:bg-red-950/20 hover:bg-red-100 text-red-600 border border-red-200 dark:border-red-900/50 font-bold py-3.5 rounded-lg text-[14px] flex justify-center items-center"
-                    >
-                      {applying ? (
-                        <Loader2 className="animate-spin" size={18} />
-                      ) : (
-                        "Remove Interest"
-                      )}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleAction()}
-                      disabled={applying}
-                      className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white shadow-lg font-bold py-3.5 rounded-lg text-[14px] flex justify-center items-center"
-                    >
-                      {applying ? (
-                        <Loader2 className="animate-spin" size={18} />
-                      ) : (
-                        "Register as Interested"
-                      )}
-                    </button>
-                  )}
                   <a
                     href={`tel:${selectedEvent.coordinator_phone || "+919876543210"}`}
-                    className="w-full flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3.5 rounded-lg text-[14px]"
+                    className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-lg text-[14px] shadow-lg"
                   >
-                    <Phone size={14} className="text-[var(--brand)]" />
+                    <Phone size={16} />
                     <span>Call Coordinator</span>
                   </a>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedEvent.has_applied ? (
+                      <>
+                        <button
+                          onClick={() => handleAction()}
+                          disabled={applying}
+                          className="flex items-center justify-center gap-2 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 text-red-600 border border-red-200 dark:border-red-900/50 font-bold py-3 rounded-lg text-[13px]"
+                        >
+                          {applying ? (
+                            <Loader2 className="animate-spin" size={16} />
+                          ) : (
+                            <>
+                              <Heart size={14} /> Remove
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => shareEvent(selectedEvent)}
+                          className="flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3 rounded-lg text-[13px]"
+                        >
+                          <Share2 size={14} className="text-[var(--brand)]" />
+                          Share
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handleAction()}
+                        disabled={applying}
+                        className="flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-bold py-3 rounded-lg text-[13px]"
+                      >
+                        {applying ? (
+                          <Loader2 className="animate-spin" size={16} />
+                        ) : (
+                          <>
+                            <Heart size={14} className="text-[var(--brand)]" />{" "}
+                            Interested
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => shareEvent(selectedEvent)}
+                      className="flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3 rounded-lg text-[13px]"
+                    >
+                      <Share2 size={14} className="text-[var(--brand)]" />
+                      Share
+                    </button>
+                  </div>
                 </div>
               ) : selectedEvent.has_attended ? (
                 selectedEvent.rating && selectedEvent.rating > 0 ? (
@@ -526,14 +614,16 @@ export default function VolunteeringDashboard() {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() => shareEvent(selectedEvent)}
-                className="w-full flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3.5 rounded-lg text-[14px] mt-3"
-              >
-                <Share2 size={14} className="text-[var(--brand)]" />
-                <span>Share Event Link</span>
-              </button>
+              {tab !== "Active" && (
+                <button
+                  type="button"
+                  onClick={() => shareEvent(selectedEvent)}
+                  className="w-full flex items-center justify-center gap-2 bg-[#E5E5EA] dark:bg-[#2C2C2E] font-semibold py-3 rounded-lg text-[13px] mt-3"
+                >
+                  <Share2 size={14} className="text-[var(--brand)]" />
+                  Share
+                </button>
+              )}
             </div>
           </div>
         </div>,

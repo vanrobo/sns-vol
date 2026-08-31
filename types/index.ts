@@ -19,6 +19,8 @@ export interface Profile {
   avatar_url: string | null;
   email_notifs: boolean;
   public_profile: boolean;
+  batch: string | null;
+  delete_requested_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -35,6 +37,13 @@ export interface Event {
   required_skills: string[];
   category: string;
   coordinator_phone: string;
+  region?: string | null;
+  color?: string | null;
+  end_date?: string | null;
+  time_start?: string | null;
+  time_end?: string | null;
+  is_recurring?: boolean;
+  cancelled_dates?: string[];
   has_applied?: boolean;
   application_status?: ApplicationStatus | null;
   has_attended?: boolean;
@@ -85,6 +94,8 @@ export interface Award {
   title: string;
   description: string;
   event_id: string | null;
+  icon?: string;
+  color?: string;
   created_at?: string;
 }
 
@@ -95,6 +106,8 @@ export interface UserAward {
   awarded_at: string;
   title: string;
   description: string;
+  icon?: string;
+  color?: string;
 }
 
 /** Display helpers for title-cased UI labels */

@@ -201,6 +201,16 @@ export async function resolveGrievance(id: string, adminNotes: string) {
   if (error) throw error;
 }
 
+export async function updateUserBatch(userId: string, batch: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ batch: batch.trim() || null })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
 export async function updateUserRole(userId: string, role: UserRole) {
   await requireAdmin();
   const supabase = await createClient();

@@ -5,20 +5,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { signIn } from "@/lib/actions/auth";
-import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
 import { APP_NAME } from "@/lib/brand";
 import { Loader2, Mail, Lock } from "lucide-react";
+
+const SHOW_DEMO =
+  process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === "true";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const fillDemo = (email: string) => {
-    setEmail(email);
-    setPassword(DEMO_PASSWORD);
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,32 +98,11 @@ export default function LoginPage() {
           </Link>
         </p>
 
-        <div className="mt-8 pt-6 border-t border-[var(--border)]">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] mb-3">
-            Demo accounts
+        {SHOW_DEMO && (
+          <p className="text-center mt-4 text-[10px] text-[var(--text-muted)]">
+            Demo mode enabled via NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS
           </p>
-          <div className="space-y-2">
-            {DEMO_ACCOUNTS.map((demo) => (
-              <button
-                key={demo.email}
-                type="button"
-                onClick={() => fillDemo(demo.email)}
-                className="w-full text-left p-3 rounded-xl border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] hover:border-emerald-500/50 transition-colors"
-              >
-                <p className="text-sm font-bold text-[var(--text)]">
-                  {demo.label}
-                </p>
-                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                  {demo.email}
-                </p>
-              </button>
-            ))}
-          </div>
-          <p className="text-[10px] text-[var(--text-muted)] mt-3 text-center">
-            Password for all demos:{" "}
-            <span className="font-mono font-semibold">{DEMO_PASSWORD}</span>
-          </p>
-        </div>
+        )}
       </form>
     </div>
   );

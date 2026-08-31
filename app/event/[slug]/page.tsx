@@ -9,6 +9,7 @@ import Link from "next/link";
 import { getPublicEventBySlug, getPublicEventById } from "@/lib/data/events";
 import { getMyRole } from "@/lib/data/profiles";
 import { APP_NAME } from "@/lib/brand";
+import SkillChips from "@/components/ui/SkillChips";
 import { titleCaseStatus } from "@/types";
 import type { ProfileStatus, UserRole } from "@/types";
 
@@ -116,19 +117,10 @@ export default async function PublicEventPage({ params }: Props) {
             <p className="text-[10px] font-bold uppercase text-[var(--text-muted)] mb-2 flex items-center gap-1">
               <Target size={12} className="text-[var(--brand)]" /> Requirements
             </p>
-            <p className="text-sm font-medium">{event.criteria}</p>
-            {event.required_skills?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {event.required_skills.map((s) => (
-                  <span
-                    key={s}
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-[var(--brand)]"
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
+            <SkillChips
+              criteria={event.criteria}
+              skills={event.required_skills}
+            />
           </div>
         </div>
 

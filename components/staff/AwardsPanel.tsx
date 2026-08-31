@@ -35,6 +35,8 @@ export default function AwardsPanel({
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newEventId, setNewEventId] = useState("");
+  const [newIcon, setNewIcon] = useState("award");
+  const [newColor, setNewColor] = useState("#34c759");
 
   const [grantUserId, setGrantUserId] = useState("");
   const [grantAwardId, setGrantAwardId] = useState("");
@@ -62,6 +64,8 @@ export default function AwardsPanel({
         title: newTitle.trim(),
         description: newDesc.trim(),
         event_id: newEventId || null,
+        icon: newIcon,
+        color: newColor,
       });
       toast.success("Award created!");
       setNewTitle("");
@@ -159,6 +163,26 @@ export default function AwardsPanel({
                   </option>
                 ))}
               </select>
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  value={newIcon}
+                  onChange={(e) => setNewIcon(e.target.value)}
+                  className="w-full border p-3 rounded-xl dark:bg-gray-900 border-[var(--border)] outline-emerald-600 text-sm"
+                >
+                  <option value="award">Award icon</option>
+                  <option value="trophy">Trophy</option>
+                  <option value="medal">Medal</option>
+                  <option value="star">Star</option>
+                  <option value="heart">Heart</option>
+                </select>
+                <input
+                  type="color"
+                  value={newColor}
+                  onChange={(e) => setNewColor(e.target.value)}
+                  className="w-full h-12 border rounded-xl cursor-pointer border-[var(--border)]"
+                  title="Badge color"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={actioningId === "create"}

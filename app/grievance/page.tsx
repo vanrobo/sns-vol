@@ -80,30 +80,17 @@ export default function GrievancePage() {
   return (
     <MobileLayout>
       <div className="p-5 space-y-6 pb-28">
-        <div className="bg-gradient-to-br from-rose-500 to-orange-500 rounded-xl p-6 text-white relative overflow-hidden shadow-lg">
-          <AlertCircle
-            className="absolute -right-4 -bottom-4 text-white/20"
-            size={120}
-          />
-          <div className="relative z-10">
-            <h2 className="text-[22px] font-black tracking-tight mb-2">
-              Complaint Desk
-            </h2>
-            <p className="text-rose-50 text-[13px] leading-relaxed font-medium">
-              Submit formal complaints, safety concerns, or coordinator
-              misconduct feedback.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">Grievance</h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
+            Submit a formal complaint
+          </p>
         </div>
 
         <form
           onSubmit={handleSubmit}
           className="bg-[var(--surface)] rounded-xl p-6 border border-[var(--border)] space-y-5 shadow-sm"
         >
-          <h3 className="text-base font-bold tracking-tight">
-            Submit a Formal Complaint
-          </h3>
-
           <div>
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
               Complaint Category
@@ -159,7 +146,7 @@ export default function GrievancePage() {
               <Loader2 className="animate-spin" size={16} />
             ) : (
               <>
-                <Send size={16} /> Submit Formal Complaint
+                <Send size={16} /> Submit
               </>
             )}
           </button>

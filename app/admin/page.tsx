@@ -21,6 +21,7 @@ import {
   approveICard,
   resolveGrievance,
   updateUserRole,
+  updateUserBatch,
   type EventInput,
 } from "@/lib/data/admin";
 import { signOutAction } from "@/lib/actions/auth";
@@ -373,6 +374,30 @@ export default function AdminDashboard() {
                     <option value="organiser">Organiser</option>
                     <option value="admin">Admin</option>
                   </select>
+                  <input
+                    type="text"
+                    placeholder="Batch (e.g. Dwarka Sector 2)"
+                    defaultValue={vol.batch ?? ""}
+                    disabled={actioningId === vol.id}
+                    onBlur={(e) => {
+                      const next = e.target.value.trim();
+                      if (next === (vol.batch ?? "")) return;
+                      setActioningId(vol.id);
+                      updateUserBatch(vol.id, next)
+                        .then(() => {
+                          toast.success("Batch updated");
+                          setData((prev) => ({
+                            ...prev,
+                            users: prev.users.map((u) =>
+                              u.id === vol.id ? { ...u, batch: next || null } : u,
+                            ),
+                          }));
+                        })
+                        .catch(() => toast.error("Failed to update batch"))
+                        .finally(() => setActioningId(null));
+                    }}
+                    className="w-full text-xs border border-[var(--border)] rounded-lg p-2.5 bg-slate-50 dark:bg-[#18181B] outline-emerald-600"
+                  />
                   {vol.status !== "active" && (
                     <button
                       disabled={actioningId === vol.id}

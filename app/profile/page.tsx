@@ -10,7 +10,7 @@ import {
   updateProfile,
   uploadAvatar,
   signOut,
-  deleteAccount,
+  requestDeleteAccount,
 } from "@/lib/data/profiles";
 import type { Profile } from "@/types";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
@@ -126,13 +126,17 @@ export default function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm("Are you sure? This action cannot be undone.")) return;
+    if (
+      !window.confirm(
+        "Request account deletion? An admin will review your request.",
+      )
+    )
+      return;
     try {
-      await deleteAccount();
-      router.push("/login");
-      router.refresh();
+      await requestDeleteAccount();
+      toast.success("Deletion request submitted.");
     } catch {
-      toast.error("Could not delete account");
+      toast.error("Could not submit request.");
     }
   };
 
@@ -384,7 +388,10 @@ export default function ProfilePage() {
         )}
 
         {myAwards.length > 0 && (
-          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-5 space-y-3">
+          <div
+            id="awards"
+            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-5 space-y-3"
+          >
             <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
               <Award size={16} className="text-amber-500" /> My Awards
             </h3>
@@ -511,7 +518,7 @@ export default function ProfilePage() {
             className="w-full p-4 px-5 flex items-center gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors rounded-b-xl"
           >
             <AlertTriangle size={16} />
-            <span className="font-semibold text-sm">Delete Account</span>
+            <span className="font-semibold text-sm">Request to Delete</span>
           </button>
         </div>
       </div>

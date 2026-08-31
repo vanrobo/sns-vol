@@ -9,40 +9,6 @@ import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
 import type { UserRole } from "@/types";
 
-const InstagramIcon = ({ size = 20 }: { size?: number }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-  </svg>
-);
-
-const TwitterIcon = ({ size = 20 }: { size?: number }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
-  </svg>
-);
-
 export default function MobileLayout({
   children,
 }: {
@@ -121,24 +87,6 @@ export default function MobileLayout({
               <LayoutDashboard size={12} /> Dashboard
             </Link>
           )}
-          <div className="flex gap-2 text-slate-400">
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-pink-500 transition-colors"
-            >
-              <InstagramIcon size={18} />
-            </a>
-            <a
-              href="https://twitter.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-blue-400 transition-colors"
-            >
-              <TwitterIcon size={18} />
-            </a>
-          </div>
           <a
             href="https://rzp.io/l/snsdonate"
             target="_blank"

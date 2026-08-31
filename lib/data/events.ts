@@ -11,6 +11,13 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
   } = await supabase.auth.getUser();
   if (!user) return [];
 
+  const today = new Date().toISOString().slice(0, 10);
+  await supabase
+    .from("events")
+    .update({ status: "closed" })
+    .eq("status", "active")
+    .lt("date", today);
+
   const dbStatus = status === "attended" ? "closed" : status;
 
   const { data: events, error } = await supabase

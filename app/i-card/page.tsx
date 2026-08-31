@@ -52,22 +52,6 @@ export default function ICardPage() {
   return (
     <MobileLayout>
       <div className="p-5 flex flex-col items-center pb-24 space-y-6">
-        <div className="bg-black dark:bg-[#121212] rounded-xl p-6 text-white relative overflow-hidden border border-[var(--border)] shadow-sm w-full">
-          <BadgeCheck
-            className="absolute -right-4 -bottom-4 text-white/5"
-            size={120}
-          />
-          <div className="relative z-10">
-            <h2 className="text-[22px] font-bold tracking-tight mb-2">
-              Digital ID
-            </h2>
-            <p className="text-[#98989D] text-[13px] leading-relaxed">
-              Present this verified digital credential for secure entry to
-              active campaign locations.
-            </p>
-          </div>
-        </div>
-
         <div className="w-full max-w-[320px] bg-[var(--surface)] rounded-2xl border border-[var(--border)] overflow-hidden relative shadow-sm">
           <div className="bg-emerald-600 p-5 text-white flex justify-between items-start">
             <div>

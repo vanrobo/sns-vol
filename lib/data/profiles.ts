@@ -37,6 +37,7 @@ export async function getMyRole(): Promise<{
   role: Profile["role"];
   status: Profile["status"];
   name: string;
+  batch: string | null;
 } | null> {
   const supabase = await createClient();
   const {
@@ -46,12 +47,44 @@ export async function getMyRole(): Promise<{
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("role, status, name")
+    .select("role, status, name, batch")
     .eq("id", user.id)
     .single();
 
   if (error || !data) return null;
-  return data as { role: Profile["role"]; status: Profile["status"]; name: string };
+  return data as {
+    role: Profile["role"];
+    status: Profile["status"];
+    name: string;
+    batch: string | null;
+  };
+}
+
+export async function getVolunteerStats(): Promise<{
+  attended: number;
+  totalActive: number;
+} | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [{ count: attended }, { count: totalActive }] = await Promise.all([
+    supabase
+      .from("attendance")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id),
+    supabase
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "active"),
+  ]);
+
+  return {
+    attended: attended ?? 0,
+    totalActive: totalActive ?? 0,
+  };
 }
 
 export async function getQrVerifyUrl(): Promise<string | null> {
@@ -124,6 +157,21 @@ export async function uploadAvatar(formData: FormData): Promise<string> {
   return `${publicUrl}?t=${Date.now()}`;
 }
 
+export async function requestDeleteAccount() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ delete_requested_at: new Date().toISOString() })
+    .eq("id", user.id);
+  if (error) throw error;
+}
+
+/** @deprecated Use requestDeleteAccount — kept for admin tooling */
 export async function deleteAccount() {
   const supabase = await createClient();
   const {

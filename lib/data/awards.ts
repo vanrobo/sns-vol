@@ -13,7 +13,7 @@ export async function getMyAwards(): Promise<UserAward[]> {
 
   const { data, error } = await supabase
     .from("user_awards")
-    .select("*, awards(title, description, event_id)")
+    .select("*, awards(title, description, event_id, icon, color)")
     .eq("user_id", user.id)
     .order("awarded_at", { ascending: false });
 
@@ -25,7 +25,13 @@ export async function getMyAwards(): Promise<UserAward[]> {
       user_id: string;
       award_id: string;
       awarded_at: string;
-      awards: { title: string; description: string; event_id: string | null } | null;
+      awards: {
+        title: string;
+        description: string;
+        event_id: string | null;
+        icon: string;
+        color: string;
+      } | null;
     };
     return {
       id: r.id,
@@ -34,6 +40,8 @@ export async function getMyAwards(): Promise<UserAward[]> {
       awarded_at: r.awarded_at,
       title: r.awards?.title ?? "Award",
       description: r.awards?.description ?? "",
+      icon: r.awards?.icon ?? "award",
+      color: r.awards?.color ?? "#34c759",
     };
   });
 }
@@ -68,6 +76,8 @@ export async function createAward(input: {
   title: string;
   description?: string;
   event_id?: string | null;
+  icon?: string;
+  color?: string;
 }) {
   await requireStaff();
   const supabase = await createClient();
@@ -77,6 +87,8 @@ export async function createAward(input: {
       title: input.title,
       description: input.description ?? "",
       event_id: input.event_id || null,
+      icon: input.icon ?? "award",
+      color: input.color ?? "#34c759",
     })
     .select()
     .single();

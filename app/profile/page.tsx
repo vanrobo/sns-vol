@@ -2,6 +2,7 @@
 "use client";
 import MobileLayout from "@/components/MobileLayout";
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -87,6 +88,11 @@ export default function ProfilePage() {
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const profileSnapshot = useMemo(() => {
     if (!profile) return "";
@@ -105,6 +111,12 @@ export default function ProfilePage() {
     savedBaseline.current !== "" &&
     profileSnapshot !== savedBaseline.current;
 
+  const showSaveBar =
+    hasUnsavedChanges ||
+    isEditingInfo ||
+    isEditingSkills ||
+    Boolean(pendingAvatar);
+
   useEffect(() => {
     unsavedCtx?.setHasUnsaved(hasUnsavedChanges);
   }, [hasUnsavedChanges, unsavedCtx]);
@@ -120,24 +132,52 @@ export default function ProfilePage() {
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
-    Promise.all([getProfile(), getMyAwards()])
-      .then(([data, awards]) => {
-        if (data) {
-          setProfile(data);
-          savedBaseline.current = JSON.stringify({
-            name: data.name,
-            college: data.college,
-            phone: data.phone ?? "",
-            address: data.address ?? "",
-            skills: data.skills,
-            hasAvatar: false,
-          });
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const data = await getProfile();
+        if (cancelled) return;
+
+        if (!data) {
+          toast.error("Profile not found. Try signing out and back in.");
+          return;
         }
-        setMyAwards(awards);
-        if (data) writeProfileCache({ profile: data, awards });
-      })
-      .catch(() => toast.error("Failed to load profile"))
-      .finally(() => setLoading(false));
+
+        setProfile(data);
+        savedBaseline.current = JSON.stringify({
+          name: data.name,
+          college: data.college,
+          phone: data.phone ?? "",
+          address: data.address ?? "",
+          skills: data.skills,
+          hasAvatar: false,
+        });
+
+        const cached = readProfileCache(data.id);
+        if (cached?.userId === data.id) {
+          setMyAwards(cached.awards);
+        }
+
+        let awards: UserAward[] = [];
+        try {
+          awards = await getMyAwards();
+          if (!cancelled) setMyAwards(awards);
+        } catch {
+          /* awards are optional — don't block profile */
+        }
+
+        writeProfileCache({ userId: data.id, profile: data, awards });
+      } catch {
+        if (!cancelled) toast.error("Failed to load profile");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSave = async () => {
@@ -171,7 +211,7 @@ export default function ProfilePage() {
         skills: updated.skills,
         hasAvatar: false,
       });
-      writeProfileCache({ profile: updated, awards: myAwards });
+      writeProfileCache({ userId: updated.id, profile: updated, awards: myAwards });
       unsavedCtx?.setHasUnsaved(false);
       toast.success("Profile saved");
       setIsEditingInfo(false);
@@ -227,7 +267,7 @@ export default function ProfilePage() {
 
   return (
     <MobileLayout>
-      <div className="p-5 space-y-6 pb-28">
+      <div className={`p-5 space-y-6 ${showSaveBar ? "pb-36" : "pb-28"}`}>
         <div className="flex flex-col items-center pt-4 relative">
           <div
             onClick={() => fileInputRef.current?.click()}
@@ -454,24 +494,6 @@ export default function ProfilePage() {
           </p>
         )}
 
-        {hasUnsavedChanges && (
-          <div className="fixed bottom-[4.5rem] left-0 right-0 max-w-md mx-auto px-5 z-[55] pointer-events-none">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className={`pointer-events-auto w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold text-sm py-3.5 rounded-xl flex justify-center items-center gap-2 shadow-xl shadow-emerald-500/25 border border-emerald-400/30 ${unsavedCtx?.shaking ? "animate-shake" : ""}`}
-            >
-              {saving ? (
-                <Loader2 className="animate-spin" size={18} />
-              ) : (
-                <>
-                  <Check size={16} /> Save Changes
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
         {myAwards.length > 0 && (
           <div
             id="awards"
@@ -634,6 +656,32 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+
+      {portalReady &&
+        showSaveBar &&
+        createPortal(
+          <div className="fixed inset-x-0 bottom-[4.25rem] z-[60] flex justify-center px-5 pb-safe pointer-events-none">
+            <div className="w-full max-w-md pointer-events-auto">
+              <div className="rounded-xl bg-white/95 dark:bg-[#121212]/95 backdrop-blur-md border border-[var(--border)] p-2 shadow-2xl shadow-black/10">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !hasUnsavedChanges}
+                  className={`w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-45 disabled:cursor-not-allowed text-white font-bold text-sm py-3.5 rounded-lg flex justify-center items-center gap-2 ${unsavedCtx?.shaking ? "animate-shake" : ""}`}
+                >
+                  {saving ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <>
+                      <Check size={16} /> Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </MobileLayout>
   );
 }

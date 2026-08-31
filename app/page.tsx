@@ -97,14 +97,17 @@ export default function VolunteeringDashboard() {
         const nextSession = s
           ? { role: s.role, name: s.name, batch: s.batch }
           : null;
-        if (nextSession) setSession(nextSession);
-        setMyAwards(awards);
-        if (st) setStats(st);
-        writeHomeCache({
-          session: nextSession,
-          awards,
-          stats: st,
-        });
+        if (nextSession && s) {
+          setSession(nextSession);
+          setMyAwards(awards);
+          if (st) setStats(st);
+          writeHomeCache({
+            userId: s.id,
+            session: nextSession,
+            awards,
+            stats: st,
+          });
+        }
       },
     );
   }, []);

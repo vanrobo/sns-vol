@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { signIn } from "@/lib/actions/auth";
+import { clearAppCaches } from "@/lib/home-cache";
 import { APP_NAME } from "@/lib/brand";
 import { Loader2, Mail, Lock } from "lucide-react";
 
@@ -26,6 +27,7 @@ export default function LoginPage() {
         toast.error(result.error);
         return;
       }
+      clearAppCaches();
       toast.success("Welcome back!");
       if (result.role === "admin") router.push("/admin");
       else if (result.role === "organiser") router.push("/organiser");

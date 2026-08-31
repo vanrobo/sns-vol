@@ -27,13 +27,14 @@ export async function getProfile(userId?: string): Promise<Profile | null> {
     .from("profiles")
     .select("*")
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
-  return data as Profile;
+  return data as Profile | null;
 }
 
 export async function getMyRole(): Promise<{
+  id: string;
   role: Profile["role"];
   status: Profile["status"];
   name: string;
@@ -47,12 +48,13 @@ export async function getMyRole(): Promise<{
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("role, status, name, batch")
+    .select("id, role, status, name, batch")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (error || !data) return null;
   return data as {
+    id: string;
     role: Profile["role"];
     status: Profile["status"];
     name: string;

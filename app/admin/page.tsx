@@ -213,8 +213,9 @@ export default function AdminDashboard() {
             : u,
         ),
       }));
-    } catch {
-      toast.error("Failed to activate I-Card.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to activate I-Card.";
+      toast.error(msg);
     } finally {
       setActioningId(null);
     }

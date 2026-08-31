@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-export type AuthResult = { error?: string; role?: string; status?: string };
+export type AuthResult = {
+  error?: string;
+  role?: string;
+  status?: string;
+  userId?: string;
+};
 
 export async function signIn(
   email: string,
@@ -31,6 +36,7 @@ export async function signIn(
 
   revalidatePath("/", "layout");
   return {
+    userId: data.user.id,
     role: profile?.role ?? "volunteer",
     status: profile?.status ?? "pending",
   };

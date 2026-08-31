@@ -253,17 +253,28 @@ export async function approveICard(userId: string) {
   const volunteerId = `SNS-FAM-2026-${short}`;
   const validUntil = "2027-12-31";
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .update({
       status: "active",
       volunteer_id: volunteerId,
       valid_until: validUntil,
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id, status, volunteer_id, valid_until")
+    .maybeSingle();
 
   if (error) throw error;
-  return { volunteer_id: volunteerId, valid_until: validUntil };
+  if (!data || data.status !== "active") {
+    throw new Error(
+      "Approval blocked — check that you are logged in as admin and try again.",
+    );
+  }
+
+  return {
+    volunteer_id: data.volunteer_id ?? volunteerId,
+    valid_until: data.valid_until ?? validUntil,
+  };
 }
 
 export async function resolveGrievance(id: string, adminNotes: string) {

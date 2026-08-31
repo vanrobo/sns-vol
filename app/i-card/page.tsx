@@ -10,6 +10,8 @@ import toast from "react-hot-toast";
 import { ICardSkeleton } from "@/components/ui/Skeleton";
 import { APP_NAME } from "@/lib/brand";
 
+const QR_SIZE = 168;
+
 export default function ICardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -46,135 +48,137 @@ export default function ICardPage() {
   return (
     <MobileLayout>
       <div className="p-5 flex flex-col items-center pb-24">
-        <div className="w-full max-w-[360px]">
+        <div className="w-full max-w-[340px]">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3 text-center">
             Digital Volunteer ID
           </p>
 
-          {/* Landscape ID card */}
-          <div className="relative aspect-[1.586/1] w-full rounded-2xl overflow-hidden shadow-xl border-2 border-emerald-700/30 bg-white dark:bg-[#0a0a0a]">
-            {/* Left green stripe */}
-            <div className="absolute inset-y-0 left-0 w-[38%] bg-gradient-to-br from-emerald-600 to-emerald-700 flex flex-col">
-              <div className="p-3 flex justify-between items-start">
-                <div>
-                  <p className="text-white font-black text-[11px] leading-tight tracking-tight">
-                    {APP_NAME}
-                  </p>
-                  <p className="text-emerald-100 text-[7px] font-bold uppercase tracking-[0.15em] mt-0.5">
-                    Volunteer ID
-                  </p>
-                </div>
-                <ShieldCheck size={18} className="text-white/70 shrink-0" />
-              </div>
-
-              <div className="flex-1 flex flex-col items-center justify-center px-3 pb-3">
-                <div className="w-[72px] h-[88px] rounded-lg bg-white/15 border-2 border-white/40 flex items-center justify-center overflow-hidden shadow-inner">
-                  {profile.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={profile.avatar_url}
-                      alt={profile.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="text-white/80" size={36} />
-                  )}
-                </div>
-                <p className="text-[7px] text-emerald-100/80 font-bold uppercase tracking-wider mt-2">
-                  Photo
+          <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-emerald-700/30 bg-white dark:bg-[#0a0a0a]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-4 flex justify-between items-center">
+              <div>
+                <p className="text-white font-black text-lg leading-tight tracking-tight">
+                  {APP_NAME}
+                </p>
+                <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-[0.2em] mt-0.5">
+                  Official Volunteer ID
                 </p>
               </div>
-
-              <div className="px-3 pb-3">
-                <div className="bg-white/10 rounded-md px-2 py-1.5">
-                  <p className="text-[6px] text-emerald-100/70 font-bold uppercase">
-                    Valid Until
-                  </p>
-                  <p className="text-[9px] text-white font-bold font-mono">
-                    {profile.valid_until || "—"}
-                  </p>
-                </div>
-              </div>
+              <ShieldCheck size={28} className="text-white/70 shrink-0" />
             </div>
 
-            {/* Right details panel */}
-            <div className="absolute inset-y-0 right-0 w-[62%] p-4 flex flex-col justify-between bg-[#fafafa] dark:bg-[#141414]">
-              {!isActive ? (
-                <div className="flex flex-col items-center justify-center h-full text-center px-2">
-                  <User className="text-amber-500 mb-2" size={28} />
-                  <p className="text-xs font-bold text-amber-600">
-                    Pending Approval
-                  </p>
-                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
-                    Your ID activates once approved.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-emerald-600 mb-1">
-                      Name
-                    </p>
-                    <p className="text-base font-black uppercase leading-tight tracking-tight text-[var(--text)] truncate">
-                      {profile.name}
-                    </p>
-
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-emerald-600 mt-3 mb-0.5">
-                      ID Number
-                    </p>
-                    <p className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                      {profile.volunteer_id}
-                    </p>
-
-                    <p className="text-[8px] font-bold uppercase tracking-widest text-emerald-600 mt-3 mb-0.5">
-                      Institution
-                    </p>
-                    <p className="text-[11px] font-semibold text-[var(--text)] truncate">
-                      {profile.college}
-                    </p>
-
-                    {profile.batch && (
-                      <>
-                        <p className="text-[8px] font-bold uppercase tracking-widest text-emerald-600 mt-2 mb-0.5">
-                          Batch / Area
-                        </p>
-                        <p className="text-[10px] font-medium text-[var(--text-muted)]">
-                          {profile.batch}
-                        </p>
-                      </>
+            {!isActive ? (
+              <div className="p-8 flex flex-col items-center text-center">
+                <User className="text-amber-500 mb-3" size={40} />
+                <p className="text-sm font-bold text-amber-600">
+                  Pending Approval
+                </p>
+                <p className="text-xs text-[var(--text-muted)] mt-2">
+                  Your ID and QR code will appear once an admin approves your
+                  account.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Identity row */}
+                <div className="p-5 flex gap-4 border-b border-[var(--border)]">
+                  <div className="w-20 h-24 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 flex items-center justify-center overflow-hidden shrink-0">
+                    {profile.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={profile.avatar_url}
+                        alt={profile.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="text-emerald-600" size={36} />
                     )}
                   </div>
-
-                  <div className="flex items-end justify-between gap-2 pt-2 border-t border-[var(--border)]">
+                  <div className="min-w-0 flex-1 space-y-2">
                     <div>
-                      <p className="text-[7px] font-bold uppercase text-[var(--text-muted)] tracking-wider">
-                        Scan to verify
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600">
+                        Name
                       </p>
-                      <p className="text-[8px] text-emerald-600 font-bold">
-                        sns-vol.vercel.app
+                      <p className="text-lg font-black uppercase leading-tight truncate">
+                        {profile.name}
                       </p>
                     </div>
-                    <div className="bg-white p-1 rounded border border-neutral-200 dark:border-neutral-700 shrink-0">
-                      {qrUrl ? (
-                        <QRCodeSVG value={qrUrl} size={52} />
-                      ) : (
-                        <div className="w-[52px] h-[52px] bg-gray-100 rounded flex items-center justify-center text-[7px] text-gray-400">
-                          N/A
-                        </div>
-                      )}
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600">
+                        ID Number
+                      </p>
+                      <p className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                        {profile.volunteer_id}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600">
+                        Institution
+                      </p>
+                      <p className="text-sm font-semibold truncate">
+                        {profile.college}
+                      </p>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
 
-            {/* Holographic accent line */}
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
+                {/* Meta row */}
+                <div className="px-5 py-3 grid grid-cols-2 gap-3 border-b border-[var(--border)] bg-slate-50/80 dark:bg-[#141414]">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
+                      Valid Until
+                    </p>
+                    <p className="text-xs font-bold font-mono">
+                      {profile.valid_until || "—"}
+                    </p>
+                  </div>
+                  {profile.batch && (
+                    <div>
+                      <p className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
+                        Batch / Area
+                      </p>
+                      <p className="text-xs font-semibold truncate">
+                        {profile.batch}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Large scannable QR */}
+                <div className="p-6 flex flex-col items-center bg-white dark:bg-[#0a0a0a]">
+                  <div className="bg-white p-3 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 shadow-sm">
+                    {qrUrl ? (
+                      <QRCodeSVG
+                        value={qrUrl}
+                        size={QR_SIZE}
+                        level="M"
+                        includeMargin
+                      />
+                    ) : (
+                      <div
+                        className="bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400"
+                        style={{ width: QR_SIZE, height: QR_SIZE }}
+                      >
+                        QR unavailable
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mt-4">
+                    Scan to verify ID
+                  </p>
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-1">
+                    sns-vol.vercel.app
+                  </p>
+                </div>
+              </>
+            )}
+
+            <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500" />
           </div>
 
-          <p className="text-[9px] text-center text-[var(--text-muted)] mt-4 font-medium">
-            Present this card at events for verification. Do not share your QR
-            code publicly.
+          <p className="text-[9px] text-center text-[var(--text-muted)] mt-4 font-medium leading-relaxed">
+            Hold your phone steady and brighten the screen for faster scanning.
+            Do not share your QR code publicly.
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
-# SNS Vol
+# SNS Family
 
-Volunteer mobile web app for SNS — Next.js + Supabase (Auth, Postgres, Storage).
+Volunteer mobile web app for SNS Family — Next.js + Supabase (Auth, Postgres, Storage).
 
 ## Setup
 

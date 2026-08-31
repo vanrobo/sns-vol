@@ -4,6 +4,7 @@ import { LogOut, Home, ChevronLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { APP_NAME } from "@/lib/brand";
 
 export type StaffTab = {
   key: string;
@@ -82,7 +83,7 @@ export default function StaffShell({
           </Link>
           <div className="min-w-0">
             <p className="text-[10px] font-bold text-[var(--brand)] uppercase tracking-wider">
-              SNS Vol
+              {APP_NAME}
             </p>
             <h1 className="text-base font-black truncate">{title}</h1>
           </div>

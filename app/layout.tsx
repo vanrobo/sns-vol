@@ -2,11 +2,12 @@
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
 import type { Metadata } from "next";
+import { APP_NAME } from "@/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SNS Vol",
-  description: "SNS volunteer campaigns and digital I-Card",
+  title: APP_NAME,
+  description: "SNS Family volunteer campaigns and digital I-Card",
 };
 
 export default function RootLayout({

@@ -6,6 +6,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { signIn } from "@/lib/actions/auth";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/demo-accounts";
+import { APP_NAME } from "@/lib/brand";
 import { Loader2, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
@@ -48,7 +49,7 @@ export default function LoginPage() {
         className="w-full max-w-md bg-[var(--surface)] dark:bg-[var(--surface-elevated)] p-8 rounded-2xl shadow-xl border border-[var(--border)]"
       >
         <p className="text-sm font-bold text-[var(--brand)] tracking-tight mb-1">
-          SNS Vol
+          {APP_NAME}
         </p>
         <h1 className="text-3xl font-extrabold text-[var(--text)] tracking-tight mb-2">
           Sign In

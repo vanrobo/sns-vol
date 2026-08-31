@@ -1,4 +1,5 @@
 import { parseVerifyToken } from "@/lib/qr/verify-token";
+import { APP_NAME } from "@/lib/brand";
 import { ShieldCheck, ShieldX, BadgeCheck } from "lucide-react";
 import { titleCaseStatus } from "@/types";
 
@@ -17,7 +18,7 @@ export default async function VerifyPage({ params }: Props) {
               <ShieldCheck size={32} />
               <div>
                 <h1 className="text-xl font-bold">Verified Volunteer</h1>
-                <p className="text-emerald-100 text-sm">SNS Digital ID Check</p>
+                <p className="text-emerald-100 text-sm">{APP_NAME} Digital ID Check</p>
               </div>
             </div>
             <div className="p-6 space-y-4">

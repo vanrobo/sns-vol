@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { getEvents, submitFeedback } from "@/lib/data/events";
 import type { Event } from "@/types";
 import { Star, Loader2, Award } from "lucide-react";
+import { APP_NAME } from "@/lib/brand";
 
 export default function FeedbacksPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -127,7 +128,7 @@ export default function FeedbacksPage() {
         <div className="mt-6 bg-gradient-to-br from-emerald-800 to-emerald-600 rounded-2xl p-6 text-white text-center shadow-lg">
           <Award className="mx-auto text-yellow-300 mb-2" size={32} />
           <h3 className="font-bold text-lg mb-1">
-            Love volunteering with SNS?
+            Love volunteering with {APP_NAME}?
           </h3>
           <p className="text-sm opacity-95 mb-4">
             Support us by leaving a review on Google Business Profile.

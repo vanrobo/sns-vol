@@ -175,7 +175,7 @@ export async function approveICard(userId: string) {
   await requireAdmin();
   const supabase = await createClient();
   const short = userId.replace(/-/g, "").slice(0, 6).toUpperCase();
-  const volunteerId = `SNS-VOL-2026-${short}`;
+  const volunteerId = `SNS-FAM-2026-${short}`;
   const validUntil = "2027-12-31";
 
   const { error } = await supabase

@@ -8,6 +8,7 @@ import {
 import Link from "next/link";
 import { getPublicEventBySlug, getPublicEventById } from "@/lib/data/events";
 import { getMyRole } from "@/lib/data/profiles";
+import { APP_NAME } from "@/lib/brand";
 import { titleCaseStatus } from "@/types";
 import type { ProfileStatus, UserRole } from "@/types";
 
@@ -27,7 +28,7 @@ function appHomeLabel(role: UserRole, status: ProfileStatus): string {
   if (role === "admin") return "Open Admin Dashboard";
   if (role === "organiser") return "Open Organiser Dashboard";
   if (status === "pending") return "Continue Your Application";
-  return "Open in SNS Vol";
+  return `Open in ${APP_NAME}`;
 }
 
 export default async function PublicEventPage({ params }: Props) {
@@ -45,7 +46,7 @@ export default async function PublicEventPage({ params }: Props) {
     return (
       <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] tracking-tight">
         <header className="sticky top-0 z-50 px-5 py-4 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
-          <p className="text-sm font-bold text-[var(--brand)]">SNS Vol</p>
+          <p className="text-sm font-bold text-[var(--brand)]">{APP_NAME}</p>
         </header>
         <div className="text-center py-20 px-6 space-y-4">
           <h1 className="text-xl font-bold">Event not found</h1>
@@ -53,7 +54,7 @@ export default async function PublicEventPage({ params }: Props) {
             This link may be invalid or the event was removed.
           </p>
           <Link href={session ? appHomeForUser(session.role, session.status) : "/login"} className="text-[var(--brand)] font-bold text-sm">
-            {session ? "Back to SNS Vol" : "Sign in to SNS Vol"}
+            {session ? `Back to ${APP_NAME}` : `Sign in to ${APP_NAME}`}
           </Link>
         </div>
       </div>
@@ -63,7 +64,7 @@ export default async function PublicEventPage({ params }: Props) {
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] tracking-tight">
       <header className="sticky top-0 z-50 px-5 py-4 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
-        <p className="text-sm font-bold text-[var(--brand)]">SNS Vol</p>
+        <p className="text-sm font-bold text-[var(--brand)]">{APP_NAME}</p>
         <p className="text-xs text-[var(--text-muted)]">
           {session ? `Signed in as ${session.name}` : "Public event preview"}
         </p>

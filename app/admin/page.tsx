@@ -33,6 +33,7 @@ import ApplicationsTable from "@/components/staff/ApplicationsTable";
 import Pagination, { paginate } from "@/components/staff/Pagination";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
+import { APP_NAME } from "@/lib/brand";
 
 const VOL_PAGE_SIZE = 10;
 const GRIEV_PAGE_SIZE = 8;
@@ -266,7 +267,7 @@ export default function AdminDashboard() {
   return (
     <>
       <StaffShell
-        title="SNS Admin"
+        title={`${APP_NAME} Admin`}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(tab) => startTransition(() => setActiveTab(tab))}

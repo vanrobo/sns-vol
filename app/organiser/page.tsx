@@ -14,6 +14,7 @@ import {
 import { getOrganiserData } from "@/lib/data/organiser";
 import { signOutAction } from "@/lib/actions/auth";
 import StaffShell from "@/components/staff/StaffShell";
+import { APP_NAME } from "@/lib/brand";
 import EventFormModal, {
   emptyEventForm,
 } from "@/components/staff/EventFormModal";
@@ -150,7 +151,7 @@ export default function OrganiserDashboard() {
   return (
     <>
       <StaffShell
-        title="SNS Organiser"
+        title={`${APP_NAME} Organiser`}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(tab) => startTransition(() => setActiveTab(tab))}

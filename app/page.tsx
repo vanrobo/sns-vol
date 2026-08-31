@@ -31,6 +31,7 @@ import { EventListSkeleton } from "@/components/ui/Skeleton";
 import StaffHomeBanner from "@/components/StaffHomeBanner";
 import { getMyRole } from "@/lib/data/profiles";
 import { getEventPublicUrl } from "@/lib/events/share";
+import { APP_NAME } from "@/lib/brand";
 import type { UserRole } from "@/types";
 
 function applicationStatusClass(status: ApplicationStatus) {
@@ -192,7 +193,7 @@ export default function VolunteeringDashboard() {
       try {
         await navigator.share({
           title: event.title,
-          text: `Check out "${event.title}" on SNS Vol`,
+          text: `Check out "${event.title}" on ${APP_NAME}`,
           url,
         });
         return;

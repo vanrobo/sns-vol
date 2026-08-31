@@ -14,6 +14,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { ICardSkeleton } from "@/components/ui/Skeleton";
+import { APP_NAME } from "@/lib/brand";
 
 export default function ICardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -71,7 +72,7 @@ export default function ICardPage() {
           <div className="bg-emerald-600 p-5 text-white flex justify-between items-start">
             <div>
               <h3 className="font-bold text-base leading-tight tracking-tight">
-                SNS Volunteer
+                {APP_NAME}
               </h3>
               <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-wider mt-1">
                 Official ID

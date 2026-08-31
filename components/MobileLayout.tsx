@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { hasUnreadNotifications } from "@/lib/data/notifications";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
+import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
 import type { UserRole } from "@/types";
 
 const InstagramIcon = ({ size = 20 }: { size?: number }) => (
@@ -108,7 +109,7 @@ export default function MobileLayout({
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] relative overflow-hidden pb-20 tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">
       <header className="sticky top-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
         <h1 className="text-lg font-black tracking-tight text-[var(--text)]">
-          SNS <span className="text-[var(--brand)]">Vol</span>
+          SNS <span className="text-[var(--brand)]">{APP_NAME_ACCENT}</span>
         </h1>
 
         <div className="flex items-center gap-3">

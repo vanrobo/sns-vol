@@ -11,9 +11,11 @@ export const metadata: Metadata = {
   description: "SNS Family volunteer campaigns and digital I-Card",
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/branding/favicon.png", type: "image/png" },
       { url: LOGO_ICON_192, sizes: "192x192", type: "image/png" },
     ],
+    shortcut: "/favicon.ico",
     apple: [{ url: LOGO_APPLE, sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {

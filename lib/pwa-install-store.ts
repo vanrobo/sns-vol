@@ -18,9 +18,17 @@ const state: PWAInstallState = {
   isIOSDevice: false,
 };
 
+/** Stable snapshot for useSyncExternalStore — must keep referential equality until state changes. */
+let snapshot: PWAInstallState = { ...state };
+
+function refreshSnapshot() {
+  snapshot = { ...state };
+}
+
 const listeners = new Set<() => void>();
 
 function notify() {
+  refreshSnapshot();
   listeners.forEach((cb) => cb());
 }
 
@@ -46,7 +54,7 @@ function syncInstalled() {
 }
 
 export function getPWAInstallState(): PWAInstallState {
-  return { ...state };
+  return snapshot;
 }
 
 export function subscribePWAInstall(cb: () => void) {
@@ -61,6 +69,7 @@ export function initPWAInstallListeners() {
 
   state.isIOSDevice = isIOS();
   syncInstalled();
+  refreshSnapshot();
 
   const onBeforeInstall = (e: Event) => {
     e.preventDefault();

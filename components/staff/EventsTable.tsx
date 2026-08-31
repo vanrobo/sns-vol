@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock } from "lucide-react";
+import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock, Copy, Users, CalendarOff } from "lucide-react";
 import type { Event } from "@/types";
 import { titleCaseStatus } from "@/types";
 import { getEventPublicUrl } from "@/lib/events/share";
@@ -14,6 +14,9 @@ type EventsTableProps = {
   onEdit: (event: Event) => void;
   onClose: (eventId: string) => void;
   onReopen?: (eventId: string) => void;
+  onDuplicate?: (event: Event) => void;
+  onCancelOccurrence?: (event: Event) => void;
+  onViewAttendance?: (event: Event) => void;
   closingId: string | null;
 };
 
@@ -26,6 +29,9 @@ export default function EventsTable({
   onEdit,
   onClose,
   onReopen,
+  onDuplicate,
+  onCancelOccurrence,
+  onViewAttendance,
   closingId,
 }: EventsTableProps) {
   const paged = paginate(events, page, PAGE_SIZE);
@@ -109,6 +115,36 @@ export default function EventsTable({
             >
               <Pencil size={14} />
             </button>
+            {onDuplicate && (
+              <button
+                type="button"
+                onClick={() => onDuplicate(evt)}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-slate-100 dark:bg-[#18181B] text-xs font-bold"
+                aria-label="Duplicate"
+              >
+                <Copy size={14} />
+              </button>
+            )}
+            {onViewAttendance && (
+              <button
+                type="button"
+                onClick={() => onViewAttendance(evt)}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-slate-100 dark:bg-[#18181B] text-xs font-bold"
+                aria-label="Attendance"
+              >
+                <Users size={14} />
+              </button>
+            )}
+            {evt.is_recurring && onCancelOccurrence && (
+              <button
+                type="button"
+                onClick={() => onCancelOccurrence(evt)}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 text-xs font-bold"
+                aria-label="Cancel occurrence"
+              >
+                <CalendarOff size={14} />
+              </button>
+            )}
             {evt.status === "active" && (
               <button
                 type="button"

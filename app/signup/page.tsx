@@ -25,7 +25,15 @@ export default function SignupPage() {
         toast.error(result.error);
         return;
       }
-      toast.success("Account created! You can sign in now.");
+      toast.success("Account created! Welcome aboard.");
+      if (result.userId) {
+        if (result.role === "admin") router.push("/admin");
+        else if (result.role === "organiser") router.push("/organiser");
+        else if (result.status === "pending") router.push("/pending");
+        else router.push("/");
+        return;
+      }
+      toast("Sign in with your new account.", { icon: "ℹ️" });
       router.push("/login");
     } catch {
       toast.error("Sign-up failed. Check your connection and try again.");
@@ -47,7 +55,8 @@ export default function SignupPage() {
           Join {APP_NAME}
         </h1>
         <p className="text-[var(--text-muted)] mb-8 text-[15px]">
-          Register as a new volunteer.
+          Register as a new volunteer. You&apos;ll be signed in and sent to
+          pending approval until your I-Card is issued.
         </p>
 
         <div className="space-y-4">

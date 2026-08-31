@@ -1,7 +1,6 @@
-// app/notifications/page.tsx
 "use client";
 import MobileLayout from "@/components/MobileLayout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -25,12 +24,31 @@ import {
   readNotificationsCache,
   writeNotificationsCache,
 } from "@/lib/notifications-cache";
+import { haptic } from "@/lib/haptics";
 
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const loadNotifications = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setRefreshing(true);
+    try {
+      const me = await getMyRole();
+      const data = await getNotifications();
+      setNotifications(data);
+      if (me) writeNotificationsCache(me.id, data);
+      await markNotificationsRead();
+    } catch {
+      if (!opts?.silent) {
+        /* keep cached list visible */
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,26 +61,20 @@ export default function NotificationsPage() {
         setLoading(false);
       }
 
-      try {
-        const data = await getNotifications();
-        if (cancelled) return;
-        setNotifications(data);
-        if (me) writeNotificationsCache(me.id, data);
-        await markNotificationsRead();
-      } catch {
-        if (!cached && !cancelled) setLoading(false);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      }
+      if (cancelled) return;
+      await loadNotifications({ silent: !!cached?.length });
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadNotifications]);
+
+  const refreshNotifications = useCallback(async () => {
+    haptic("light");
+    await loadNotifications({ silent: true });
+    haptic("success");
+  }, [loadNotifications]);
 
   const getIconData = (type: string) => {
     switch (type) {
@@ -90,11 +102,12 @@ export default function NotificationsPage() {
   };
 
   const openNotification = (notif: Notification) => {
+    haptic("selection");
     router.push(getNotificationHref(notif.type));
   };
 
   return (
-    <MobileLayout>
+    <MobileLayout onRefresh={refreshNotifications}>
       <div className="p-5 space-y-6 pb-24">
         <div className="bg-black dark:bg-[#121212] rounded-xl p-6 text-white relative overflow-hidden border border-[var(--border)] shadow-sm">
           <Bell
@@ -104,10 +117,10 @@ export default function NotificationsPage() {
           <div className="relative z-10 flex justify-between items-start gap-3">
             <div>
               <h2 className="text-[22px] font-bold tracking-tight mb-2">
-                Alert Hub
+                In-app alerts
               </h2>
               <p className="text-[#98989D] text-[13px] leading-relaxed">
-                Tap any alert to jump to the relevant screen.
+                Messages stored in your account — tap to open the relevant screen.
               </p>
             </div>
             {refreshing && (

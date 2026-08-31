@@ -25,6 +25,7 @@ export function clearAppCaches() {
     try {
       localStorage.removeItem("sns-profile-v1");
       localStorage.removeItem("sns-admin-v1");
+      localStorage.removeItem("sns-organiser-v1");
       localStorage.removeItem("sns-events-v1");
       localStorage.removeItem("sns-notifications-v1");
     } catch {

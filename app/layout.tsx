@@ -1,13 +1,26 @@
 // app/layout.tsx
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "react-hot-toast";
-import type { Metadata } from "next";
+import PWARegister from "@/components/PWARegister";
+import type { Metadata, Viewport } from "next";
 import { APP_NAME } from "@/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: APP_NAME,
   description: "SNS Family volunteer campaigns and digital I-Card",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SNS Vol",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#047857" },
+    { media: "(prefers-color-scheme: dark)", color: "#047857" },
+  ],
 };
 
 export default function RootLayout({
@@ -20,9 +33,10 @@ export default function RootLayout({
       <body className="bg-[var(--surface-muted)] text-[var(--text)] transition-colors duration-200 antialiased">
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
         >
+          <PWARegister />
           {children}
           <Toaster
             position="top-center"

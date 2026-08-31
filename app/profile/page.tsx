@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
+import { haptic } from "@/lib/haptics";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
 import Link from "next/link";
 import {
@@ -36,8 +37,6 @@ import {
   Check,
   ChevronDown,
   LogOut,
-  Sun,
-  Moon,
   AlertTriangle,
   Settings,
   Mail,
@@ -64,7 +63,7 @@ const SKILL_DB = [
 export default function ProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const unsavedCtx = useUnsavedChangesOptional();
 
   const cached = readProfileCache();
@@ -221,6 +220,7 @@ export default function ProfilePage() {
       });
       writeProfileCache({ userId: updated.id, profile: updated, awards: myAwards });
       unsavedCtx?.setHasUnsaved(false);
+      haptic("success");
       toast.success("Profile saved");
       setIsEditingInfo(false);
       setIsEditingSkills(false);
@@ -558,9 +558,10 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3 min-w-0">
               <Bell size={16} className="text-[var(--brand)] shrink-0" />
               <div className="min-w-0">
-                <span className="font-semibold text-sm block">Phone Alerts</span>
+                <span className="font-semibold text-sm block">Browser alerts</span>
                 <p className="text-[10px] text-[var(--text-muted)] leading-snug">
-                  Native notifications when the app is open or in background
+                  Pop-ups while this site is open — not true phone push when
+                  closed
                 </p>
               </div>
             </div>
@@ -583,11 +584,11 @@ export default function ProfilePage() {
                     }
                     setPushEnabled(true);
                     setPushEnabledLocally(true);
-                    toast.success("Phone alerts enabled");
+                    toast.success("Browser alerts enabled");
                   } else {
                     setPushEnabled(false);
                     setPushEnabledLocally(false);
-                    toast.success("Phone alerts disabled");
+                    toast.success("Browser alerts disabled");
                   }
                 }}
               />
@@ -612,13 +613,18 @@ export default function ProfilePage() {
             }}
             className="p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
           >
-            <span className="font-semibold text-sm">Notification History</span>
+              <span className="font-semibold text-sm">In-app alert history</span>
             <ChevronDown size={14} className="-rotate-90 text-slate-400" />
           </Link>
-          <div className="p-4 px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Mail size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">Email Alerts</span>
+          <div className="p-4 px-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Mail size={16} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="font-semibold text-sm block">Email preference</span>
+                <p className="text-[10px] text-[var(--text-muted)]">
+                  Saved for later — emails are not sent yet
+                </p>
+              </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -664,23 +670,33 @@ export default function ProfilePage() {
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
-          <div className="p-4 px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="p-4 px-5">
+            <div className="flex items-center gap-3 mb-3">
               <Settings size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">Theme Mode</span>
+              <span className="font-semibold text-sm">Theme</span>
             </div>
-            <button
-              onClick={() =>
-                setTheme(resolvedTheme === "dark" ? "light" : "dark")
-              }
-              className="p-1.5 bg-slate-100 dark:bg-[#1C1C1E] rounded-md active:scale-95 transition-transform"
-            >
-              {resolvedTheme === "dark" ? (
-                <Sun size={14} className="text-yellow-500" />
-              ) : (
-                <Moon size={14} className="text-blue-500" />
-              )}
-            </button>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  ["light", "Light"],
+                  ["dark", "Dark"],
+                  ["system", "System"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTheme(value)}
+                  className={`py-2 rounded-lg text-xs font-bold transition-all ${
+                    (theme ?? "system") === value
+                      ? "bg-[var(--brand)] text-white"
+                      : "bg-slate-100 dark:bg-[#18181B] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

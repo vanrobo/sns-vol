@@ -14,19 +14,30 @@ import {
   UnsavedChangesProvider,
   useUnsavedChangesOptional,
 } from "@/components/UnsavedChangesProvider";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 
 function MobileLayoutInner({
   children,
+  onRefresh,
 }: {
   children: React.ReactNode;
+  onRefresh?: () => Promise<void>;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const unsaved = useUnsavedChangesOptional();
-  const [mounted, setMounted] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [staffRole, setStaffRole] = useState<UserRole | null>(null);
   const seenNotifIds = useRef<Set<string>>(new Set());
+  const mainRef = useRef<HTMLElement>(null);
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+  const { pullDistance, refreshing, ready } = usePullToRefresh({
+    scrollRef: mainRef,
+    scrollElement: scrollEl,
+    onRefresh: onRefresh ?? (async () => {}),
+    disabled: !onRefresh,
+  });
 
   const pollNotifications = async () => {
     try {
@@ -49,13 +60,6 @@ function MobileLayoutInner({
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-
     const checkAuth = async () => {
       const user = await getCurrentUser();
       if (!user) {
@@ -78,9 +82,7 @@ function MobileLayoutInner({
     checkAuth();
     const interval = setInterval(pollNotifications, 30000);
     return () => clearInterval(interval);
-  }, [mounted, router]);
-
-  if (!mounted) return null;
+  }, [router]);
 
   const navItems = [
     { name: "Home", path: "/", icon: Home },
@@ -143,7 +145,25 @@ function MobileLayoutInner({
         </div>
       </header>
 
-      <main className="h-full overflow-y-auto animate-fadeIn">{children}</main>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        refreshing={refreshing}
+        ready={ready}
+      />
+      <main
+        ref={(el) => {
+          mainRef.current = el;
+          setScrollEl(el);
+        }}
+        className="h-full overflow-y-auto overscroll-y-contain animate-fadeIn"
+        style={{
+          transform:
+            pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
+          transition: pullDistance > 0 ? "none" : "transform 0.2s ease-out",
+        }}
+      >
+        {children}
+      </main>
 
       <nav className="fixed bottom-0 w-full max-w-md bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-t border-[var(--border)] flex justify-around p-4 z-50 pb-safe">
         {navItems.map((item) => {
@@ -177,12 +197,14 @@ function MobileLayoutInner({
 
 export default function MobileLayout({
   children,
+  onRefresh,
 }: {
   children: React.ReactNode;
+  onRefresh?: () => Promise<void>;
 }) {
   return (
     <UnsavedChangesProvider>
-      <MobileLayoutInner>{children}</MobileLayoutInner>
+      <MobileLayoutInner onRefresh={onRefresh}>{children}</MobileLayoutInner>
     </UnsavedChangesProvider>
   );
 }

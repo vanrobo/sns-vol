@@ -9,6 +9,8 @@ import {
   updateEvent,
   closeEvent,
   reopenEvent,
+  duplicateEvent,
+  cancelEventOccurrence,
   updateApplicationStatus,
   type EventInput,
 } from "@/lib/data/admin";
@@ -18,22 +20,30 @@ import StaffShell from "@/components/staff/StaffShell";
 import StaffWelcome from "@/components/staff/StaffWelcome";
 import { APP_NAME } from "@/lib/brand";
 import { getMyRole } from "@/lib/data/profiles";
+import { readOrganiserCache, writeOrganiserCache } from "@/lib/organiser-cache";
+import { haptic } from "@/lib/haptics";
 import EventFormModal, {
   emptyEventForm,
 } from "@/components/staff/EventFormModal";
 import EventsTable from "@/components/staff/EventsTable";
+import EventAttendanceModal from "@/components/staff/EventAttendanceModal";
+import CancelOccurrenceModal from "@/components/staff/CancelOccurrenceModal";
 import ApplicationsTable from "@/components/staff/ApplicationsTable";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
 import type { OrganiserData } from "@/lib/data/organiser";
 
 export default function OrganiserDashboard() {
-  const [data, setData] = useState<OrganiserData>({
-    events: [],
-    applications: [],
-    users: [],
-  });
-  const [loading, setLoading] = useState(true);
+  const cachedOrganiser = readOrganiserCache();
+  const [data, setData] = useState<OrganiserData>(
+    () =>
+      cachedOrganiser ?? {
+        events: [],
+        applications: [],
+        users: [],
+      },
+  );
+  const [loading, setLoading] = useState(!cachedOrganiser);
   const [activeTab, setActiveTab] = useState("events");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,16 +54,26 @@ export default function OrganiserDashboard() {
   const [appsPage, setAppsPage] = useState(1);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [staffName, setStaffName] = useState("Organiser");
+  const [attendanceEvent, setAttendanceEvent] = useState<Event | null>(null);
+  const [cancelEvent, setCancelEvent] = useState<Event | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (opts?: { silent?: boolean }) => {
     try {
-      setData(await getOrganiserData());
+      const result = await getOrganiserData();
+      setData(result);
+      writeOrganiserCache(result);
     } catch {
-      toast.error("Failed to load organiser data.");
+      if (!opts?.silent) toast.error("Failed to load organiser data.");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const refreshOrganiser = useCallback(async () => {
+    haptic("light");
+    await fetchData({ silent: true });
+    haptic("success");
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -99,9 +119,11 @@ export default function OrganiserDashboard() {
     try {
       if (editingEvent) {
         await updateEvent(editingEvent.id, eventForm);
+        haptic("success");
         toast.success("Event updated!");
       } else {
         await createEvent(eventForm);
+        haptic("success");
         toast.success("Event published!");
       }
       setIsModalOpen(false);
@@ -115,6 +137,7 @@ export default function OrganiserDashboard() {
     setActioningId(eventId);
     try {
       await closeEvent(eventId);
+      haptic("warning");
       toast.success("Event closed.");
       fetchData();
     } catch {
@@ -128,10 +151,39 @@ export default function OrganiserDashboard() {
     setActioningId(eventId);
     try {
       await reopenEvent(eventId);
+      haptic("success");
       toast.success("Event reopened.");
       fetchData();
     } catch {
       toast.error("Failed to reopen event.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleDuplicateEvent = async (event: Event) => {
+    setActioningId(event.id);
+    try {
+      await duplicateEvent(event.id);
+      haptic("success");
+      toast.success("Event duplicated!");
+      fetchData();
+    } catch {
+      toast.error("Failed to duplicate event.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleCancelOccurrence = async (eventId: string, date: string) => {
+    setActioningId(eventId);
+    try {
+      await cancelEventOccurrence(eventId, date);
+      haptic("warning");
+      toast.success("Occurrence cancelled.");
+      fetchData();
+    } catch {
+      toast.error("Failed to cancel occurrence.");
     } finally {
       setActioningId(null);
     }
@@ -145,6 +197,7 @@ export default function OrganiserDashboard() {
     setActioningId(`${userId}-${eventId}`);
     try {
       await updateApplicationStatus(userId, eventId, status);
+      haptic(status === "approved" ? "success" : "warning");
       toast.success(`Application marked as ${status}`);
       fetchData();
     } catch {
@@ -174,7 +227,11 @@ export default function OrganiserDashboard() {
         title={`${APP_NAME} Organiser`}
         tabs={tabs}
         activeTab={activeTab}
-        onTabChange={(tab) => startTransition(() => setActiveTab(tab))}
+        onTabChange={(tab) => {
+          haptic("selection");
+          startTransition(() => setActiveTab(tab));
+        }}
+        onRefresh={refreshOrganiser}
         onSignOut={() => signOutAction()}
         stats={
           <div className="grid grid-cols-2 gap-2">
@@ -220,6 +277,9 @@ export default function OrganiserDashboard() {
               onEdit={openEditModal}
               onClose={handleCloseEvent}
               onReopen={handleReopenEvent}
+              onDuplicate={handleDuplicateEvent}
+              onCancelOccurrence={setCancelEvent}
+              onViewAttendance={setAttendanceEvent}
               closingId={actioningId}
             />
           </div>
@@ -262,6 +322,17 @@ export default function OrganiserDashboard() {
             required_skills: eventForm.required_skills.filter((s) => s !== skill),
           })
         }
+      />
+
+      <EventAttendanceModal
+        event={attendanceEvent}
+        onClose={() => setAttendanceEvent(null)}
+      />
+
+      <CancelOccurrenceModal
+        event={cancelEvent}
+        onClose={() => setCancelEvent(null)}
+        onConfirm={handleCancelOccurrence}
       />
     </>
   );

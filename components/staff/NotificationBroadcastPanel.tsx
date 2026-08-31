@@ -33,7 +33,7 @@ export default function NotificationBroadcastPanel({ batches, regions }: Props) 
         batch: target === "batch" ? batch : undefined,
         region: target === "region" ? region : undefined,
       });
-      toast.success(`Sent to ${count} volunteer(s).`);
+      toast.success(`In-app alert sent to ${count} volunteer(s).`);
       setTitle("");
       setBody("");
     } catch {
@@ -49,7 +49,7 @@ export default function NotificationBroadcastPanel({ batches, regions }: Props) 
       className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 space-y-3"
     >
       <h3 className="font-bold flex items-center gap-2 text-sm">
-        <Bell size={16} className="text-[var(--brand)]" /> Broadcast notification
+        <Bell size={16} className="text-[var(--brand)]" /> Send in-app alert
       </h3>
       <select
         value={target}
@@ -113,7 +113,7 @@ export default function NotificationBroadcastPanel({ batches, regions }: Props) 
         ) : (
           <Users size={16} />
         )}
-        Send broadcast
+        Send in-app alert
       </button>
     </form>
   );

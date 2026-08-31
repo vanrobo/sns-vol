@@ -49,7 +49,7 @@ export default function VolunteerDetailModal({
         body: notifBody.trim(),
         userIds: [volunteer.id],
       });
-      toast.success("Notification sent!");
+      toast.success("In-app alert sent!");
       setNotifTitle("");
       setNotifBody("");
     } catch {
@@ -138,7 +138,7 @@ export default function VolunteerDetailModal({
 
           <div className="border-t border-[var(--border)] pt-4 space-y-2">
             <p className="text-xs font-bold uppercase text-[var(--text-muted)]">
-              Push notification
+              In-app alert (shows in Alert Hub)
             </p>
             <input
               value={notifTitle}
@@ -160,7 +160,7 @@ export default function VolunteerDetailModal({
               className="w-full flex items-center justify-center gap-2 bg-[var(--brand)] text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50"
             >
               {busy ? <Loader2 className="animate-spin" size={16} /> : <Bell size={16} />}
-              Send to this volunteer
+              Send in-app alert
             </button>
           </div>
 

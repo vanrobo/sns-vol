@@ -5,6 +5,8 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { APP_NAME } from "@/lib/brand";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 
 export type StaffTab = {
   key: string;
@@ -20,6 +22,7 @@ type StaffShellProps = {
   onSignOut: () => void;
   stats?: React.ReactNode;
   children: React.ReactNode;
+  onRefresh?: () => Promise<void>;
 };
 
 export default function StaffShell({
@@ -30,8 +33,13 @@ export default function StaffShell({
   onSignOut,
   stats,
   children,
+  onRefresh,
 }: StaffShellProps) {
   const tabScrollRef = useRef<HTMLDivElement>(null);
+  const { pullDistance, refreshing, ready } = usePullToRefresh({
+    onRefresh: onRefresh ?? (async () => {}),
+    disabled: !onRefresh,
+  });
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -152,7 +160,19 @@ export default function StaffShell({
         </div>
       </div>
 
-      <main className="p-4 space-y-5 animate-fadeIn">
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        refreshing={refreshing}
+        ready={ready}
+      />
+      <main
+        className="p-4 space-y-5 animate-fadeIn"
+        style={{
+          transform:
+            pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
+          transition: pullDistance > 0 ? "none" : "transform 0.2s ease-out",
+        }}
+      >
         {stats}
         {children}
       </main>

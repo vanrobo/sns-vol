@@ -306,3 +306,121 @@ export async function updateUserRole(userId: string, role: UserRole) {
     .eq("id", userId);
   if (error) throw error;
 }
+
+export type AttendanceRow = {
+  user_id: string;
+  user_name: string;
+  attended_at: string;
+};
+
+export async function duplicateEvent(id: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+
+  const slug = await resolveUniqueEventSlug(supabase, `${event.title} Copy`);
+  const { data, error: insertError } = await supabase
+    .from("events")
+    .insert({
+      slug,
+      title: `${event.title} (Copy)`,
+      date: event.date,
+      venue: event.venue,
+      description: event.description,
+      criteria: event.criteria,
+      required_skills: event.required_skills ?? [],
+      category: event.category,
+      coordinator_phone: event.coordinator_phone ?? "",
+      status: "active",
+      region: event.region,
+      color: event.color,
+      end_date: event.end_date,
+      time_start: event.time_start,
+      time_end: event.time_end,
+      is_recurring: event.is_recurring ?? false,
+      cancelled_dates: [],
+    })
+    .select()
+    .single();
+
+  if (insertError) throw insertError;
+  return data as Event;
+}
+
+export async function cancelEventOccurrence(eventId: string, date: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data: event, error } = await supabase
+    .from("events")
+    .select("cancelled_dates")
+    .eq("id", eventId)
+    .single();
+  if (error) throw error;
+
+  const cancelled = [...((event.cancelled_dates as string[] | null) ?? [])];
+  if (!cancelled.includes(date)) cancelled.push(date);
+
+  const { error: updateError } = await supabase
+    .from("events")
+    .update({ cancelled_dates: cancelled })
+    .eq("id", eventId);
+  if (updateError) throw updateError;
+}
+
+export async function getEventAttendance(
+  eventId: string,
+): Promise<AttendanceRow[]> {
+  await requireStaff();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("user_id, attended_at, profiles(name)")
+    .eq("event_id", eventId)
+    .order("attended_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const r = row as {
+      user_id: string;
+      attended_at: string;
+      profiles: { name: string } | { name: string }[] | null;
+    };
+    const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+    return {
+      user_id: r.user_id,
+      user_name: profile?.name ?? "Unknown",
+      attended_at: r.attended_at,
+    };
+  });
+}
+
+export async function bulkApproveICards(userIds: string[]): Promise<number> {
+  await requireAdmin();
+  let count = 0;
+  for (const userId of userIds) {
+    try {
+      await approveICard(userId);
+      count++;
+    } catch {
+      /* skip failed rows */
+    }
+  }
+  return count;
+}
+
+export async function bulkUpdateUserBatch(userIds: string[], batch: string) {
+  await requireAdmin();
+  if (!userIds.length) return;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ batch: batch.trim() || null })
+    .in("id", userIds);
+  if (error) throw error;
+}

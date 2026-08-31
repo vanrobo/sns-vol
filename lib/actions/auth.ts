@@ -49,13 +49,28 @@ export async function signUp(
   password: string,
 ): Promise<AuthResult> {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { name, college } },
   });
 
   if (error) return { error: error.message };
+
+  if (data.session && data.user) {
+    revalidatePath("/", "layout");
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, status")
+      .eq("id", data.user.id)
+      .single();
+    return {
+      userId: data.user.id,
+      role: profile?.role ?? "volunteer",
+      status: profile?.status ?? "pending",
+    };
+  }
+
   return {};
 }
 

@@ -111,6 +111,7 @@ export async function updateSession(request: NextRequest) {
       path === "/pending" ||
       path === "/profile" ||
       path === "/notifications" ||
+      path === "/applications" ||
       path === "/login" ||
       path === "/signup" ||
       isPublicPage;

@@ -23,8 +23,15 @@ import {
   resolveGrievance,
   updateUserRole,
   updateUserBatch,
+  duplicateEvent,
+  cancelEventOccurrence,
+  bulkApproveICards,
+  bulkUpdateUserBatch,
+  broadcastNotification,
   type EventInput,
 } from "@/lib/data/admin";
+import EventAttendanceModal from "@/components/staff/EventAttendanceModal";
+import CancelOccurrenceModal from "@/components/staff/CancelOccurrenceModal";
 import { signOutAction } from "@/lib/actions/auth";
 import StaffShell from "@/components/staff/StaffShell";
 import EventFormModal, {
@@ -42,7 +49,7 @@ import { APP_NAME } from "@/lib/brand";
 import { getMyRole } from "@/lib/data/profiles";
 import { readAdminCache, writeAdminCache } from "@/lib/admin-cache";
 import type { Profile } from "@/types";
-import { Phone, MapPin, Search } from "lucide-react";
+import { Phone, MapPin, Search, CheckSquare, Square } from "lucide-react";
 
 const VOL_PAGE_SIZE = 10;
 const GRIEV_PAGE_SIZE = 8;
@@ -82,6 +89,12 @@ export default function AdminDashboard() {
   );
   const [staffName, setStaffName] = useState("Admin");
   const [detailVolunteer, setDetailVolunteer] = useState<Profile | null>(null);
+  const [attendanceEvent, setAttendanceEvent] = useState<Event | null>(null);
+  const [cancelEvent, setCancelEvent] = useState<Event | null>(null);
+  const [selectedVolIds, setSelectedVolIds] = useState<Set<string>>(new Set());
+  const [bulkBatch, setBulkBatch] = useState("");
+  const [bulkNotifTitle, setBulkNotifTitle] = useState("");
+  const [bulkNotifBody, setBulkNotifBody] = useState("");
 
   const fetchAdminData = useCallback(async () => {
     try {
@@ -239,6 +252,53 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDuplicateEvent = async (event: Event) => {
+    setActioningId(event.id);
+    try {
+      const copy = await duplicateEvent(event.id);
+      toast.success("Event duplicated!");
+      setData((prev) => ({ ...prev, events: [copy, ...prev.events] }));
+    } catch {
+      toast.error("Failed to duplicate event.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleCancelOccurrence = async (eventId: string, date: string) => {
+    setActioningId(eventId);
+    try {
+      await cancelEventOccurrence(eventId, date);
+      toast.success("Occurrence cancelled.");
+      setData((prev) => ({
+        ...prev,
+        events: prev.events.map((e) =>
+          e.id === eventId
+            ? {
+                ...e,
+                cancelled_dates: [...(e.cancelled_dates ?? []), date],
+              }
+            : e,
+        ),
+      }));
+    } catch {
+      toast.error("Failed to cancel occurrence.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const toggleVolunteerSelect = (id: string) => {
+    setSelectedVolIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearVolunteerSelection = () => setSelectedVolIds(new Set());
+
   const handleRoleChange = async (userId: string, role: UserRole) => {
     setActioningId(userId);
     try {
@@ -308,6 +368,75 @@ export default function AdminDashboard() {
         .filter((r) => !/mumbai/i.test(r as string)) as string[],
     ),
   ];
+
+  const selectAllFilteredVolunteers = () => {
+    setSelectedVolIds(new Set(filteredVolunteers.map((v) => v.id)));
+  };
+
+  const handleBulkApprove = async () => {
+    const ids = [...selectedVolIds].filter((id) => {
+      const u = data.users.find((v) => v.id === id);
+      return u && u.status !== "active";
+    });
+    if (!ids.length) {
+      toast.error("No pending volunteers selected.");
+      return;
+    }
+    setActioningId("bulk-approve");
+    try {
+      const count = await bulkApproveICards(ids);
+      toast.success(`Approved ${count} volunteer(s).`);
+      await fetchAdminData();
+      clearVolunteerSelection();
+    } catch {
+      toast.error("Bulk approve failed.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleBulkBatch = async () => {
+    const ids = [...selectedVolIds];
+    if (!ids.length) return;
+    setActioningId("bulk-batch");
+    try {
+      await bulkUpdateUserBatch(ids, bulkBatch);
+      toast.success(`Batch updated for ${ids.length} volunteer(s).`);
+      setData((prev) => ({
+        ...prev,
+        users: prev.users.map((u) =>
+          ids.includes(u.id) ? { ...u, batch: bulkBatch.trim() || null } : u,
+        ),
+      }));
+    } catch {
+      toast.error("Bulk batch update failed.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleBulkNotify = async () => {
+    const ids = [...selectedVolIds];
+    if (!ids.length || !bulkNotifTitle.trim() || !bulkNotifBody.trim()) {
+      toast.error("Select volunteers and enter title + message.");
+      return;
+    }
+    setActioningId("bulk-notify");
+    try {
+      const count = await broadcastNotification({
+        title: bulkNotifTitle.trim(),
+        body: bulkNotifBody.trim(),
+        userIds: ids,
+      });
+      toast.success(`In-app alert sent to ${count} volunteer(s).`);
+      setBulkNotifTitle("");
+      setBulkNotifBody("");
+    } catch {
+      toast.error("Failed to send alerts.");
+    } finally {
+      setActioningId(null);
+    }
+  };
 
   const tabs = [
     { key: "events", label: "Events", icon: Calendar },
@@ -386,6 +515,9 @@ export default function AdminDashboard() {
               onEdit={openEditModal}
               onClose={handleCloseEvent}
               onReopen={handleReopenEvent}
+              onDuplicate={handleDuplicateEvent}
+              onCancelOccurrence={setCancelEvent}
+              onViewAttendance={setAttendanceEvent}
               closingId={actioningId}
             />
           </div>
@@ -446,7 +578,82 @@ export default function AdminDashboard() {
                     </button>
                   ))}
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAllFilteredVolunteers}
+                    className="text-[10px] font-bold px-2 py-1 rounded-lg border border-[var(--border)]"
+                  >
+                    Select all filtered
+                  </button>
+                  {selectedVolIds.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearVolunteerSelection}
+                      className="text-[10px] font-bold px-2 py-1 rounded-lg border border-[var(--border)] text-red-500"
+                    >
+                      Clear ({selectedVolIds.size})
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {selectedVolIds.size > 0 && (
+                <div className="mx-4 p-4 rounded-xl border border-[var(--brand)]/30 bg-emerald-50/50 dark:bg-emerald-950/20 space-y-3">
+                  <p className="text-xs font-bold text-[var(--brand)]">
+                    {selectedVolIds.size} selected
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={actioningId === "bulk-approve"}
+                      onClick={handleBulkApprove}
+                      className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50"
+                    >
+                      Bulk approve
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Batch for selected"
+                      value={bulkBatch}
+                      onChange={(e) => setBulkBatch(e.target.value)}
+                      className="flex-1 text-xs p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+                    />
+                    <button
+                      type="button"
+                      disabled={actioningId === "bulk-batch"}
+                      onClick={handleBulkBatch}
+                      className="text-xs font-bold px-3 py-2 rounded-lg border border-[var(--border)]"
+                    >
+                      Set batch
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="In-app alert title"
+                    value={bulkNotifTitle}
+                    onChange={(e) => setBulkNotifTitle(e.target.value)}
+                    className="w-full text-xs p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+                  />
+                  <textarea
+                    placeholder="In-app alert message"
+                    value={bulkNotifBody}
+                    onChange={(e) => setBulkNotifBody(e.target.value)}
+                    rows={2}
+                    className="w-full text-xs p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] resize-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={actioningId === "bulk-notify"}
+                    onClick={handleBulkNotify}
+                    className="w-full text-xs font-bold py-2 rounded-lg bg-[var(--brand)] text-white disabled:opacity-50"
+                  >
+                    Send in-app alert to selected
+                  </button>
+                </div>
+              )}
 
               <div className="p-4 space-y-3">
                 {pagedVolunteers.length === 0 ? (
@@ -457,10 +664,26 @@ export default function AdminDashboard() {
                   pagedVolunteers.map((vol) => (
                     <div
                       key={vol.id}
-                      className="rounded-xl border border-[var(--border)] bg-slate-50/50 dark:bg-[#18181B]/50 p-4 space-y-3"
+                      className={`rounded-xl border p-4 space-y-3 ${
+                        selectedVolIds.has(vol.id)
+                          ? "border-[var(--brand)] bg-emerald-50/30 dark:bg-emerald-950/20"
+                          : "border-[var(--border)] bg-slate-50/50 dark:bg-[#18181B]/50"
+                      }`}
                     >
                       <div className="flex justify-between items-start gap-2">
-                        <div className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleVolunteerSelect(vol.id)}
+                          className="shrink-0 p-1 text-[var(--brand)]"
+                          aria-label="Select volunteer"
+                        >
+                          {selectedVolIds.has(vol.id) ? (
+                            <CheckSquare size={18} />
+                          ) : (
+                            <Square size={18} className="text-[var(--text-muted)]" />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
                           <p className="font-bold truncate">{vol.name}</p>
                           <p className="text-xs text-[var(--text-muted)] truncate">
                             {vol.college}
@@ -679,6 +902,17 @@ export default function AdminDashboard() {
         volunteer={detailVolunteer}
         onClose={() => setDetailVolunteer(null)}
         onUpdated={fetchAdminData}
+      />
+
+      <EventAttendanceModal
+        event={attendanceEvent}
+        onClose={() => setAttendanceEvent(null)}
+      />
+
+      <CancelOccurrenceModal
+        event={cancelEvent}
+        onClose={() => setCancelEvent(null)}
+        onConfirm={handleCancelOccurrence}
       />
 
       <EventFormModal

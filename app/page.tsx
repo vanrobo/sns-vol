@@ -1,7 +1,7 @@
 // app/page.tsx
 "use client";
 import MobileLayout from "@/components/MobileLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   getEvents,
@@ -30,6 +30,7 @@ import {
   BookmarkPlus,
   CalendarDays,
   Clock,
+  Search,
 } from "lucide-react";
 import { EventListSkeleton } from "@/components/ui/Skeleton";
 import SkillChips from "@/components/ui/SkillChips";
@@ -50,6 +51,7 @@ import {
   writeEventsCache,
 } from "@/lib/events-cache";
 import type { UserRole, UserAward } from "@/types";
+import { haptic } from "@/lib/haptics";
 
 function applicationStatusClass(status: ApplicationStatus) {
   switch (status) {
@@ -65,11 +67,20 @@ function applicationStatusClass(status: ApplicationStatus) {
 type Tab = "Active" | "Closed" | "Attended";
 
 export default function VolunteeringDashboard() {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<Event[]>(() => {
+    const uid = readHomeCache()?.userId;
+    if (!uid) return [];
+    return readEventsCache(uid, eventsCacheKey("Active", "", "all"))?.events ?? [];
+  });
+  const [loading, setLoading] = useState(() => {
+    const uid = readHomeCache()?.userId;
+    if (!uid) return true;
+    return !readEventsCache(uid, eventsCacheKey("Active", "", "all"));
+  });
   const [tab, setTab] = useState<Tab>("Active");
   const [dateFilter, setDateFilter] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [calendarView, setCalendarView] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [applying, setApplying] = useState(false);
@@ -122,6 +133,27 @@ export default function VolunteeringDashboard() {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      for (const t of ["Active", "Closed", "Attended"] as Tab[]) {
+        const key = eventsCacheKey(t, "", "all");
+        if (readEventsCache(userId, key)) continue;
+        try {
+          const status =
+            t === "Attended" ? "attended" : t === "Active" ? "active" : "closed";
+          let fetched = await getEvents(status);
+          if (t === "Active") fetched = fetched.filter((e) => !e.is_recurring);
+          const calendarEvents =
+            t === "Active" ? await getEvents("active") : [];
+          writeEventsCache(userId, key, fetched, calendarEvents);
+        } catch {
+          /* ignore prefetch errors */
+        }
+      }
+    })();
+  }, [userId]);
+
+  useEffect(() => {
     if (!selectedEvent) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -130,7 +162,7 @@ export default function VolunteeringDashboard() {
     };
   }, [selectedEvent]);
 
-  const loadEvents = async (opts?: { silent?: boolean }) => {
+  const loadEvents = useCallback(async (opts?: { silent?: boolean }) => {
     const cacheKey = eventsCacheKey(tab, dateFilter, regionFilter);
     const cached = userId ? readEventsCache(userId, cacheKey) : null;
 
@@ -180,7 +212,33 @@ export default function VolunteeringDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tab, dateFilter, regionFilter, userId]);
+
+  const refreshHome = useCallback(async () => {
+    haptic("light");
+    const [s, awards, st] = await Promise.all([
+      getMyRole(),
+      getMyAwards(),
+      getVolunteerStats(),
+    ]);
+    const nextSession = s
+      ? { role: s.role, name: s.name, batch: s.batch }
+      : null;
+    if (nextSession && s) {
+      setUserId(s.id);
+      setSession(nextSession);
+      setMyAwards(awards);
+      if (st) setStats(st);
+      writeHomeCache({
+        userId: s.id,
+        session: nextSession,
+        awards,
+        stats: st,
+      });
+    }
+    await loadEvents({ silent: true });
+    haptic("success");
+  }, [loadEvents]);
 
   useEffect(() => {
     if (!userId) return;
@@ -205,6 +263,7 @@ export default function VolunteeringDashboard() {
     try {
       if (overrideAction === "mark_attended") {
         await markAttended(selectedEvent.id);
+        haptic("success");
         toast.success("Marked as Attended!");
         setEvents((prev) =>
           prev.map((e) =>
@@ -215,9 +274,11 @@ export default function VolunteeringDashboard() {
       } else if (tab === "Active") {
         if (selectedEvent.has_applied) {
           await withdrawApplication(selectedEvent.id);
+          haptic("warning");
           toast.success("Interest withdrawn");
         } else {
           await applyToEvent(selectedEvent.id);
+          haptic("success");
           toast.success("Marked as Interested!");
         }
         const nextApplied = !selectedEvent.has_applied;
@@ -243,6 +304,7 @@ export default function VolunteeringDashboard() {
           return;
         }
         await submitFeedback(selectedEvent.id, rating);
+        haptic("success");
         toast.success("Feedback submitted!");
         setEvents((prev) =>
           prev.map((e) =>
@@ -317,8 +379,19 @@ export default function VolunteeringDashboard() {
     ),
   ];
 
+  const displayedEvents = events.filter((evt) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      evt.title.toLowerCase().includes(q) ||
+      evt.venue.toLowerCase().includes(q) ||
+      (evt.category ?? "").toLowerCase().includes(q) ||
+      (evt.description ?? "").toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <MobileLayout>
+    <MobileLayout onRefresh={refreshHome}>
       <div className="p-5 space-y-6 pb-28">
         {session && (session.role === "admin" || session.role === "organiser") && (
           <StaffHomeBanner role={session.role} name={session.name} />
@@ -364,6 +437,19 @@ export default function VolunteeringDashboard() {
                 </button>
               )}
             </div>
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+              />
+              <input
+                type="search"
+                placeholder="Search events by title, venue, category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg text-xs font-medium outline-[var(--brand)]"
+              />
+            </div>
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value)}
@@ -406,8 +492,14 @@ export default function VolunteeringDashboard() {
                 <button
                   key={t}
                   onClick={() => {
+                    haptic("selection");
+                    const cacheKey = eventsCacheKey(t, dateFilter, regionFilter);
+                    const cached = userId ? readEventsCache(userId, cacheKey) : null;
+                    if (cached) {
+                      setEvents(cached.events);
+                      setLoading(false);
+                    }
                     setTab(t);
-                    setLoading(true);
                   }}
                   className={`flex-1 py-1.5 text-[14px] font-bold rounded-md transition-all duration-150 ${tab === t ? "bg-white dark:bg-black text-[var(--brand)] shadow-sm border border-[var(--border)]" : "text-slate-500"}`}
                 >
@@ -420,12 +512,12 @@ export default function VolunteeringDashboard() {
           <div className="p-4 space-y-3 bg-[var(--surface)]">
             {loading ? (
               <EventListSkeleton count={4} />
-            ) : events.length === 0 ? (
+            ) : displayedEvents.length === 0 ? (
               <div className="text-center py-10 text-[var(--text-muted)] text-sm font-medium border border-dashed border-[var(--border)] rounded-xl">
                 No events found match this selection.
               </div>
             ) : (
-              events.map((evt) => {
+              displayedEvents.map((evt) => {
                 const matchPercentage = getSkillMatch(evt.id);
                 const isHighMatch = matchPercentage >= 75;
                 return (

@@ -60,7 +60,7 @@ export default function ProfilePage() {
   const unsavedCtx = useUnsavedChangesOptional();
 
   const cached = readProfileCache();
-  const savedBaseline = useRef<string>(
+  const [baselineSnapshot, setBaselineSnapshot] = useState(
     cached?.profile
       ? JSON.stringify({
           name: cached.profile.name,
@@ -108,8 +108,8 @@ export default function ProfilePage() {
 
   const hasUnsavedChanges =
     Boolean(profile) &&
-    savedBaseline.current !== "" &&
-    profileSnapshot !== savedBaseline.current;
+    baselineSnapshot !== "" &&
+    profileSnapshot !== baselineSnapshot;
 
   const showSaveBar =
     hasUnsavedChanges ||
@@ -145,14 +145,16 @@ export default function ProfilePage() {
         }
 
         setProfile(data);
-        savedBaseline.current = JSON.stringify({
-          name: data.name,
-          college: data.college,
-          phone: data.phone ?? "",
-          address: data.address ?? "",
-          skills: data.skills,
-          hasAvatar: false,
-        });
+        setBaselineSnapshot(
+          JSON.stringify({
+            name: data.name,
+            college: data.college,
+            phone: data.phone ?? "",
+            address: data.address ?? "",
+            skills: data.skills,
+            hasAvatar: false,
+          }),
+        );
 
         const cached = readProfileCache(data.id);
         if (cached?.userId === data.id) {
@@ -203,14 +205,16 @@ export default function ProfilePage() {
       setProfile(updated);
       setPendingAvatar(null);
       setPreviewUrl(null);
-      savedBaseline.current = JSON.stringify({
-        name: updated.name,
-        college: updated.college,
-        phone: updated.phone ?? "",
-        address: updated.address ?? "",
-        skills: updated.skills,
-        hasAvatar: false,
-      });
+      setBaselineSnapshot(
+        JSON.stringify({
+          name: updated.name,
+          college: updated.college,
+          phone: updated.phone ?? "",
+          address: updated.address ?? "",
+          skills: updated.skills,
+          hasAvatar: false,
+        }),
+      );
       writeProfileCache({ userId: updated.id, profile: updated, awards: myAwards });
       unsavedCtx?.setHasUnsaved(false);
       haptic("success");
@@ -236,12 +240,14 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
+    if (!unsavedCtx?.confirmLeave()) return;
     await signOut();
     router.push("/login");
     router.refresh();
   };
 
   const handleDeleteAccount = async () => {
+    if (!unsavedCtx?.confirmLeave()) return;
     if (
       !window.confirm(
         "Request account deletion? An admin will review your request.",
@@ -566,20 +572,7 @@ export default function ProfilePage() {
           </div>
           <Link
             href="/notifications"
-            onClick={(e) => {
-              if (hasUnsavedChanges) {
-                e.preventDefault();
-                unsavedCtx?.triggerShake();
-                if (
-                  window.confirm(
-                    "You have unsaved changes. Leave without saving?",
-                  )
-                ) {
-                  unsavedCtx?.setHasUnsaved(false);
-                  router.push("/notifications");
-                }
-              }
-            }}
+            onClick={(e) => unsavedCtx?.guardNavigation(e, "/notifications")}
             className="p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
           >
               <span className="font-semibold text-sm">In-app alert history</span>

@@ -5,18 +5,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
-import { APP_NAME, APP_NAME_ACCENT } from "@/lib/brand";
+import { APP_NAME_ACCENT } from "@/lib/brand";
 import type { UserRole } from "@/types";
 import { useNotificationUnread } from "@/hooks/useNotificationUnread";
 import { clearNotificationUnread } from "@/lib/notification-poll-store";
-import {
-  UnsavedChangesProvider,
-  useUnsavedChangesOptional,
-} from "@/components/UnsavedChangesProvider";
+import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 
-function MobileLayoutInner({
+export default function MobileLayout({
   children,
   onRefresh,
 }: {
@@ -36,6 +33,10 @@ function MobileLayoutInner({
     onRefresh: onRefresh ?? (async () => {}),
     disabled: !onRefresh,
   });
+
+  const guard = (e: React.MouseEvent, href: string) => {
+    unsaved?.guardNavigation(e, href);
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,26 +66,14 @@ function MobileLayoutInner({
     { name: "Grievance", path: "/grievance", icon: AlertCircle },
   ];
 
-  const tryNavigate = (e: React.MouseEvent, path: string) => {
-    if (path === pathname) return;
-    if (unsaved?.hasUnsaved && pathname === "/profile") {
-      e.preventDefault();
-      unsaved.triggerShake();
-      if (
-        window.confirm(
-          "You have unsaved changes on your profile. Leave without saving?",
-        )
-      ) {
-        unsaved.setHasUnsaved(false);
-        router.push(path);
-      }
-    }
-  };
-
   return (
     <div className="max-w-md mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">
       <header className="shrink-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
-        <Link href="/" className="min-w-0">
+        <Link
+          href="/"
+          onClick={(e) => guard(e, "/")}
+          className="min-w-0"
+        >
           <h1 className="text-lg font-black tracking-tight text-[var(--text)]">
             SNS <span className="text-[var(--brand)]">{APP_NAME_ACCENT}</span>
           </h1>
@@ -94,6 +83,9 @@ function MobileLayoutInner({
           {staffRole && (
             <Link
               href={staffRole === "admin" ? "/admin" : "/organiser"}
+              onClick={(e) =>
+                guard(e, staffRole === "admin" ? "/admin" : "/organiser")
+              }
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md shadow-emerald-600/20 transition-all"
             >
               <LayoutDashboard size={12} /> Dashboard
@@ -110,7 +102,7 @@ function MobileLayoutInner({
 
           <Link
             href="/notifications"
-            onClick={() => clearNotificationUnread()}
+            onClick={(e) => guard(e, "/notifications")}
             className="relative p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors ml-1"
           >
             <Bell size={22} />
@@ -144,7 +136,7 @@ function MobileLayoutInner({
             <Link
               key={item.name}
               href={item.path}
-              onClick={(e) => tryNavigate(e, item.path)}
+              onClick={(e) => guard(e, item.path)}
               className={`flex flex-col items-center gap-1 transition-all ${isActive ? "text-[var(--brand)]" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}
             >
               <Icon
@@ -163,19 +155,5 @@ function MobileLayoutInner({
         })}
       </nav>
     </div>
-  );
-}
-
-export default function MobileLayout({
-  children,
-  onRefresh,
-}: {
-  children: React.ReactNode;
-  onRefresh?: () => Promise<void>;
-}) {
-  return (
-    <UnsavedChangesProvider>
-      <MobileLayoutInner onRefresh={onRefresh}>{children}</MobileLayoutInner>
-    </UnsavedChangesProvider>
   );
 }

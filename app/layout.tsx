@@ -1,5 +1,6 @@
 // app/layout.tsx
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { UnsavedChangesProvider } from "@/components/UnsavedChangesProvider";
 import { Toaster } from "react-hot-toast";
 import PWARegister from "@/components/PWARegister";
 import NotificationPoller from "@/components/NotificationPoller";
@@ -44,9 +45,11 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
-          <PWARegister />
-          <NotificationPoller />
-          {children}
+          <UnsavedChangesProvider>
+            <PWARegister />
+            <NotificationPoller />
+            {children}
+          </UnsavedChangesProvider>
           <Toaster
             position="top-center"
             containerStyle={{ zIndex: 100000 }}

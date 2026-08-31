@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { SKILL_DB } from "@/lib/skills";
+import { SKILL_CATEGORIES, SKILL_DB } from "@/lib/skills";
 
 type SkillPickerProps = {
   selected: string[];
@@ -10,6 +10,12 @@ type SkillPickerProps = {
 
 export default function SkillPicker({ selected, onChange }: SkillPickerProps) {
   const available = SKILL_DB.filter((skill) => !selected.includes(skill));
+  const availableByCategory = Object.entries(SKILL_CATEGORIES)
+    .map(([category, skills]) => ({
+      category,
+      skills: skills.filter((skill) => available.includes(skill)),
+    }))
+    .filter((group) => group.skills.length > 0);
 
   const addSkill = (skill: string) => {
     if (!selected.includes(skill)) onChange([...selected, skill]);
@@ -23,7 +29,7 @@ export default function SkillPicker({ selected, onChange }: SkillPickerProps) {
     <div className="space-y-4">
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
-          Selected
+          Selected ({selected.length})
         </p>
         {selected.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -50,23 +56,30 @@ export default function SkillPicker({ selected, onChange }: SkillPickerProps) {
       </div>
 
       {available.length > 0 && (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+        <div className="space-y-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Add skill
           </p>
-          <div className="flex flex-wrap gap-2">
-            {available.map((skill) => (
-              <button
-                key={skill}
-                type="button"
-                onClick={() => addSkill(skill)}
-                className="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 border border-dashed border-[var(--border)] bg-slate-50 dark:bg-[#18181B] text-slate-600 dark:text-slate-300 hover:border-[var(--brand)]/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:text-[var(--brand)] transition-all active:scale-95"
-              >
-                <Plus size={12} className="shrink-0 opacity-70" />
-                {skill}
-              </button>
-            ))}
-          </div>
+          {availableByCategory.map(({ category, skills }) => (
+            <div key={category}>
+              <p className="text-[10px] font-semibold text-[var(--text-muted)] mb-2">
+                {category}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => addSkill(skill)}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 border border-dashed border-[var(--border)] bg-slate-50 dark:bg-[#18181B] text-slate-600 dark:text-slate-300 hover:border-[var(--brand)]/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:text-[var(--brand)] transition-all active:scale-95"
+                  >
+                    <Plus size={12} className="shrink-0 opacity-70" />
+                    {skill}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

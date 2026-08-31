@@ -125,6 +125,8 @@ export default function VolunteeringDashboard() {
           (e) => (e.region || e.venue) === regionFilter,
         );
       }
+      // Recurring sessions (e.g. daily classes) appear in calendar only
+      fetched = fetched.filter((e) => !e.is_recurring);
       fetched = [...fetched].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
@@ -214,13 +216,13 @@ export default function VolunteeringDashboard() {
   const getCardColor = (category?: string) => {
     switch (category?.toLowerCase()) {
       case "stem":
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-blue-500 border border-[var(--border)]";
+        return "bg-blue-50/50 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900";
       case "education":
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-purple-500 border border-[var(--border)]";
+        return "bg-purple-50/50 dark:bg-purple-950/10 border-purple-200 dark:border-purple-900";
       case "environment":
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-emerald-500 border border-[var(--border)]";
+        return "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900";
       default:
-        return "bg-[var(--surface)] dark:bg-[#18181B] border-l-4 border-l-amber-500 border border-[var(--border)]";
+        return "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900";
     }
   };
 
@@ -375,7 +377,7 @@ export default function VolunteeringDashboard() {
                 >
                   <div className="flex-1 pr-4">
                     <div className="flex gap-2 mb-2 flex-wrap items-center">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--border)] bg-slate-100 dark:bg-[#27272a] text-[var(--text)]">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
                         {evt.category || "Community"}
                       </span>
                       {tab === "Active" && evt.has_applied && evt.application_status && (

@@ -515,23 +515,23 @@ export async function getEventAttendance(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("attendance")
-    .select("user_id, attended_at, profiles(name)")
+    .select("user_id, marked_at, profiles(name)")
     .eq("event_id", eventId)
-    .order("attended_at", { ascending: false });
+    .order("marked_at", { ascending: false });
 
   if (error) throw error;
 
   return (data ?? []).map((row) => {
     const r = row as {
       user_id: string;
-      attended_at: string;
+      marked_at: string;
       profiles: { name: string } | { name: string }[] | null;
     };
     const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
     return {
       user_id: r.user_id,
       user_name: profile?.name ?? "Unknown",
-      attended_at: r.attended_at,
+      attended_at: r.marked_at,
     };
   });
 }

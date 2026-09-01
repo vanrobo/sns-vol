@@ -541,9 +541,7 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             <AdminOverview
               data={data}
-              staffName={staffName}
               onNavigate={changeTab}
-              onCreateEvent={openCreateModal}
             />
             <AdminActionsPanel data={data} onNavigate={changeTab} />
             <NotificationBroadcastPanel

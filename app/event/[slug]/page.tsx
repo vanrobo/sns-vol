@@ -26,8 +26,8 @@ function appHomeForUser(role: UserRole, status: ProfileStatus): string {
 }
 
 function appHomeLabel(role: UserRole, status: ProfileStatus): string {
-  if (role === "admin") return "Open Admin Dashboard";
-  if (role === "organiser") return "Open Event organize";
+  if (role === "admin") return "Open Admin Portal";
+  if (role === "organiser") return "Open Organiser Portal";
   if (status === "pending") return "Continue Your Application";
   return `Open in ${APP_NAME}`;
 }

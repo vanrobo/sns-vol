@@ -85,6 +85,46 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
   return result;
 }
 
+export type AttendedEventRow = {
+  event: Event;
+  attended_at: string;
+};
+
+export async function getMyAttendedEvents(): Promise<AttendedEventRow[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("marked_at, events(*)")
+    .eq("user_id", user.id)
+    .order("marked_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? [])
+    .map((row) => {
+      const raw = row as {
+        marked_at: string;
+        events: Record<string, unknown> | Record<string, unknown>[] | null;
+      };
+      const eventRow = Array.isArray(raw.events) ? raw.events[0] : raw.events;
+      if (!eventRow) return null;
+      const event = {
+        ...eventRow,
+        required_skills: (eventRow.required_skills as string[]) ?? [],
+      } as Event;
+      return {
+        event,
+        attended_at: raw.marked_at,
+      };
+    })
+    .filter(Boolean) as AttendedEventRow[];
+}
+
 export async function getUpcomingEvents(): Promise<Event[]> {
   const supabase = await createClient();
   const {

@@ -34,7 +34,6 @@ import {
   LogOut,
   AlertTriangle,
   Settings,
-  Shield,
   BookOpen,
   Camera,
   Award,
@@ -234,7 +233,6 @@ function ProfilePageContent() {
         address: profile.address,
         skills: profile.skills,
         avatar_url: avatarUrl,
-        public_profile: profile.public_profile,
       });
       setProfile(updated);
       setPendingAvatar(null);
@@ -606,7 +604,7 @@ function ProfilePageContent() {
                 <CalendarDays size={18} />
                 <div>
                   <span className="font-semibold text-sm block">
-                    {profile.role === "admin" ? "Admin portal" : "Organize events"}
+                    {profile.role === "admin" ? "Admin Portal" : "Organiser Portal"}
                   </span>
                   <p className="text-[10px] text-white/80">
                     {profile.role === "admin"
@@ -651,41 +649,6 @@ function ProfilePageContent() {
             </div>
           )}
         </div>
-
-        {profile.role === "volunteer" && (
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
-          <div className="p-4 px-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <Shield size={16} className="text-slate-400 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-semibold text-sm block">Public profile</span>
-                <p className="text-[10px] text-[var(--text-muted)] leading-snug">
-                  Let other volunteers see your name and skills
-                </p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={profile.public_profile}
-                onChange={async () => {
-                  const prev = profile.public_profile;
-                  const next = !prev;
-                  setProfile({ ...profile, public_profile: next });
-                  try {
-                    await updateProfile({ public_profile: next });
-                  } catch {
-                    setProfile({ ...profile, public_profile: prev });
-                    toast.error("Could not update preference");
-                  }
-                }}
-              />
-              <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--brand)]" />
-            </label>
-          </div>
-        </div>
-        )}
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
           {profile.delete_requested_at && (

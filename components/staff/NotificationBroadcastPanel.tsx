@@ -82,7 +82,7 @@ export default function NotificationBroadcastPanel({ users, batches }: Props) {
       setBody("");
       setLink("");
     } catch {
-      toast.error("Broadcast failed.");
+      toast.error("Notification failed.");
     } finally {
       setBusy(false);
     }

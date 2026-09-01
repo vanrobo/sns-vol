@@ -3,6 +3,7 @@
  * events, and youth programs common in Indian NGO work (YFS, Bhumi, DEEP, etc.).
  */
 export const SKILL_CATEGORIES = {
+  "Open to All": ["Open to All"],
   "Education & Youth": [
     "Teaching",
     "Mentoring",
@@ -17,7 +18,6 @@ export const SKILL_CATEGORIES = {
     "Peer Support",
   ],
   "Events & Field": [
-    "Open to All",
     "Event Management",
     "Logistics",
     "Crowd Management",

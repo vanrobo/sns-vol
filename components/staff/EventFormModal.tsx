@@ -67,21 +67,6 @@ export default function EventFormModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-2">
-                End Date{" "}
-                <span className="font-normal text-slate-500">(recurring)</span>
-              </label>
-              <input
-                type="date"
-                value={form.end_date ?? ""}
-                min={form.date}
-                onChange={(e) =>
-                  onChange({ ...form, end_date: e.target.value || null })
-                }
-                className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-bold mb-2">Start Time</label>
               <input
                 type="time"
@@ -103,6 +88,38 @@ export default function EventFormModal({
                 className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
               />
             </div>
+            <div className="md:col-span-2 flex items-center gap-3">
+              <input
+                id="is-recurring"
+                type="checkbox"
+                checked={form.is_recurring ?? false}
+                onChange={(e) =>
+                  onChange({
+                    ...form,
+                    is_recurring: e.target.checked,
+                    end_date: e.target.checked ? form.end_date : null,
+                  })
+                }
+                className="w-4 h-4 accent-emerald-600"
+              />
+              <label htmlFor="is-recurring" className="text-sm font-bold">
+                Recurring weekly event (shows on calendar until end date)
+              </label>
+            </div>
+            {form.is_recurring && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-bold mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={form.end_date ?? ""}
+                  min={form.date}
+                  onChange={(e) =>
+                    onChange({ ...form, end_date: e.target.value || null })
+                  }
+                  className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
+                />
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold mb-2">Venue</label>
               <VenuePicker
@@ -147,20 +164,6 @@ export default function EventFormModal({
                 className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
               />
             </div>
-            <div className="md:col-span-2 flex items-center gap-3">
-              <input
-                id="is-recurring"
-                type="checkbox"
-                checked={form.is_recurring ?? false}
-                onChange={(e) =>
-                  onChange({ ...form, is_recurring: e.target.checked })
-                }
-                className="w-4 h-4 accent-emerald-600"
-              />
-              <label htmlFor="is-recurring" className="text-sm font-bold">
-                Recurring weekly event (shows on calendar until end date)
-              </label>
-            </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-bold mb-2">Description</label>
               <textarea
@@ -177,20 +180,6 @@ export default function EventFormModal({
               <label className="block text-sm font-bold mb-2">
                 Required Skills
               </label>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!form.required_skills.includes("Open to All")) {
-                    onChange({
-                      ...form,
-                      required_skills: [...form.required_skills, "Open to All"],
-                    });
-                  }
-                }}
-                className="mb-2 text-xs font-bold px-3 py-1.5 rounded-lg border border-dashed border-[var(--brand)]/40 text-[var(--brand)] hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-              >
-                + Open to All (festivals / general days)
-              </button>
               <SkillPicker
                 selected={form.required_skills}
                 onChange={(required_skills) =>

@@ -1,6 +1,6 @@
 // components/MobileLayout.tsx
 "use client";
-import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList, LayoutDashboard } from "lucide-react";
+import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList, LayoutDashboard, Shield } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
@@ -108,15 +108,22 @@ export default function MobileLayout({
       ? [
           { name: "Home", path: "/", icon: Home },
           { name: "Profile", path: "/profile", icon: User },
-          { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
+          { name: "Admin", path: "/admin", icon: Shield },
           { name: "Settings", path: "/settings", icon: Settings },
         ]
-      : [
-          { name: "Home", path: "/", icon: Home },
-          { name: "Profile", path: "/profile", icon: User },
-          { name: "Grievance", path: "/grievance", icon: AlertCircle },
-          { name: "Settings", path: "/settings", icon: Settings },
-        ];
+      : staffRole === "organiser"
+        ? [
+            { name: "Home", path: "/", icon: Home },
+            { name: "Profile", path: "/profile", icon: User },
+            { name: "Organiser", path: "/organiser", icon: LayoutDashboard },
+            { name: "Settings", path: "/settings", icon: Settings },
+          ]
+        : [
+            { name: "Home", path: "/", icon: Home },
+            { name: "Profile", path: "/profile", icon: User },
+            { name: "Grievance", path: "/grievance", icon: AlertCircle },
+            { name: "Settings", path: "/settings", icon: Settings },
+          ];
 
   const brandHref = isPendingVolunteer ? "/pending" : "/";
 
@@ -150,14 +157,22 @@ export default function MobileLayout({
           <Link
             href="/notifications"
             onClick={(e) => guard(e, "/notifications")}
-            className="relative p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors"
+            className={`relative p-1 transition-colors ${
+              hasUnread
+                ? "text-amber-400 hover:text-amber-300"
+                : "text-[var(--text-muted)] hover:text-black dark:hover:text-white"
+            }`}
           >
             <Bell
               size={22}
-              className={hasUnread ? "animate-bell-ring" : undefined}
+              className={
+                hasUnread
+                  ? "animate-bell-ring text-amber-400 fill-amber-400/15 stroke-amber-400"
+                  : undefined
+              }
             />
             {hasUnread && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--brand)] rounded-full ring-2 ring-white dark:ring-black animate-pulse" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full ring-2 ring-white dark:ring-black animate-pulse" />
             )}
           </Link>
         </div>

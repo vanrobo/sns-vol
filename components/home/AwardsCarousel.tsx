@@ -49,7 +49,9 @@ export default function AwardsCarousel({ awards }: Props) {
                     Badge
                   </p>
                 </div>
-                <h3 className="text-lg font-black leading-tight">{award.title}</h3>
+                <h3 className="text-lg font-black leading-tight line-clamp-2 break-words">
+                  {award.title}
+                </h3>
                 {award.description && (
                   <p className="text-sm text-white/90 leading-relaxed line-clamp-2">
                     {award.description}

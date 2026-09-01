@@ -60,3 +60,17 @@ export function getVerifyUrl(token: string): string {
       : "http://localhost:3000");
   return `${base.replace(/\/$/, "")}/verify/${token}`;
 }
+
+/** Pull the signed token from a scanned QR URL or raw token string. */
+export function extractVerifyTokenFromScan(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    const match = url.pathname.match(/\/verify\/([^/?#]+)/);
+    return match?.[1] ?? null;
+  } catch {
+    return trimmed.includes(".") ? trimmed : null;
+  }
+}

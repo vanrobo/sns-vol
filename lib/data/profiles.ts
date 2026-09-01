@@ -118,7 +118,6 @@ export async function updateProfile(
       | "skills"
       | "avatar_url"
       | "email_notifs"
-      | "public_profile"
     >
   >,
 ) {

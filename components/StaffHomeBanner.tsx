@@ -6,15 +6,14 @@ import type { UserRole } from "@/types";
 
 type StaffHomeBannerProps = {
   role: UserRole;
-  name: string;
 };
 
-export default function StaffHomeBanner({ role, name }: StaffHomeBannerProps) {
+export default function StaffHomeBanner({ role }: StaffHomeBannerProps) {
   if (role !== "admin" && role !== "organiser") return null;
 
   const isAdmin = role === "admin";
   const href = isAdmin ? "/admin" : "/organiser";
-  const title = isAdmin ? "Admin Dashboard" : "Organize events";
+  const title = isAdmin ? "Admin Portal" : "Organiser Portal";
   const subtitle = isAdmin
     ? "Manage events, volunteers, grievances, applications & awards"
     : "Create and manage your events from the organiser portal";
@@ -45,7 +44,7 @@ export default function StaffHomeBanner({ role, name }: StaffHomeBannerProps) {
           </div>
           <h2 className="text-lg font-black tracking-tight">{title}</h2>
           <p className="text-[12px] text-emerald-100/90 leading-snug max-w-[240px]">
-            Hi {name.split(" ")[0]}. {subtitle}
+            {subtitle}
           </p>
         </div>
         <div className="shrink-0 bg-white/15 p-2.5 rounded-full">

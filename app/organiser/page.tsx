@@ -254,9 +254,9 @@ export default function OrganiserDashboard() {
         <div className="mb-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-800 p-4 flex items-center justify-between gap-3 text-white shadow-md">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
-              Organiser
+              Staff Portal
             </p>
-            <p className="font-bold text-sm">Organize events</p>
+            <p className="font-bold text-sm">Organiser Portal</p>
           </div>
           <button
             type="button"

@@ -5,26 +5,19 @@ import {
   Users,
   AlertCircle,
   ClipboardList,
-  Plus,
-  Bell,
   ChevronRight,
   Sparkles,
-  Trophy,
 } from "lucide-react";
 import type { AdminData } from "@/types";
 
 type AdminOverviewProps = {
   data: AdminData;
-  staffName: string;
   onNavigate: (tab: string, peopleFilter?: string) => void;
-  onCreateEvent: () => void;
 };
 
 export default function AdminOverview({
   data,
-  staffName,
   onNavigate,
-  onCreateEvent,
 }: AdminOverviewProps) {
   const activeEvents = data.events.filter((e) => e.status === "active").length;
   const volunteers = data.users.filter((u) => u.role === "volunteer");
@@ -53,7 +46,7 @@ export default function AdminOverview({
     openGrievances.length > 0 && {
       key: "grievances",
       label: `${openGrievances.length} open grievance${openGrievances.length === 1 ? "" : "s"}`,
-      sub: "Review on Dashboard",
+      sub: "Review in Admin Portal",
       icon: AlertCircle,
       tone: "red" as const,
       tab: "overview",
@@ -109,43 +102,9 @@ export default function AdminOverview({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl bg-gradient-to-br from-[var(--brand)] to-emerald-800 p-5 text-white shadow-lg relative overflow-hidden">
-        <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10" />
-        <div className="relative z-10">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-white/70 mb-1">
-            Admin dashboard
-          </p>
-          <h1 className="text-2xl font-black tracking-tight">
-            Hi, {staffName.split(" ")[0]}
-          </h1>
-          <p className="text-sm text-white/80 mt-1 leading-relaxed">
-            Here&apos;s what needs your attention today.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {(
-          [
-            { label: "Events", tab: "events", icon: Calendar },
-            { label: "People", tab: "volunteers", icon: Users },
-            { label: "Requests", tab: "applications", icon: ClipboardList },
-            { label: "Awards", tab: "awards", icon: Trophy },
-          ] as const
-        ).map(({ label, tab, icon: Icon }) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => onNavigate(tab)}
-            className="flex items-center gap-3 p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-left active:scale-[0.98] transition-transform shadow-sm"
-          >
-            <div className="w-9 h-9 rounded-lg bg-[var(--brand)]/10 flex items-center justify-center shrink-0">
-              <Icon size={18} className="text-[var(--brand)]" />
-            </div>
-            <span className="font-bold text-sm">{label}</span>
-          </button>
-        ))}
-      </div>
+      <h1 className="text-sm font-black uppercase tracking-widest text-[var(--text-muted)]">
+        Admin Panel
+      </h1>
 
       <div className="grid grid-cols-2 gap-2.5">
         {statCards.map(({ label, value, icon: Icon, className }) => (
@@ -160,30 +119,6 @@ export default function AdminOverview({
             </p>
           </div>
         ))}
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        <button
-          type="button"
-          onClick={onCreateEvent}
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--brand)] text-white text-xs font-bold shadow-md"
-        >
-          <Plus size={14} /> New event
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate("volunteers")}
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--surface)] border border-[var(--border)] text-xs font-bold"
-        >
-          <Bell size={14} className="text-[var(--brand)]" /> Broadcast
-        </button>
-        <button
-          type="button"
-          onClick={() => onNavigate("applications")}
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--surface)] border border-[var(--border)] text-xs font-bold"
-        >
-          <ClipboardList size={14} className="text-[var(--brand)]" /> Requests
-        </button>
       </div>
 
       <div className="space-y-2">

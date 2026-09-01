@@ -1,8 +1,10 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import type { Event } from "@/types";
 import { expandEventDates } from "@/lib/events/dates";
+import { locationsInMonth } from "@/lib/events/locations";
 
 export { expandEventDates } from "@/lib/events/dates";
 
@@ -90,6 +92,11 @@ export default function EventCalendarView({
     year: "numeric",
   });
 
+  const locationGroups = useMemo(
+    () => locationsInMonth(events, monthAnchor),
+    [events, monthAnchor],
+  );
+
   const cells: (number | null)[] = [
     ...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
@@ -176,19 +183,40 @@ export default function EventCalendarView({
       )}
 
       {embedded && (
-        <div className="flex flex-wrap justify-center gap-4 text-[10px] font-bold text-[var(--text-muted)]">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#94a3b8]" />
-            <span>Class</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
-            <span>Event</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
-            <span>Off</span>
-          </span>
+        <div className="space-y-3">
+          <div className="flex flex-wrap justify-center gap-4 text-[10px] font-bold text-[var(--text-muted)]">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#94a3b8]" />
+              <span>Class</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
+              <span>Event</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
+              <span>Off</span>
+            </span>
+          </div>
+          {locationGroups.length > 0 && (
+            <div className="rounded-xl border border-[var(--border)] bg-slate-50/80 dark:bg-[#18181B]/50 p-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Locations this month
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {locationGroups.map(({ label, days }) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]"
+                  >
+                    <MapPin size={10} className="text-[var(--brand)] shrink-0" />
+                    {label}
+                    <span className="text-[var(--text-muted)]">· {days}d</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Users, Loader2 } from "lucide-react";
+import { X, Users, Loader2, ScanLine } from "lucide-react";
 import type { Event } from "@/types";
 import {
   getEventAttendance,
@@ -11,9 +11,10 @@ import {
 type Props = {
   event: Event | null;
   onClose: () => void;
+  onScan?: () => void;
 };
 
-export default function EventAttendanceModal({ event, onClose }: Props) {
+export default function EventAttendanceModal({ event, onClose, onScan }: Props) {
   const [rows, setRows] = useState<AttendanceRow[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +72,17 @@ export default function EventAttendanceModal({ event, onClose }: Props) {
           )}
         </div>
 
-        <div className="p-4 border-t border-[var(--border)]">
+        <div className="p-4 border-t border-[var(--border)] space-y-2">
+          {onScan && (
+            <button
+              type="button"
+              onClick={onScan}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--brand)] text-white font-bold text-sm"
+            >
+              <ScanLine size={16} />
+              Scan I-Card
+            </button>
+          )}
           <p className="text-xs text-center text-[var(--text-muted)]">
             {rows.length} volunteer{rows.length === 1 ? "" : "s"} marked attended
           </p>

@@ -39,12 +39,15 @@ import { EventListSkeleton } from "@/components/ui/Skeleton";
 import Pagination, { paginate } from "@/components/staff/Pagination";
 import SkillChips from "@/components/ui/SkillChips";
 import QuickAccessGrid from "@/components/home/QuickAccessGrid";
+import AttendanceScanModal from "@/components/staff/AttendanceScanModal";
+import ActivenessModal from "@/components/home/ActivenessModal";
 import QuickLinksNav from "@/components/home/QuickLinksNav";
 import StaffHomeBanner from "@/components/StaffHomeBanner";
 import UpcomingEvents from "@/components/home/UpcomingEvents";
 import AwardsCarousel from "@/components/home/AwardsCarousel";
 import EventCalendarView from "@/components/events/EventCalendarView";
 import { expandEventDates, firstOfMonthIso } from "@/lib/events/dates";
+import { groupEventsByLocation } from "@/lib/events/locations";
 import { getMyRole, getVolunteerStats } from "@/lib/data/profiles";
 import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
@@ -74,6 +77,7 @@ function applicationStatusClass(status: ApplicationStatus) {
 
 type Tab = "Active" | "Closed" | "Attended";
 const EVENTS_PAGE_SIZE = 8;
+const CALENDAR_CACHE_KEY = eventsCacheKey("Active", "", "all");
 
 export default function VolunteeringDashboard() {
   const [events, setEvents] = useState<Event[]>(() => {
@@ -108,13 +112,19 @@ export default function VolunteeringDashboard() {
   const [stats, setStats] = useState<{ attended: number; totalActive: number } | null>(
     () => readHomeCache()?.stats ?? null,
   );
-  const [allEventsForCalendar, setAllEventsForCalendar] = useState<Event[]>([]);
+  const [allEventsForCalendar, setAllEventsForCalendar] = useState<Event[]>(() => {
+    const uid = readHomeCache()?.userId;
+    if (!uid) return [];
+    return readEventsCache(uid, CALENDAR_CACHE_KEY)?.calendarEvents ?? [];
+  });
   const [calendarDayPopup, setCalendarDayPopup] = useState<{
     date: string;
     events: Event[];
   } | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [upcomingLoading, setUpcomingLoading] = useState(true);
+  const [upcomingLoading, setUpcomingLoading] = useState(
+    () => readHomeCache()?.session?.role === "volunteer",
+  );
   const [eventsRefreshing, setEventsRefreshing] = useState(false);
   const [eventsPage, setEventsPage] = useState(1);
   const [mySkills, setMySkills] = useState<string[]>(() => {
@@ -122,14 +132,34 @@ export default function VolunteeringDashboard() {
     return readProfileCache(uid)?.profile.skills ?? [];
   });
   const [portalReady, setPortalReady] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [activenessOpen, setActivenessOpen] = useState(false);
 
   useEffect(() => {
     setPortalReady(true);
   }, []);
 
   useEffect(() => {
-    Promise.all([getMyRole(), getMyAwards(), getVolunteerStats()]).then(
-      ([s, awards, st]) => {
+    let cancelled = false;
+
+    const loadUpcoming = () => {
+      setUpcomingLoading(true);
+      getUpcomingEvents()
+        .then((events) => {
+          if (!cancelled) setUpcomingEvents(events);
+        })
+        .catch(() => {
+          if (!cancelled) setUpcomingEvents([]);
+        })
+        .finally(() => {
+          if (!cancelled) setUpcomingLoading(false);
+        });
+    };
+
+    Promise.all([getMyRole(), getMyAwards(), getVolunteerStats()])
+      .then(([s, awards, st]) => {
+        if (cancelled) return;
+
         const nextSession = s
           ? { role: s.role, name: s.name, batch: s.batch }
           : null;
@@ -149,15 +179,21 @@ export default function VolunteeringDashboard() {
             stats: st,
           });
           if (s.role === "volunteer") {
-            setUpcomingLoading(true);
-            getUpcomingEvents()
-              .then(setUpcomingEvents)
-              .catch(() => setUpcomingEvents([]))
-              .finally(() => setUpcomingLoading(false));
+            loadUpcoming();
+          } else {
+            setUpcomingLoading(false);
           }
+        } else {
+          setUpcomingLoading(false);
         }
-      },
-    );
+      })
+      .catch(() => {
+        if (!cancelled) setUpcomingLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -192,6 +228,9 @@ export default function VolunteeringDashboard() {
   const loadEvents = useCallback(async (opts?: { silent?: boolean }) => {
     const cacheKey = eventsCacheKey(tab, "", regionFilter);
     const cached = userId ? readEventsCache(userId, cacheKey) : null;
+    const cachedCalendar = userId
+      ? readEventsCache(userId, CALENDAR_CACHE_KEY)
+      : null;
 
     if (!opts?.silent && !cached) {
       setLoading(true);
@@ -199,9 +238,10 @@ export default function VolunteeringDashboard() {
       setEventsRefreshing(true);
     } else if (cached) {
       setEvents(cached.events);
-      if (cached.calendarEvents.length > 0) {
-        setAllEventsForCalendar(cached.calendarEvents);
-      }
+    }
+
+    if (cachedCalendar?.calendarEvents.length) {
+      setAllEventsForCalendar(cachedCalendar.calendarEvents);
     }
 
     try {
@@ -217,16 +257,12 @@ export default function VolunteeringDashboard() {
       );
       setEvents(fetched);
 
-      let calendarEvents: Event[] = [];
-      if (tab === "Active") {
-        calendarEvents = await getEvents("active");
-      } else {
-        calendarEvents = fetched;
-      }
+      const calendarEvents = await getEvents("active");
       setAllEventsForCalendar(calendarEvents);
 
       if (userId) {
-        writeEventsCache(userId, cacheKey, fetched, calendarEvents);
+        writeEventsCache(userId, cacheKey, fetched);
+        writeEventsCache(userId, CALENDAR_CACHE_KEY, [], calendarEvents);
       }
     } catch {
       if (!cached) toast.error("Connection failed");
@@ -273,11 +309,12 @@ export default function VolunteeringDashboard() {
     if (!userId) return;
     const cacheKey = eventsCacheKey(tab, "", regionFilter);
     const cached = readEventsCache(userId, cacheKey);
+    const cachedCalendar = readEventsCache(userId, CALENDAR_CACHE_KEY);
+    if (cachedCalendar?.calendarEvents.length) {
+      setAllEventsForCalendar(cachedCalendar.calendarEvents);
+    }
     if (cached) {
       setEvents(cached.events);
-      if (cached.calendarEvents.length > 0) {
-        setAllEventsForCalendar(cached.calendarEvents);
-      }
       setLoading(false);
       loadEvents({ silent: true });
     } else {
@@ -459,8 +496,19 @@ export default function VolunteeringDashboard() {
   return (
     <MobileLayout onRefresh={refreshHome}>
       <div className="p-5 space-y-6 pb-28">
-        {session && session.role === "organiser" && (
-          <StaffHomeBanner role="organiser" name={session.name} />
+        {session && (session.role === "admin" || session.role === "organiser") && (
+          <div className="space-y-4">
+            <h1 className="text-2xl font-black tracking-tight">
+              Hi, {session.name.split(" ")[0]}
+            </h1>
+            <QuickAccessGrid
+              awardCount={0}
+              activenessPercent={null}
+              role={session.role}
+              onScanAttendance={() => setScanOpen(true)}
+            />
+            <StaffHomeBanner role={session.role} />
+          </div>
         )}
 
         {session && session.role === "volunteer" && (
@@ -480,6 +528,7 @@ export default function VolunteeringDashboard() {
             <QuickAccessGrid
               awardCount={myAwards.length}
               activenessPercent={activenessPercent}
+              onActivenessClick={() => setActivenessOpen(true)}
             />
             <UpcomingEvents
               events={upcomingEvents}
@@ -491,8 +540,17 @@ export default function VolunteeringDashboard() {
           </div>
         )}
 
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-[var(--border)] bg-[var(--surface)]">
+        <section className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
+          <div className="px-4 pt-4 pb-2 border-b border-[var(--border)]">
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar size={14} className="text-[var(--brand)]" />
+              Calendar
+            </h2>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              All active events by date and location
+            </p>
+          </div>
+          <div className="p-4">
             <EventCalendarView
               embedded
               events={allEventsForCalendar}
@@ -506,7 +564,9 @@ export default function VolunteeringDashboard() {
               }}
             />
           </div>
+        </section>
 
+        <section className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
           <div className="p-4 space-y-3 border-b border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -662,7 +722,7 @@ export default function VolunteeringDashboard() {
               </>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
       {portalReady &&
@@ -944,42 +1004,62 @@ export default function VolunteeringDashboard() {
                   <X size={18} />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                {calendarDayPopup.events.map((evt) => (
-                  <button
-                    key={evt.id}
-                    type="button"
-                    onClick={() => {
-                      setCalendarDayPopup(null);
-                      setSelectedEvent(evt);
-                    }}
-                    className={`w-full text-left rounded-xl p-4 border cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center ${getCardColor(evt.category)}`}
-                  >
-                    <div className="flex-1 min-w-0 pr-3">
-                      <p className="font-bold text-sm truncate">{evt.title}</p>
-                      <p className="text-xs text-[var(--text-muted)] flex items-center gap-2 mt-1">
-                        <Calendar size={11} className="text-[var(--brand)] shrink-0" />
-                        {calendarDayPopup.date}
-                        {evt.time_start && (
-                          <>
-                            <Clock size={11} className="shrink-0" />
-                            {evt.time_start.slice(0, 5)}
-                            {evt.time_end ? `-${evt.time_end.slice(0, 5)}` : ""}
-                          </>
-                        )}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {groupEventsByLocation(calendarDayPopup.events).map(
+                  ({ label, events: groupEvents }) => (
+                    <div key={label} className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] px-1 flex items-center gap-1.5">
+                        <MapPin size={11} className="text-[var(--brand)] shrink-0" />
+                        {label}
                       </p>
-                      <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">
-                        {evt.venue}
-                      </p>
+                      {groupEvents.map((evt) => (
+                        <button
+                          key={evt.id}
+                          type="button"
+                          onClick={() => {
+                            setCalendarDayPopup(null);
+                            setSelectedEvent(evt);
+                          }}
+                          className={`w-full text-left rounded-xl p-4 border cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center ${getCardColor(evt.category)}`}
+                        >
+                          <div className="flex-1 min-w-0 pr-3">
+                            <p className="font-bold text-sm truncate">{evt.title}</p>
+                            <p className="text-xs text-[var(--text-muted)] flex items-center gap-2 mt-1">
+                              <Calendar size={11} className="text-[var(--brand)] shrink-0" />
+                              {calendarDayPopup.date}
+                              {evt.time_start && (
+                                <>
+                                  <Clock size={11} className="shrink-0" />
+                                  {evt.time_start.slice(0, 5)}
+                                  {evt.time_end ? `-${evt.time_end.slice(0, 5)}` : ""}
+                                </>
+                              )}
+                            </p>
+                            {evt.venue && (
+                              <p className="text-[10px] text-[var(--text-muted)] truncate mt-0.5">
+                                {evt.venue}
+                              </p>
+                            )}
+                          </div>
+                          <ChevronRight size={16} className="text-slate-400 shrink-0" />
+                        </button>
+                      ))}
                     </div>
-                    <ChevronRight size={16} className="text-slate-400 shrink-0" />
-                  </button>
-                ))}
+                  ),
+                )}
               </div>
             </div>
           </div>,
           document.body,
         )}
+      <AttendanceScanModal open={scanOpen} onClose={() => setScanOpen(false)} />
+      <ActivenessModal
+        open={activenessOpen}
+        onClose={() => setActivenessOpen(false)}
+        activenessPercent={activenessPercent}
+        attendedCount={stats?.attended ?? 0}
+        totalActive={stats?.totalActive ?? 0}
+      />
     </MobileLayout>
   );
 }

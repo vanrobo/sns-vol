@@ -536,9 +536,10 @@ export default function VolunteeringDashboard() {
               onSelect={setSelectedEvent}
             />
             <AwardsCarousel awards={myAwards} />
-            <QuickLinksNav />
           </div>
         )}
+
+        {session && <QuickLinksNav />}
 
         <section className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
           <div className="px-4 pt-4 pb-2 border-b border-[var(--border)]">

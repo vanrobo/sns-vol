@@ -27,6 +27,8 @@ import {
   bumpFontScale,
   FONT_SCALE,
   readFontScale,
+  applyFontScale,
+  writeFontScale,
 } from "@/lib/font-scale";
 import { haptic } from "@/lib/haptics";
 
@@ -99,6 +101,29 @@ export default function SettingsPage() {
               >
                 <Plus size={18} />
               </button>
+            </div>
+            <div className="mt-3 flex justify-between items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  haptic("selection");
+                  writeFontScale(FONT_SCALE.DEFAULT);
+                  applyFontScale(FONT_SCALE.DEFAULT);
+                  setFontScale(FONT_SCALE.DEFAULT);
+                }}
+                className="text-xs font-bold text-[var(--brand)]"
+              >
+                Reset to 100%
+              </button>
+            </div>
+            <div className="mt-3 p-3 rounded-lg bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] space-y-1">
+              <p className="text-lg font-bold">Preview heading</p>
+              <p className="text-sm text-[var(--text-muted)]">
+                Body text, buttons, and labels all scale together.
+              </p>
+              <p className="text-xs font-semibold uppercase tracking-wide">
+                Small label preview
+              </p>
             </div>
           </div>
         </div>

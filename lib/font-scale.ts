@@ -1,7 +1,7 @@
 const STORAGE_KEY = "sns-font-scale-v1";
 const MIN = 0.85;
 const MAX = 1.25;
-const STEP = 0.05;
+const STEP = 0.1;
 const DEFAULT = 1;
 
 export function clampFontScale(value: number) {
@@ -31,10 +31,15 @@ export function writeFontScale(scale: number) {
 
 export function applyFontScale(scale: number) {
   if (typeof document === "undefined") return;
-  document.documentElement.style.setProperty(
-    "--font-scale",
-    String(clampFontScale(scale)),
-  );
+  const clamped = clampFontScale(scale);
+  document.documentElement.style.setProperty("--font-scale", String(clamped));
+  // Scale root rem so Tailwind text-* utilities resize with accessibility setting
+  if (clamped === DEFAULT) {
+    document.documentElement.style.fontSize = "";
+  } else {
+    document.documentElement.style.fontSize = `${clamped * 100}%`;
+  }
+  document.documentElement.dataset.fontScale = String(clamped);
 }
 
 export function bumpFontScale(delta: number): number {

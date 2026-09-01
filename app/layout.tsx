@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import PWARegister from "@/components/PWARegister";
 import NotificationPoller from "@/components/NotificationPoller";
 import FontScaleProvider from "@/components/FontScaleProvider";
+import { FONT_SCALE_BOOTSTRAP } from "@/lib/font-scale-bootstrap";
 import type { Metadata, Viewport } from "next";
 import { APP_NAME, LOGO_ICON_192, LOGO_ICON_512, FAVICON_SRC, LOGO_APPLE, BRAND_THEME_COLOR } from "@/lib/brand";
 import "./globals.css";
@@ -42,6 +43,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: FONT_SCALE_BOOTSTRAP }} />
+      </head>
       <body className="bg-[var(--surface-muted)] text-[var(--text)] transition-colors duration-200 antialiased">
         <ThemeProvider
           attribute="class"

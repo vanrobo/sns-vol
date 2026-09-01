@@ -290,7 +290,8 @@ function ProfilePageContent() {
   if (!profile) return null;
 
   const displayAvatar = previewUrl || profile.avatar_url;
-  const { percent: onboardingPercent } = getProfileCompletion(profile);
+  const { percent: onboardingPercent, steps: onboardingSteps } =
+    getProfileCompletion(profile);
   const showOnboardingBanner =
     onboardingMode && profile.status === "pending" && onboardingPercent < 100;
 
@@ -298,7 +299,10 @@ function ProfilePageContent() {
     <MobileLayout>
       <div className={`p-5 space-y-6 ${showSaveBar ? "pb-36" : "pb-28"}`}>
         {showOnboardingBanner && (
-          <OnboardingBanner percent={onboardingPercent} />
+          <OnboardingBanner
+            percent={onboardingPercent}
+            steps={onboardingSteps}
+          />
         )}
         <div className="flex flex-col items-center pt-4 relative">
           <div
@@ -498,7 +502,7 @@ function ProfilePageContent() {
           </h3>
           {myAwards.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-              No awards yet — keep volunteering and your coordinator may recognize
+              No awards yet. Keep volunteering and your coordinator may recognize
               you here.
             </p>
           ) : (
@@ -558,7 +562,7 @@ function ProfilePageContent() {
               <div className="min-w-0">
                 <span className="font-semibold text-sm block">Browser alerts</span>
                 <p className="text-[10px] text-[var(--text-muted)] leading-snug">
-                  Pop-ups while this site is open — not true phone push when
+                  Pop-ups while this site is open, not true phone push when
                   closed
                 </p>
               </div>

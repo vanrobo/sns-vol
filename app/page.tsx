@@ -287,7 +287,7 @@ export default function VolunteeringDashboard() {
       if (overrideAction === "mark_attended") {
         await markAttended(selectedEvent.id);
         haptic("success");
-        toast.success("Checked in — attendance recorded!");
+        toast.success("Checked in. Attendance recorded!");
         setEvents((prev) =>
           prev.map((e) =>
             e.id === selectedEvent.id ? { ...e, has_attended: true } : e,
@@ -883,7 +883,7 @@ export default function VolunteeringDashboard() {
                           <>
                             <Clock size={11} className="shrink-0" />
                             {evt.time_start.slice(0, 5)}
-                            {evt.time_end ? `–${evt.time_end.slice(0, 5)}` : ""}
+                            {evt.time_end ? `-${evt.time_end.slice(0, 5)}` : ""}
                           </>
                         )}
                       </p>

@@ -17,7 +17,7 @@ export default async function EventLegacyRedirectPage({ searchParams }: Props) {
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] p-8 text-center">
       <h1 className="text-xl font-bold mb-2">Event not found</h1>
       <Link href="/signup" className="text-[var(--brand)] font-bold text-sm">
-        Browse events — sign up free
+        Browse events. Sign up free
       </Link>
     </div>
   );

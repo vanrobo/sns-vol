@@ -4,19 +4,19 @@ export const DEMO_ACCOUNTS = [
   {
     label: "Admin",
     email: "demo-admin@sns-vol.demo",
-    description: "Full admin panel — events, volunteers, grievances, applications",
+    description: "Full admin panel: events, volunteers, grievances, applications",
     path: "/admin",
   },
   {
     label: "Organiser",
     email: "demo-organiser@sns-vol.demo",
-    description: "Organiser panel — publish events and manage applications",
+    description: "Organiser panel: publish events and manage applications",
     path: "/organiser",
   },
   {
     label: "Volunteer",
     email: "demo-volunteer@sns-vol.demo",
-    description: "Active volunteer — browse events, I-Card, attendance",
+    description: "Active volunteer: browse events, I-Card, attendance",
     path: "/",
   },
 ] as const;

@@ -45,7 +45,7 @@ export default function QuickAccessGrid({
       {items.map(({ key, label, icon: Icon, href, onClick }) => {
         const subtitle =
           key === "batch"
-            ? batch || "—"
+            ? batch || "-"
             : key === "awards"
               ? String(awardCount)
               : key === "applications"

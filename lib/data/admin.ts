@@ -323,7 +323,7 @@ export async function approveICard(userId: string) {
   if (error) throw error;
   if (!data || data.status !== "active") {
     throw new Error(
-      "Approval blocked — check that you are logged in as admin and try again.",
+      "Approval blocked. Check that you are logged in as admin and try again.",
     );
   }
 

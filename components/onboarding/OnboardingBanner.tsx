@@ -1,52 +1,76 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle2, Circle } from "lucide-react";
+import type { OnboardingStep } from "@/lib/onboarding";
 
 type OnboardingBannerProps = {
   percent: number;
-  onDismiss?: () => void;
+  steps?: OnboardingStep[];
 };
 
 export default function OnboardingBanner({
   percent,
-  onDismiss,
+  steps = [],
 }: OnboardingBannerProps) {
+  const todo = steps.filter(
+    (s) => !s.done && s.id !== "account" && s.id !== "volunteer",
+  );
+
   return (
-    <div className="mx-4 mt-4 rounded-2xl border border-[var(--brand)]/25 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-[var(--surface)] p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[var(--brand)]/15 flex items-center justify-center shrink-0">
-          <Sparkles size={18} className="text-[var(--brand)]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-[var(--text)]">
-            Welcome — let&apos;s finish your profile
-          </p>
-          <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
-            Add your phone, photo, and skills so admins can approve your I-Card
-            faster. You&apos;re {percent}% done.
-          </p>
-          <div className="mt-3 h-2 rounded-full bg-[var(--border)] overflow-hidden">
-            <div
-              className="h-full rounded-full bg-[var(--brand)] transition-all duration-500"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-        </div>
-        {onDismiss && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] shrink-0"
-          >
-            Dismiss
-          </button>
-        )}
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[var(--border)] bg-amber-50/80 dark:bg-amber-950/20">
+        <p className="text-base font-bold text-[var(--text)]">
+          Profile not complete yet
+        </p>
+        <p className="text-sm text-[var(--text-muted)] mt-1 leading-relaxed">
+          Fill in the details below, then tap Save. Admin will review your I-Card
+          after that.
+        </p>
       </div>
-      <Link
-        href="/pending"
-        className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[var(--brand)]"
-      >
-        See approval status <ArrowRight size={14} />
-      </Link>
-    </div>
+
+      <div className="px-5 py-4">
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <span className="text-2xl font-black text-[var(--brand)]">
+            {percent}%
+          </span>
+          <span className="text-sm font-semibold text-[var(--text-muted)]">
+            complete
+          </span>
+        </div>
+        <div className="h-3 rounded-full bg-[var(--border)] overflow-hidden mb-4">
+          <div
+            className="h-full rounded-full bg-[var(--brand)] transition-all duration-500"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        <ul className="space-y-2.5">
+          {todo.length > 0 ? (
+            todo.slice(0, 4).map((step) => (
+              <li
+                key={step.id}
+                className="flex items-center gap-2.5 text-base font-semibold text-[var(--text)]"
+              >
+                <Circle size={16} className="text-amber-500 shrink-0" />
+                {step.label}
+              </li>
+            ))
+          ) : (
+            <li className="flex items-center gap-2.5 text-base font-semibold text-[var(--brand)]">
+              <CheckCircle2 size={16} className="shrink-0" />
+              Ready for admin review
+            </li>
+          )}
+        </ul>
+      </div>
+
+      <div className="px-5 pb-4">
+        <Link
+          href="/pending"
+          className="block w-full text-center rounded-xl border border-[var(--border)] bg-[var(--surface-input)] py-3.5 text-base font-bold text-[var(--text)] hover:bg-slate-50 dark:hover:bg-[#18181B] transition-colors"
+        >
+          View approval status
+        </Link>
+      </div>
+    </section>
   );
 }

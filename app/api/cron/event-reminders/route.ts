@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const isTomorrow = event.date === tomorrowStr;
     const title = isTomorrow ? "Event tomorrow" : "Event today";
     const timeLabel = formatEventTime(event.time_start);
-    const body = `${event.title}${timeLabel ? ` at ${timeLabel}` : ""} — ${event.venue}`;
+    const body = `${event.title}${timeLabel ? ` at ${timeLabel}` : ""} at ${event.venue}`;
 
     const { data: apps, error: appsError } = await supabase
       .from("applications")

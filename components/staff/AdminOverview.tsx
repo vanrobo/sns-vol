@@ -166,7 +166,7 @@ export default function AdminOverview({
         </h2>
         {attention.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[var(--text-muted)]">
-            All caught up — nothing urgent right now.
+            All caught up. Nothing urgent right now.
           </div>
         ) : (
           attention.map((item) => {

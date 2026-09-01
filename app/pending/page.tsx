@@ -37,7 +37,7 @@ export default function PendingPage() {
           </h1>
           <p className="text-[var(--text-muted)] text-sm leading-relaxed">
             {profileReady
-              ? "Your profile looks good. An admin will review it and issue your digital I-Card — we'll alert you in Alert Hub."
+              ? "Your profile looks good. An admin will review it and issue your digital I-Card. We will alert you in Alert Hub."
               : "Complete your profile so admins can verify you faster. Once approved, you can browse events, check in, and volunteer."}
           </p>
         </div>

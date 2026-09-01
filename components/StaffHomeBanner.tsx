@@ -45,7 +45,7 @@ export default function StaffHomeBanner({ role, name }: StaffHomeBannerProps) {
           </div>
           <h2 className="text-lg font-black tracking-tight">{title}</h2>
           <p className="text-[12px] text-emerald-100/90 leading-snug max-w-[240px]">
-            Hi {name.split(" ")[0]} — {subtitle}
+            Hi {name.split(" ")[0]}. {subtitle}
           </p>
         </div>
         <div className="shrink-0 bg-white/15 p-2.5 rounded-full">

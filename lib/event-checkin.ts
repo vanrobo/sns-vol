@@ -26,7 +26,7 @@ export function getCheckInStatus(
     return {
       allowed: false,
       reason: "closed",
-      message: "Check-in closed — this event has ended.",
+      message: "Check-in closed. This event has ended.",
     };
   }
 
@@ -57,7 +57,7 @@ export function getCheckInStatus(
       return {
         allowed: false,
         reason: "closed",
-        message: "Check-in closed — the event window has passed.",
+        message: "Check-in closed. The event window has passed.",
       };
     }
 

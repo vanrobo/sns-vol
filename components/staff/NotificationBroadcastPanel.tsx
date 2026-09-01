@@ -108,7 +108,7 @@ export default function NotificationBroadcastPanel({
           alert
         </h3>
         <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
-          Sends to everyone in the audience below — not the checkboxes on
+          Sends to everyone in the audience below, not the checkboxes on
           volunteer cards.
         </p>
       </div>

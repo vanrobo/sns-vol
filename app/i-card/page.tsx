@@ -129,7 +129,7 @@ export default function ICardPage() {
                       Valid Until
                     </p>
                     <p className="text-xs font-bold font-mono">
-                      {profile.valid_until || "—"}
+                      {profile.valid_until || "-"}
                     </p>
                   </div>
                   {profile.batch && (

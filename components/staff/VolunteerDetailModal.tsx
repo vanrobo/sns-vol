@@ -140,17 +140,17 @@ export default function VolunteerDetailModal({
             )}
             <p className="flex items-center gap-2">
               <Phone size={14} className="text-[var(--brand)] shrink-0" />
-              {volunteer.phone || "—"}
+              {volunteer.phone || "-"}
             </p>
             <p className="flex items-start gap-2">
               <MapPin size={14} className="text-[var(--brand)] shrink-0 mt-0.5" />
-              {volunteer.address || "—"}
+              {volunteer.address || "-"}
             </p>
             <p className="text-xs text-[var(--text-muted)]">
-              Concern Center: {volunteer.college || "—"}
+              Concern Center: {volunteer.college || "-"}
             </p>
             <p className="text-xs text-[var(--text-muted)]">
-              Batch / area: {volunteer.batch || "—"}
+              Batch / area: {volunteer.batch || "-"}
             </p>
             <p className="text-xs font-mono text-[var(--text-muted)]">
               ID: {volunteer.volunteer_id || "Not issued"}

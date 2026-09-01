@@ -132,7 +132,7 @@ export default function VolunteerBulkActions({
               <>
                 <p className="text-xs text-[var(--text-muted)]">
                   Sends only to the {count} checked volunteer
-                  {count === 1 ? "" : "s"} — use Broadcast above for all active.
+                  {count === 1 ? "" : "s"}. Use Broadcast above for all active.
                 </p>
                 <input
                   type="text"

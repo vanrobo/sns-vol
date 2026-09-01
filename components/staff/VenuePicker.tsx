@@ -131,7 +131,7 @@ export default function VenuePicker({
 
             {!loading && suggestions.length === 0 && query.trim().length >= 2 && (
               <li className="px-3 py-2.5 text-xs text-slate-500">
-                No matches — keep typing or paste the full address.
+                No matches. Keep typing or paste the full address.
               </li>
             )}
           </ul>

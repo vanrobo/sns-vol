@@ -7,9 +7,9 @@ import {
   Calendar,
   Users,
   AlertCircle,
-  Award,
   Trophy,
   LayoutDashboard,
+  ClipboardList,
 } from "lucide-react";
 import type { AdminData, ApplicationStatus, Event, UserRole } from "@/types";
 import { titleCaseStatus } from "@/types";
@@ -487,7 +487,7 @@ export default function AdminDashboard() {
     { key: "overview", label: "Dashboard", icon: LayoutDashboard },
     { key: "events", label: "Events", icon: Calendar },
     { key: "volunteers", label: "People", icon: Users },
-    { key: "applications", label: "Request", icon: Award },
+    { key: "applications", label: "Request", icon: ClipboardList },
     { key: "awards", label: "Awards", icon: Trophy },
   ];
 

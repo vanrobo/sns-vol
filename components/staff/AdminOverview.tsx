@@ -9,6 +9,7 @@ import {
   Bell,
   ChevronRight,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import type { AdminData } from "@/types";
 
@@ -119,6 +120,29 @@ export default function AdminOverview({
             Here&apos;s what needs your attention today.
           </p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {(
+          [
+            { label: "Events", tab: "events", icon: Calendar },
+            { label: "People", tab: "volunteers", icon: Users },
+            { label: "Requests", tab: "applications", icon: ClipboardList },
+            { label: "Awards", tab: "awards", icon: Trophy },
+          ] as const
+        ).map(({ label, tab, icon: Icon }) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => onNavigate(tab)}
+            className="flex items-center gap-3 p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-left active:scale-[0.98] transition-transform shadow-sm"
+          >
+            <div className="w-9 h-9 rounded-lg bg-[var(--brand)]/10 flex items-center justify-center shrink-0">
+              <Icon size={18} className="text-[var(--brand)]" />
+            </div>
+            <span className="font-bold text-sm">{label}</span>
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">

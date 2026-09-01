@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, startTransition } from "react";
 import toast from "react-hot-toast";
-import { Plus, Calendar, Award, Trophy } from "lucide-react";
+import { Plus, Calendar, ClipboardList, Trophy } from "lucide-react";
 import type { ApplicationStatus, Event } from "@/types";
 import {
   createEvent,
@@ -207,7 +207,7 @@ export default function OrganiserDashboard() {
 
   const tabs = [
     { key: "events", label: "Events", icon: Calendar },
-    { key: "applications", label: "Request", icon: Award },
+    { key: "applications", label: "Request", icon: ClipboardList },
     { key: "recommend", label: "Recommend", icon: Trophy },
   ];
 
@@ -232,6 +232,22 @@ export default function OrganiserDashboard() {
         onRefresh={refreshOrganiser}
         onSignOut={() => signOutAction()}
       >
+        <div className="mb-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-800 p-4 flex items-center justify-between gap-3 text-white shadow-md">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+              Organiser
+            </p>
+            <p className="font-bold text-sm">Organize events</p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="shrink-0 bg-white text-emerald-800 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm"
+          >
+            <Plus size={14} /> New event
+          </button>
+        </div>
+
         {activeTab === "events" && (
           <div className="space-y-4">
             <StaffWelcome

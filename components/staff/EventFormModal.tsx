@@ -177,6 +177,20 @@ export default function EventFormModal({
               <label className="block text-sm font-bold mb-2">
                 Required Skills
               </label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!form.required_skills.includes("Open to All")) {
+                    onChange({
+                      ...form,
+                      required_skills: [...form.required_skills, "Open to All"],
+                    });
+                  }
+                }}
+                className="mb-2 text-xs font-bold px-3 py-1.5 rounded-lg border border-dashed border-[var(--brand)]/40 text-[var(--brand)] hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+              >
+                + Open to All (festivals / general days)
+              </button>
               <SkillPicker
                 selected={form.required_skills}
                 onChange={(required_skills) =>

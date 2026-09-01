@@ -577,18 +577,18 @@ function ProfilePageContent() {
           <Link
             href="/i-card"
             onClick={(e) => unsavedCtx?.guardNavigation(e, "/i-card")}
-            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
+            className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-xl border border-indigo-700/40 shadow-md p-4 flex items-center justify-between text-white hover:from-indigo-700 hover:to-violet-800 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <BadgeCheck size={18} className="text-[var(--brand)]" />
+              <BadgeCheck size={18} />
               <div>
                 <span className="font-semibold text-sm block">Digital I-Card</span>
-                <p className="text-[10px] text-[var(--text-muted)]">
+                <p className="text-[10px] text-white/80">
                   View QR and volunteer ID
                 </p>
               </div>
             </div>
-            <ChevronDown size={14} className="-rotate-90 text-slate-400" />
+            <ChevronDown size={14} className="-rotate-90 text-white/80" />
           </Link>
 
           {(profile.role === "organiser" || profile.role === "admin") && (
@@ -652,6 +652,7 @@ function ProfilePageContent() {
           )}
         </div>
 
+        {profile.role === "volunteer" && (
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
           <div className="p-4 px-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -684,6 +685,7 @@ function ProfilePageContent() {
             </label>
           </div>
         </div>
+        )}
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
           {profile.delete_requested_at && (

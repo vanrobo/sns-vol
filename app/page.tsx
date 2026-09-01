@@ -39,6 +39,7 @@ import Pagination, { paginate } from "@/components/staff/Pagination";
 import SkillChips from "@/components/ui/SkillChips";
 import QuickAccessGrid from "@/components/home/QuickAccessGrid";
 import QuickLinksNav from "@/components/home/QuickLinksNav";
+import StaffHomeBanner from "@/components/StaffHomeBanner";
 import UpcomingEvents from "@/components/home/UpcomingEvents";
 import AwardsCarousel from "@/components/home/AwardsCarousel";
 import EventCalendarView from "@/components/events/EventCalendarView";
@@ -418,6 +419,10 @@ export default function VolunteeringDashboard() {
   return (
     <MobileLayout onRefresh={refreshHome}>
       <div className="p-5 space-y-6 pb-28">
+        {session && session.role === "organiser" && (
+          <StaffHomeBanner role="organiser" name={session.name} />
+        )}
+
         {session && session.role === "volunteer" && (
           <div className="space-y-4">
             <div>
@@ -425,9 +430,10 @@ export default function VolunteeringDashboard() {
                 Welcome, {session.name.split(" ")[0]}
               </h1>
               {stats && (
-                <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
-                  {stats.attended} events attended · {activenessPercent ?? 0}%
-                  activeness
+                <p className="text-xs text-[var(--text-muted)] mt-1 font-medium leading-relaxed">
+                  Activeness {activenessPercent ?? 0}% — based on{" "}
+                  {stats.attended} check-in{stats.attended === 1 ? "" : "s"} of{" "}
+                  {stats.totalActive} active events
                 </p>
               )}
             </div>

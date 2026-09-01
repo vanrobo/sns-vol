@@ -119,7 +119,10 @@ export default function MobileLayout({
             onClick={(e) => guard(e, "/notifications")}
             className="relative p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors"
           >
-            <Bell size={22} />
+            <Bell
+              size={22}
+              className={hasUnread ? "animate-bell-ring" : undefined}
+            />
             {hasUnread && (
               <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--brand)] rounded-full ring-2 ring-white dark:ring-black animate-pulse" />
             )}

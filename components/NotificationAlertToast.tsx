@@ -7,7 +7,8 @@ import type { Notification } from "@/types";
 const BODY_PREVIEW_CHARS = 140;
 
 export function previewNotificationBody(body: string, max = BODY_PREVIEW_CHARS) {
-  const trimmed = body.trim();
+  const withoutLink = body.split("\n\nOpen:")[0]?.trim() ?? body;
+  const trimmed = withoutLink.trim();
   if (trimmed.length <= max) return trimmed;
   return `${trimmed.slice(0, max).trimEnd()}…`;
 }

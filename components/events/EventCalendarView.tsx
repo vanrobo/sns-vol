@@ -176,15 +176,18 @@ export default function EventCalendarView({
       )}
 
       {embedded && (
-        <div className="flex flex-wrap justify-center gap-3 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wide">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#94a3b8]" /> Class
+        <div className="flex flex-wrap justify-center gap-4 text-[10px] font-bold text-[var(--text-muted)]">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#94a3b8]" />
+            <span>Class</span>
           </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#22c55e]" /> Event
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
+            <span>Event</span>
           </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#ef4444]" /> Off / Sunday
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
+            <span>Off</span>
           </span>
         </div>
       )}

@@ -6,7 +6,7 @@ import {
   hasUnreadNotifications,
   getLatestUnreadNotification,
 } from "@/lib/data/notifications";
-import { getNotificationHref } from "@/lib/notifications-nav";
+import { getNotificationOpenTarget } from "@/lib/notifications-nav";
 import { showBrowserNotification } from "@/lib/push/browser-notifications";
 import {
   loadShownNotificationIds,
@@ -26,7 +26,7 @@ function alertForNotification(notif: Notification, shown: Set<string>) {
   showBrowserNotification(
     notif.title,
     previewNotificationBody(notif.body, 200),
-    getNotificationHref(notif.type),
+    getNotificationOpenTarget(notif).href,
     notif.id,
   );
 }

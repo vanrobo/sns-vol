@@ -20,7 +20,7 @@ import {
 import { getMyRole } from "@/lib/data/profiles";
 import type { Notification } from "@/types";
 import { NotificationSkeleton } from "@/components/ui/Skeleton";
-import { getNotificationHref } from "@/lib/notifications-nav";
+import { extractNotificationLink, getNotificationOpenTarget } from "@/lib/notifications-nav";
 import {
   readNotificationsCache,
   writeNotificationsCache,
@@ -110,7 +110,12 @@ export default function NotificationsPage() {
 
   const openNotification = (notif: Notification) => {
     haptic("light");
-    router.push(getNotificationHref(notif.type));
+    const { href, external } = getNotificationOpenTarget(notif);
+    if (external) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    router.push(href);
   };
 
   return (
@@ -192,15 +197,26 @@ export default function NotificationsPage() {
                   </button>
 
                   {isExpanded && (
-                    <div className="px-4 pb-4 pt-0">
-                      <button
-                        type="button"
-                        onClick={() => openNotification(notif)}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[var(--brand)] text-white text-xs font-bold"
-                      >
-                        <ExternalLink size={14} />
-                        Open related screen
-                      </button>
+                    <div className="px-4 pb-4 pt-0 space-y-2">
+                      {extractNotificationLink(notif.body) ? (
+                        <button
+                          type="button"
+                          onClick={() => openNotification(notif)}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[var(--brand)] text-white text-xs font-bold"
+                        >
+                          <ExternalLink size={14} />
+                          Open link
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openNotification(notif)}
+                          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[var(--brand)] text-white text-xs font-bold"
+                        >
+                          <ExternalLink size={14} />
+                          Open related screen
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

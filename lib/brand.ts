@@ -22,7 +22,7 @@ export const GOOGLE_REVIEW_URL =
 /** Stand N Stride Foundation — donations */
 export const DONATE_URL =
   process.env.NEXT_PUBLIC_DONATE_URL?.trim() ||
-  "https://dev.standnstride.org/donate";
+  "https://standnstride.org/donation/";
 
 /** Public site host for QR footers and share links (no protocol). */
 export const APP_SITE_HOST =

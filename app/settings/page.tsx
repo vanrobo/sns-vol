@@ -6,7 +6,6 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
-  Settings,
   Sun,
   Moon,
   Bell,
@@ -14,7 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import InstallAppSetting from "@/components/settings/InstallAppSetting";
-import AppDataSettings from "@/components/settings/AppDataSettings";
+import AppDataSettings, { AppVersionCard } from "@/components/settings/AppDataSettings";
 import {
   canUseBrowserNotifications,
   isPushEnabledLocally,
@@ -27,10 +26,6 @@ import {
   setFontScale as applyStoredFontScale,
 } from "@/lib/font-scale";
 import { haptic } from "@/lib/haptics";
-import {
-  showBrowserNotification,
-} from "@/lib/push/browser-notifications";
-import { showNotificationAlertToast } from "@/components/NotificationAlertToast";
 
 export default function SettingsPage() {
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -53,11 +48,8 @@ export default function SettingsPage() {
     <MobileLayout onRefresh={refresh}>
       <div className="p-5 space-y-6 pb-28">
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 shadow-sm">
-          <div className="flex items-center gap-3 mb-2">
-            <Settings size={22} className="text-[var(--brand)]" />
-            <h1 className="text-xl font-black tracking-tight">Settings</h1>
-          </div>
-          <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+          <h1 className="text-xl font-black tracking-tight">Settings</h1>
+          <p className="text-sm text-[var(--text-muted)] leading-relaxed mt-2">
             App preferences, accessibility, alerts, and offline data.
           </p>
         </div>
@@ -128,10 +120,7 @@ export default function SettingsPage() {
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)] overflow-hidden">
           <div className="p-4 px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Settings size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">Theme mode</span>
-            </div>
+            <span className="font-semibold text-sm">Theme mode</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -216,40 +205,6 @@ export default function SettingsPage() {
             <span className="font-semibold text-sm">In-app alert history</span>
             <ChevronDown size={14} className="-rotate-90 text-slate-400" />
           </Link>
-          <button
-            type="button"
-            onClick={async () => {
-              if (!canUseBrowserNotifications()) {
-                toast.error("Browser alerts not supported here.");
-                return;
-              }
-              const perm = await requestBrowserNotificationPermission();
-              if (perm !== "granted") {
-                toast.error("Allow notifications in browser settings first.");
-                return;
-              }
-              showNotificationAlertToast({
-                id: "test-alert",
-                user_id: "",
-                title: "Test alert",
-                body: "Web alerts are working. You will see compact toasts like this for broadcasts.",
-                type: "event",
-                read_at: null,
-                created_at: new Date().toISOString(),
-              });
-              showBrowserNotification(
-                "Test alert",
-                "Browser notification test from SNS Family settings.",
-                "/notifications",
-                "test-alert",
-              );
-              toast.success("Test alert sent");
-            }}
-            className="w-full p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors text-left"
-          >
-            <span className="font-semibold text-sm">Send test alert</span>
-            <ChevronDown size={14} className="-rotate-90 text-slate-400" />
-          </button>
         </div>
 
         <p className="text-center text-xs text-[var(--text-muted)]">
@@ -259,6 +214,8 @@ export default function SettingsPage() {
           </Link>{" "}
           tab.
         </p>
+
+        <AppVersionCard />
       </div>
     </MobileLayout>
   );

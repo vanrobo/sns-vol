@@ -2,12 +2,13 @@
 "use client";
 
 import MobileLayout from "@/components/MobileLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { getUserGrievances, submitGrievance } from "@/lib/data/grievances";
 import { getMyRole } from "@/lib/data/profiles";
 import type { Grievance } from "@/types";
 import { titleCaseStatus } from "@/types";
+import { haptic } from "@/lib/haptics";
 import {
   AlertCircle,
   Send,
@@ -47,6 +48,20 @@ export default function GrievancePage() {
       .then(setPastTickets)
       .catch(() => toast.error("Failed to load history"))
       .finally(() => setLoadingTickets(false));
+  }, []);
+
+  const refreshGrievances = useCallback(async () => {
+    haptic("light");
+    setLoadingTickets(true);
+    try {
+      const tickets = await getUserGrievances();
+      setPastTickets(tickets);
+      haptic("success");
+    } catch {
+      toast.error("Failed to refresh");
+    } finally {
+      setLoadingTickets(false);
+    }
   }, []);
 
   const handleDescriptionChange = (
@@ -95,7 +110,7 @@ export default function GrievancePage() {
   };
 
   return (
-    <MobileLayout>
+    <MobileLayout onRefresh={refreshGrievances}>
       <div className="p-5 space-y-6 pb-28">
         <div>
           <h1 className="text-2xl font-black tracking-tight">Grievance</h1>

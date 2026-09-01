@@ -17,7 +17,7 @@ export const SKILL_CATEGORIES = {
     "Peer Support",
   ],
   "Events & Field": [
-    "Open to all",
+    "Open to All",
     "Event Management",
     "Logistics",
     "Crowd Management",

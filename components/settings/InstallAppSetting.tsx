@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Download, Smartphone, X, Monitor } from "lucide-react";
+import { Download, Smartphone, X, Monitor, Share } from "lucide-react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { APP_NAME } from "@/lib/brand";
 
 export default function InstallAppSetting() {
   const { showInstallOption, canInstall, isIOSDevice, installed, install } =
     usePWAInstall();
-  const [showHelp, setShowHelp] = useState(false);
+  const [showAndroidHelp, setShowAndroidHelp] = useState(false);
 
   if (installed || !showInstallOption) return null;
 
@@ -20,13 +20,13 @@ export default function InstallAppSetting() {
       else toast.error("Install cancelled");
       return;
     }
-    setShowHelp(true);
+    if (!isIOSDevice) setShowAndroidHelp(true);
   };
 
   const subtitle = canInstall
     ? `Add ${APP_NAME} to your home screen for quick access`
     : isIOSDevice
-      ? "Tap for Add to Home Screen steps (Safari)"
+      ? "Use Safari — steps below"
       : "Tap for install steps from your browser menu";
 
   return (
@@ -46,48 +46,51 @@ export default function InstallAppSetting() {
           </div>
         </div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand)] shrink-0">
-          {canInstall ? "Install now" : "How to"}
+          {canInstall ? "Install now" : isIOSDevice ? "Safari" : "How to"}
         </span>
       </button>
 
-      {showHelp && (
+      {isIOSDevice && (
+        <div className="mx-4 mb-4 p-4 rounded-xl border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] space-y-3">
+          <div className="flex items-center gap-2">
+            <Smartphone size={16} className="text-[var(--brand)]" />
+            <p className="font-bold text-sm">Install on iPhone (Safari)</p>
+          </div>
+          <ol className="text-xs text-[var(--text-muted)] space-y-2 list-decimal list-inside leading-relaxed">
+            <li>Open this site in <strong>Safari</strong> (not Chrome)</li>
+            <li>
+              Tap the <Share size={12} className="inline -mt-0.5" /> Share
+              button at the bottom
+            </li>
+            <li>Scroll and choose &ldquo;Add to Home Screen&rdquo;</li>
+            <li>Tap Add — the app icon appears on your home screen</li>
+          </ol>
+        </div>
+      )}
+
+      {showAndroidHelp && !isIOSDevice && (
         <div className="mx-4 mb-4 p-4 rounded-xl border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              {isIOSDevice ? (
-                <Smartphone size={16} className="text-[var(--brand)]" />
-              ) : (
-                <Monitor size={16} className="text-[var(--brand)]" />
-              )}
-              <p className="font-bold text-sm">
-                {isIOSDevice ? "Install on iPhone" : "Install from browser"}
-              </p>
+              <Monitor size={16} className="text-[var(--brand)]" />
+              <p className="font-bold text-sm">Install from browser</p>
             </div>
             <button
               type="button"
-              onClick={() => setShowHelp(false)}
+              onClick={() => setShowAndroidHelp(false)}
               aria-label="Close"
             >
               <X size={16} className="text-[var(--text-muted)]" />
             </button>
           </div>
-          {isIOSDevice ? (
-            <ol className="text-xs text-[var(--text-muted)] space-y-2 list-decimal list-inside leading-relaxed">
-              <li>Open this site in Safari</li>
-              <li>Tap the Share button</li>
-              <li>Choose &ldquo;Add to Home Screen&rdquo;</li>
-              <li>Tap Add</li>
-            </ol>
-          ) : (
-            <ol className="text-xs text-[var(--text-muted)] space-y-2 list-decimal list-inside leading-relaxed">
-              <li>
-                In Chrome / Edge: menu (⋮) → &ldquo;Install app&rdquo; or
-                &ldquo;Add to Home screen&rdquo;
-              </li>
-              <li>Or use the install icon in the address bar if shown</li>
-              <li>Open the installed app from your home screen or app list</li>
-            </ol>
-          )}
+          <ol className="text-xs text-[var(--text-muted)] space-y-2 list-decimal list-inside leading-relaxed">
+            <li>
+              In Chrome / Edge: menu (⋮) → &ldquo;Install app&rdquo; or
+              &ldquo;Add to Home screen&rdquo;
+            </li>
+            <li>Or use the install icon in the address bar if shown</li>
+            <li>Open the installed app from your home screen or app list</li>
+          </ol>
         </div>
       )}
     </>

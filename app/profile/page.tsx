@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
 import { haptic } from "@/lib/haptics";
+import { compressAvatarFile } from "@/lib/compress-image";
 import InstallAppSetting from "@/components/settings/InstallAppSetting";
 import AppDataSettings from "@/components/settings/AppDataSettings";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
@@ -240,22 +241,33 @@ function ProfilePageContent() {
       if (onboardingMode && updated.status === "pending") {
         router.push("/pending");
       }
-    } catch {
-      toast.error("Could not save profile");
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Could not save profile";
+      toast.error(msg.includes("Body") ? "Photo too large. Try a smaller image." : msg);
     } finally {
       setSaving(false);
     }
   };
 
-  const handlePfpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePfpChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Selfie image must be smaller than 2MB");
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Selfie image must be smaller than 8MB");
       return;
     }
-    setPendingAvatar(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    try {
+      const compressed = await compressAvatarFile(file);
+      if (compressed.size > 2 * 1024 * 1024) {
+        toast.error("Could not compress photo enough. Try another image.");
+        return;
+      }
+      setPendingAvatar(compressed);
+      setPreviewUrl(URL.createObjectURL(compressed));
+    } catch {
+      toast.error("Could not process that photo");
+    }
   };
 
   const handleLogout = async () => {

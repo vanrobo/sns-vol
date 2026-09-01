@@ -26,15 +26,20 @@ import {
   setFontScale as applyStoredFontScale,
 } from "@/lib/font-scale";
 import { haptic } from "@/lib/haptics";
+import { readDeveloperMode, setDeveloperMode } from "@/lib/developer-mode";
+import DeveloperToolsPanel from "@/components/settings/DeveloperToolsPanel";
+import { Code2 } from "lucide-react";
 
 export default function SettingsPage() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [fontScale, setFontScale] = useState(FONT_SCALE.DEFAULT);
+  const [developerMode, setDeveloperModeState] = useState(false);
 
   useEffect(() => {
     setPushEnabled(isPushEnabledLocally());
     setFontScale(readFontScale());
+    setDeveloperModeState(readDeveloperMode());
   }, []);
 
   const refresh = async () => {
@@ -205,6 +210,35 @@ export default function SettingsPage() {
             <span className="font-semibold text-sm">In-app alert history</span>
             <ChevronDown size={14} className="-rotate-90 text-slate-400" />
           </Link>
+        </div>
+
+        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
+          <div className="p-4 px-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Code2 size={16} className="text-amber-600 shrink-0" />
+              <div className="min-w-0">
+                <span className="font-semibold text-sm block">Developer mode</span>
+                <p className="text-[10px] text-[var(--text-muted)] leading-snug">
+                  Test alerts and debugging tools
+                </p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={developerMode}
+                onChange={() => {
+                  const next = !developerMode;
+                  setDeveloperModeState(next);
+                  setDeveloperMode(next);
+                  toast.success(next ? "Developer mode on" : "Developer mode off");
+                }}
+              />
+              <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500" />
+            </label>
+          </div>
+          {developerMode && <DeveloperToolsPanel />}
         </div>
 
         <p className="text-center text-xs text-[var(--text-muted)]">

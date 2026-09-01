@@ -43,7 +43,7 @@ export default function StaffShell({
   });
 
   useEffect(() => {
-    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    mainRef.current?.scrollTo({ top: 0 });
   }, [activeTab]);
 
   return (
@@ -93,7 +93,7 @@ export default function StaffShell({
           mainRef.current = el;
           setScrollEl(el);
         }}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 md:px-8 pt-4 pb-4 animate-fadeIn"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 md:px-8 pt-4 pb-4"
       >
         {children}
       </main>

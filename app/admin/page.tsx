@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, startTransition } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -56,6 +56,7 @@ import VolunteerDetailModal from "@/components/staff/VolunteerDetailModal";
 import NotificationBroadcastPanel from "@/components/staff/NotificationBroadcastPanel";
 import { getMyRole } from "@/lib/data/profiles";
 import { readAdminCache, writeAdminCache } from "@/lib/admin-cache";
+import { readAdminActiveTab, writeAdminActiveTab } from "@/lib/admin-tab-store";
 import type { Profile } from "@/types";
 import { Phone, MapPin, Search, CheckSquare, Square } from "lucide-react";
 
@@ -74,7 +75,12 @@ export default function AdminDashboard() {
       },
   );
   const [loading, setLoading] = useState(!cachedAdmin);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(() => readAdminActiveTab());
+
+  const changeTab = useCallback((tab: string) => {
+    setActiveTab(tab);
+    writeAdminActiveTab(tab);
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -505,7 +511,7 @@ export default function AdminDashboard() {
         title="Admin"
         tabs={tabs}
         activeTab={activeTab}
-        onTabChange={(tab) => startTransition(() => setActiveTab(tab))}
+        onTabChange={changeTab}
         onRefresh={fetchAdminData}
         onSignOut={() => signOutAction()}
       >
@@ -514,7 +520,7 @@ export default function AdminDashboard() {
             <AdminOverview
               data={data}
               staffName={staffName}
-              onNavigate={(tab) => startTransition(() => setActiveTab(tab))}
+              onNavigate={changeTab}
               onCreateEvent={openCreateModal}
             />
             <PendingVolunteersPanel
@@ -533,7 +539,8 @@ export default function AdminDashboard() {
               {pagedGrievances.length === 0 ? (
                 <p className="text-gray-500 italic text-sm">No grievances logged.</p>
               ) : (
-                pagedGrievances.slice(0, 5).map((g) => (
+                <>
+                {pagedGrievances.map((g) => (
                   <div
                     key={g.id}
                     className="border border-[var(--border)] p-4 rounded-xl space-y-3 bg-[var(--surface)]"
@@ -543,6 +550,11 @@ export default function AdminDashboard() {
                         <span className="text-xs bg-red-100 text-red-800 font-extrabold px-2 py-0.5 rounded uppercase">
                           {g.category}
                         </span>
+                        {g.user_name && (
+                          <p className="text-[10px] text-[var(--text-muted)] mt-1 font-semibold">
+                            {g.user_name}
+                          </p>
+                        )}
                         <p className="text-sm font-medium mt-2">{g.description}</p>
                       </div>
                       <span
@@ -551,6 +563,16 @@ export default function AdminDashboard() {
                         {titleCaseStatus(g.status)}
                       </span>
                     </div>
+                    {g.status === "resolved" && g.admin_notes && (
+                      <div className="rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/20 p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-1">
+                          Admin response
+                        </p>
+                        <p className="text-xs text-emerald-900 dark:text-emerald-300 leading-relaxed whitespace-pre-wrap">
+                          {g.admin_notes}
+                        </p>
+                      </div>
+                    )}
                     {g.status === "open" && selectedGrievanceId !== g.id && (
                       <button
                         type="button"
@@ -589,7 +611,14 @@ export default function AdminDashboard() {
                       </div>
                     )}
                   </div>
-                ))
+                ))}
+                <Pagination
+                  total={data.grievances.length}
+                  pageSize={GRIEV_PAGE_SIZE}
+                  page={grievPage}
+                  onPageChange={setGrievPage}
+                />
+                </>
               )}
             </div>
           </div>

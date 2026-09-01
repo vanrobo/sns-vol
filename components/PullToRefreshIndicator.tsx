@@ -30,11 +30,9 @@ export default function PullToRefreshIndicator({
       className="flex justify-center items-center py-5 min-h-[56px] pointer-events-none z-30 shrink-0"
       aria-hidden
     >
-      <div className="relative h-7 w-7">
+      <div className="relative size-7">
         <svg
-          className="absolute inset-0"
-          width={28}
-          height={28}
+          className="absolute inset-0 block size-full"
           viewBox="0 0 28 28"
           aria-hidden
         >
@@ -50,28 +48,28 @@ export default function PullToRefreshIndicator({
         </svg>
 
         {refreshing ? (
-          <div className="absolute inset-0 animate-spin">
-            <svg width={28} height={28} viewBox="0 0 28 28" aria-hidden>
-              <circle
-                cx={14}
-                cy={14}
-                r={R}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeDasharray={`${SPIN_ARC} ${SPIN_GAP}`}
-                strokeDashoffset={0}
-                transform="rotate(-90 14 14)"
-                className="text-[var(--brand)]"
-              />
-            </svg>
-          </div>
+          <svg
+            className="absolute inset-0 block size-full animate-spin"
+            viewBox="0 0 28 28"
+            aria-hidden
+            style={{ transformOrigin: "center" }}
+          >
+            <circle
+              cx={14}
+              cy={14}
+              r={R}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeDasharray={`${SPIN_ARC} ${SPIN_GAP}`}
+              transform="rotate(-90 14 14)"
+              className="text-[var(--brand)]"
+            />
+          </svg>
         ) : (
           <svg
-            className="absolute inset-0"
-            width={28}
-            height={28}
+            className="absolute inset-0 block size-full"
             viewBox="0 0 28 28"
             aria-hidden
           >

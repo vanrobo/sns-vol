@@ -35,10 +35,10 @@ export default function AdminOverview({
     pendingVolunteers.length > 0 && {
       key: "volunteers",
       label: `${pendingVolunteers.length} volunteer${pendingVolunteers.length === 1 ? "" : "s"} awaiting approval`,
-      sub: "Review pending I-Cards",
+      sub: "Review on Dashboard below",
       icon: Users,
       tone: "amber" as const,
-      tab: "volunteers",
+      tab: "overview",
     },
     pendingApps.length > 0 && {
       key: "apps",

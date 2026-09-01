@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock, Copy, Users, CalendarOff, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock, Copy, Users, CalendarOff, Trash2, Search } from "lucide-react";
 import type { Event } from "@/types";
 import { titleCaseStatus } from "@/types";
 import { getEventPublicUrl } from "@/lib/events/share";
@@ -36,7 +37,22 @@ export default function EventsTable({
   onDelete,
   closingId,
 }: EventsTableProps) {
-  const paged = paginate(events, page, PAGE_SIZE);
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return events;
+    return events.filter(
+      (evt) =>
+        evt.title.toLowerCase().includes(q) ||
+        evt.venue.toLowerCase().includes(q) ||
+        (evt.region ?? "").toLowerCase().includes(q) ||
+        evt.category.toLowerCase().includes(q) ||
+        evt.description?.toLowerCase().includes(q),
+    );
+  }, [events, search]);
+
+  const paged = paginate(filtered, page, PAGE_SIZE);
 
   const copyLink = (slug: string) => {
     const url = getEventPublicUrl(slug);
@@ -48,7 +64,29 @@ export default function EventsTable({
 
   return (
     <div className="space-y-3">
-      {paged.map((evt) => (
+      <div className="relative">
+        <Search
+          size={14}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+        />
+        <input
+          type="text"
+          placeholder="Search events by title, venue, center..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            onPageChange(1);
+          }}
+          className="w-full pl-9 p-3 border rounded-xl bg-[var(--surface)] border-[var(--border)] outline-emerald-600 text-sm"
+        />
+      </div>
+
+      {paged.length === 0 ? (
+        <p className="text-center text-sm text-[var(--text-muted)] py-10 border border-dashed border-[var(--border)] rounded-xl">
+          No events match your search.
+        </p>
+      ) : (
+        paged.map((evt) => (
         <div
           key={evt.id}
           className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 shadow-sm space-y-3"
@@ -188,10 +226,11 @@ export default function EventsTable({
             )}
           </div>
         </div>
-      ))}
+      ))
+      )}
 
       <Pagination
-        total={events.length}
+        total={filtered.length}
         pageSize={PAGE_SIZE}
         page={page}
         onPageChange={onPageChange}

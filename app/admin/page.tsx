@@ -30,6 +30,8 @@ import {
   bulkApproveICards,
   bulkUpdateUserBatch,
   broadcastNotification,
+  deactivateVolunteer,
+  reactivateVolunteer,
   type EventInput,
 } from "@/lib/data/admin";
 import EventAttendanceModal from "@/components/staff/EventAttendanceModal";
@@ -48,6 +50,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
 import StaffWelcome from "@/components/staff/StaffWelcome";
 import AdminOverview from "@/components/staff/AdminOverview";
+import PendingVolunteersPanel from "@/components/staff/PendingVolunteersPanel";
 import VolunteerBulkActions from "@/components/staff/VolunteerBulkActions";
 import VolunteerDetailModal from "@/components/staff/VolunteerDetailModal";
 import NotificationBroadcastPanel from "@/components/staff/NotificationBroadcastPanel";
@@ -89,7 +92,7 @@ export default function AdminDashboard() {
   const [grievanceNotes, setGrievanceNotes] = useState("");
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [volunteerSearch, setVolunteerSearch] = useState("");
-  const [volFilter, setVolFilter] = useState<"all" | "pending" | "active">(
+  const [volFilter, setVolFilter] = useState<"all" | "active" | "inactive">(
     "all",
   );
   const [staffName, setStaffName] = useState("Admin");
@@ -212,6 +215,43 @@ export default function AdminDashboard() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to activate I-Card.";
       toast.error(msg);
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleDeactivateVolunteer = async (userId: string) => {
+    if (!window.confirm("Deactivate this volunteer? They will lose app access.")) return;
+    setActioningId(userId);
+    try {
+      await deactivateVolunteer(userId);
+      toast.success("Volunteer deactivated.");
+      setData((prev) => ({
+        ...prev,
+        users: prev.users.map((u) =>
+          u.id === userId ? { ...u, status: "inactive" } : u,
+        ),
+      }));
+    } catch {
+      toast.error("Failed to deactivate volunteer.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleReactivateVolunteer = async (userId: string) => {
+    setActioningId(userId);
+    try {
+      await reactivateVolunteer(userId);
+      toast.success("Volunteer reactivated.");
+      setData((prev) => ({
+        ...prev,
+        users: prev.users.map((u) =>
+          u.id === userId ? { ...u, status: "active" } : u,
+        ),
+      }));
+    } catch {
+      toast.error("Failed to reactivate volunteer.");
     } finally {
       setActioningId(null);
     }
@@ -344,6 +384,7 @@ export default function AdminDashboard() {
   const deletionRequests = data.users.filter((u) => u.delete_requested_at);
 
   const filteredVolunteers = data.users.filter((v) => {
+    if (v.status === "pending") return false;
     const q = volunteerSearch.toLowerCase();
     const matchesSearch =
       !q ||
@@ -353,15 +394,15 @@ export default function AdminDashboard() {
       (v.batch ?? "").toLowerCase().includes(q);
     const matchesFilter =
       volFilter === "all" ||
-      (volFilter === "pending" && v.status !== "active") ||
-      (volFilter === "active" && v.status === "active");
+      (volFilter === "active" && v.status === "active") ||
+      (volFilter === "inactive" && v.status === "inactive");
     return matchesSearch && matchesFilter;
   });
-  const pendingVolunteerCount = data.users.filter(
-    (v) => v.status !== "active",
-  ).length;
   const activeVolunteerCount = data.users.filter(
     (v) => v.status === "active",
+  ).length;
+  const inactiveVolunteerCount = data.users.filter(
+    (v) => v.status === "inactive",
   ).length;
   const pagedVolunteers = paginate(filteredVolunteers, volPage, VOL_PAGE_SIZE);
   const pagedGrievances = paginate(data.grievances, grievPage, GRIEV_PAGE_SIZE);
@@ -376,7 +417,7 @@ export default function AdminDashboard() {
   const handleBulkApprove = async () => {
     const ids = [...selectedVolIds].filter((id) => {
       const u = data.users.find((v) => v.id === id);
-      return u && u.status !== "active";
+      return u && u.status === "pending";
     });
     if (!ids.length) {
       toast.error("No pending volunteers selected.");
@@ -475,6 +516,12 @@ export default function AdminDashboard() {
               staffName={staffName}
               onNavigate={(tab) => startTransition(() => setActiveTab(tab))}
               onCreateEvent={openCreateModal}
+            />
+            <PendingVolunteersPanel
+              volunteers={data.users}
+              actioningId={actioningId}
+              onApprove={handleApproveICard}
+              onOpenDetails={setDetailVolunteer}
             />
             <NotificationBroadcastPanel
               users={data.users}
@@ -608,7 +655,7 @@ export default function AdminDashboard() {
             )}
             <StaffWelcome
               name={staffName}
-              subtitle="Search, approve, batch, and notify volunteers."
+              subtitle="Search, batch, notify, and manage active or deactivated volunteers."
             />
             <NotificationBroadcastPanel
               users={data.users}
@@ -617,10 +664,10 @@ export default function AdminDashboard() {
 
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
               <div className="p-4 border-b border-[var(--border)] space-y-3">
-                <h2 className="text-lg font-bold">Volunteers</h2>
+                <h2 className="text-lg font-bold">People</h2>
                 <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                  Set role and batch, then approve pending users. Tap a card for
-                  full details, phone, address, and notifications.
+                  Manage approved volunteers and staff. New sign-ups are approved
+                  on Dashboard under Pending requests.
                 </p>
                 <div className="relative">
                   <Search
@@ -641,9 +688,9 @@ export default function AdminDashboard() {
                 <div className="flex bg-slate-100 dark:bg-[#18181B] p-1 rounded-lg">
                   {(
                     [
-                      ["all", "All", data.users.length] as const,
-                      ["pending", "Pending request", pendingVolunteerCount] as const,
+                      ["all", "All", activeVolunteerCount + inactiveVolunteerCount] as const,
                       ["active", "Active", activeVolunteerCount] as const,
+                      ["inactive", "Deactivated", inactiveVolunteerCount] as const,
                     ] as const
                   ).map(([key, label, count]) => (
                     <button
@@ -661,17 +708,7 @@ export default function AdminDashboard() {
                     >
                       <span className="inline-flex items-center justify-center gap-1.5">
                         {label}
-                        {key === "pending" && count > 0 && (
-                          <span
-                            className={`min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold leading-none inline-flex items-center justify-center ${
-                              volFilter === key
-                                ? "bg-amber-500 text-white"
-                                : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                            }`}
-                          >
-                            {count}
-                          </span>
-                        )}
+                        <span className="text-[10px] opacity-70">({count})</span>
                       </span>
                     </button>
                   ))}
@@ -722,7 +759,11 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                         <span
-                          className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${vol.status === "active" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}
+                          className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${
+                            vol.status === "active"
+                              ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                              : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          }`}
                         >
                           {titleCaseStatus(vol.status)}
                         </span>
@@ -785,15 +826,24 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="flex gap-2">
-                        {vol.status !== "active" && (
+                        {vol.status === "active" && (
                           <button
+                            type="button"
                             disabled={actioningId === vol.id}
-                            onClick={() => handleApproveICard(vol.id)}
+                            onClick={() => handleDeactivateVolunteer(vol.id)}
+                            className="flex-1 border border-red-200 text-red-600 dark:border-red-900/50 dark:text-red-400 py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                          >
+                            Deactivate
+                          </button>
+                        )}
+                        {vol.status === "inactive" && (
+                          <button
+                            type="button"
+                            disabled={actioningId === vol.id}
+                            onClick={() => handleReactivateVolunteer(vol.id)}
                             className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
                           >
-                            {vol.role === "volunteer"
-                              ? "Approve"
-                              : "Activate"}
+                            Reactivate
                           </button>
                         )}
                         <button

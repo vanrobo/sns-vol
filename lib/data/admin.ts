@@ -184,6 +184,26 @@ export async function deleteEvent(id: string) {
   if (error) throw error;
 }
 
+export async function deactivateVolunteer(userId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: "inactive" })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
+export async function reactivateVolunteer(userId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: "active" })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
 export async function adminDeleteVolunteer(userId: string) {
   await requireAdmin();
   const supabase = await createClient();

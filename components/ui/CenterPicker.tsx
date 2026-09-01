@@ -7,8 +7,8 @@ type CenterPickerProps = {
   required?: boolean;
   placeholder?: string;
   className?: string;
-  /** Auth-style field with left icon */
-  variant?: "default" | "auth";
+  /** auth = signup form, inline = profile fields, default = staff forms */
+  variant?: "default" | "auth" | "inline";
 };
 
 export default function CenterPicker({
@@ -19,6 +19,11 @@ export default function CenterPicker({
   className = "",
   variant = "default",
 }: CenterPickerProps) {
+  const inlineClass =
+    "w-full bg-[var(--surface-input)] border-none rounded-md px-2.5 py-1.5 pr-8 outline-none text-sm font-semibold appearance-none";
+  const defaultClass =
+    "w-full bg-[var(--surface-input)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-base font-semibold outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-muted)]";
+
   const select = (
     <select
       required={required}
@@ -27,7 +32,9 @@ export default function CenterPicker({
       className={
         variant === "auth"
           ? `sns-input appearance-none pr-10 ${className}`
-          : `w-full bg-[var(--surface-input)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-base font-semibold outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand-muted)] ${className}`
+          : variant === "inline"
+            ? `${inlineClass} ${className}`
+            : `${defaultClass} ${className}`
       }
     >
       <option value="">{placeholder}</option>
@@ -49,6 +56,18 @@ export default function CenterPicker({
         <ChevronDown
           size={18}
           className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+        />
+      </div>
+    );
+  }
+
+  if (variant === "inline") {
+    return (
+      <div className="relative">
+        {select}
+        <ChevronDown
+          size={14}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
         />
       </div>
     );

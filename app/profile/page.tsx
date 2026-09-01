@@ -390,6 +390,7 @@ function ProfilePageContent() {
                 </p>
                 {isEditingInfo ? (
                   <CenterPicker
+                    variant="inline"
                     value={profile.college}
                     onChange={(college) => setProfile({ ...profile, college })}
                   />

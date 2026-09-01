@@ -640,8 +640,10 @@ function ProfilePageContent() {
                   <AwardBadge
                     award={a}
                     volunteerName={profile.name}
-                    size={240}
+                    variant="full"
+                    size={200}
                     showActions
+                    iconOnlyActions
                   />
                   {a.description && (
                     <p className="text-xs text-[var(--text-muted)] text-center mt-3 leading-relaxed">

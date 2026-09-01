@@ -8,6 +8,20 @@ type Props = {
   volunteerName?: string;
 };
 
+function formatAwardDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function showDescription(text?: string) {
+  const value = text?.trim();
+  if (!value) return false;
+  if (/^this is a test/i.test(value)) return false;
+  return true;
+}
+
 export default function AwardsCarousel({ awards, volunteerName }: Props) {
   if (!awards.length) return null;
 
@@ -17,24 +31,38 @@ export default function AwardsCarousel({ awards, volunteerName }: Props) {
         My Awards
       </h2>
       <div className="-mx-5 px-5">
-        <div className="flex gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2 scroll-px-5">
+        <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2 scroll-px-5">
           {awards.map((award) => (
-            <div
+            <article
               key={award.id}
-              className="snap-center shrink-0 w-[min(100%,280px)] flex flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+              className="snap-center shrink-0 w-[min(76vw,210px)] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm flex flex-col items-center"
             >
+              <div className="w-full flex items-start justify-between gap-2 mb-2">
+                <div className="min-w-0">
+                  <p className="font-bold text-sm leading-tight line-clamp-2">
+                    {award.title}
+                  </p>
+                  <p className="text-[10px] font-semibold text-[var(--brand)] mt-0.5">
+                    {formatAwardDate(award.awarded_at)}
+                  </p>
+                </div>
+              </div>
+
               <AwardBadge
                 award={award}
                 volunteerName={volunteerName}
-                size={220}
+                variant="compact"
+                size={118}
                 showActions
+                iconOnlyActions
               />
-              {award.description && (
-                <p className="text-xs text-[var(--text-muted)] text-center mt-3 leading-relaxed line-clamp-2">
+
+              {showDescription(award.description) && (
+                <p className="text-[11px] text-[var(--text-muted)] text-center leading-relaxed line-clamp-2 mt-2 w-full border-t border-[var(--border)] pt-2">
                   {award.description}
                 </p>
               )}
-            </div>
+            </article>
           ))}
         </div>
       </div>

@@ -571,6 +571,7 @@ export default function VolunteeringDashboard() {
                           </span>
                         )}
                         {tab === "Active" &&
+                          session?.role === "volunteer" &&
                           !evt.has_applied &&
                           matchPercentage !== null && (
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-[var(--brand)]/20 bg-[var(--brand)]/10 text-[var(--brand)] flex items-center gap-1">

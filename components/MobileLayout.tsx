@@ -1,12 +1,12 @@
 // components/MobileLayout.tsx
 "use client";
-import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList } from "lucide-react";
+import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME_ACCENT, DONATE_URL } from "@/lib/brand";
-import type { ProfileStatus } from "@/types";
+import type { ProfileStatus, UserRole } from "@/types";
 import { useNotificationUnread } from "@/hooks/useNotificationUnread";
 import { clearNotificationUnread } from "@/lib/notification-poll-store";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
@@ -25,6 +25,7 @@ export default function MobileLayout({
   const unsaved = useUnsavedChangesOptional();
   const hasUnread = useNotificationUnread();
   const [volunteerStatus, setVolunteerStatus] = useState<ProfileStatus | null>(null);
+  const [staffRole, setStaffRole] = useState<UserRole | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const { pullDistance, refreshing, ready } = usePullToRefresh({
@@ -50,6 +51,8 @@ export default function MobileLayout({
         const session = await getMyRole();
         if (session?.role === "volunteer") {
           setVolunteerStatus(session.status);
+        } else if (session?.role === "admin" || session?.role === "organiser") {
+          setStaffRole(session.role);
         }
       } catch {
         /* ignore */
@@ -68,12 +71,19 @@ export default function MobileLayout({
         { name: "Applied", path: "/applications", icon: ClipboardList },
         { name: "Settings", path: "/settings", icon: Settings },
       ]
-    : [
-        { name: "Home", path: "/", icon: Home },
-        { name: "Profile", path: "/profile", icon: User },
-        { name: "Grievance", path: "/grievance", icon: AlertCircle },
-        { name: "Settings", path: "/settings", icon: Settings },
-      ];
+    : staffRole === "admin"
+      ? [
+          { name: "Home", path: "/", icon: Home },
+          { name: "Profile", path: "/profile", icon: User },
+          { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
+          { name: "Settings", path: "/settings", icon: Settings },
+        ]
+      : [
+          { name: "Home", path: "/", icon: Home },
+          { name: "Profile", path: "/profile", icon: User },
+          { name: "Grievance", path: "/grievance", icon: AlertCircle },
+          { name: "Settings", path: "/settings", icon: Settings },
+        ];
 
   const brandHref = isPendingVolunteer ? "/pending" : "/";
 

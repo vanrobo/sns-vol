@@ -28,7 +28,7 @@ function isSunday(iso: string) {
   return new Date(`${iso}T12:00:00`).getDay() === 0;
 }
 
-/** One aggregated dot per day: green = class/event day, red = canceled or Sunday (no class). */
+/** Up to two dots: gray = regular class, green = one-off event, red = class off (Sunday/canceled). */
 function getDayDots(iso: string, dayEvents: Event[]): { color: string; key: string }[] {
   if (dayEvents.length === 0) return [];
 
@@ -36,16 +36,23 @@ function getDayDots(iso: string, dayEvents: Event[]): { color: string; key: stri
   const oneOff = dayEvents.filter((e) => !e.is_recurring);
   const classCanceled = recurring.some((e) => (e.cancelled_dates ?? []).includes(iso));
   const sundayNoClass = isSunday(iso) && recurring.length > 0;
+  const hasActiveClass =
+    recurring.length > 0 && !isSunday(iso) && !classCanceled;
+  const hasEvent = oneOff.length > 0;
+
+  const dots: { color: string; key: string }[] = [];
 
   if (sundayNoClass || classCanceled) {
-    return [{ key: "off", color: "#ef4444" }];
+    dots.push({ key: "off", color: "#ef4444" });
+  } else if (hasActiveClass) {
+    dots.push({ key: "class", color: "#94a3b8" });
   }
 
-  if (recurring.length > 0 || oneOff.length > 0) {
-    return [{ key: "active", color: "#22c55e" }];
+  if (hasEvent) {
+    dots.push({ key: "event", color: "#22c55e" });
   }
 
-  return [];
+  return dots;
 }
 
 export default function EventCalendarView({
@@ -171,7 +178,10 @@ export default function EventCalendarView({
       {embedded && (
         <div className="flex flex-wrap justify-center gap-3 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wide">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#22c55e]" /> Class / event
+            <span className="w-2 h-2 rounded-full bg-[#94a3b8]" /> Class
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#22c55e]" /> Event
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-[#ef4444]" /> Off / Sunday

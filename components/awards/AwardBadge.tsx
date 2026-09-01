@@ -13,7 +13,13 @@ type Props = {
   showVolunteerName?: boolean;
 };
 
-function wrapTitle(title: string, max = 18) {
+const GOLD = "#c9a227";
+const GOLD_LIGHT = "#f0dfa0";
+const GOLD_DARK = "#8a6b12";
+const NAVY = "#0a1628";
+const CREAM = "#faf6ee";
+
+function wrapTitle(title: string, max = 16) {
   const words = title.trim().split(/\s+/);
   const lines: string[] = [];
   let line = "";
@@ -27,7 +33,7 @@ function wrapTitle(title: string, max = 18) {
     }
   }
   if (line) lines.push(line);
-  return lines.slice(0, 2);
+  return lines.slice(0, 3);
 }
 
 function exportSvgAsPng(svg: SVGSVGElement, filename: string) {
@@ -67,6 +73,49 @@ function exportSvgAsPng(svg: SVGSVGElement, filename: string) {
   image.src = url;
 }
 
+function LaurelLeaves({ side }: { side: "left" | "right" }) {
+  const leaves = [
+    { x: 118, y: 248, r: -50 },
+    { x: 102, y: 218, r: -58 },
+    { x: 92, y: 186, r: -66 },
+    { x: 88, y: 154, r: -74 },
+    { x: 92, y: 124, r: -82 },
+    { x: 104, y: 98, r: -88 },
+  ];
+
+  return (
+    <g>
+      {leaves.map((leaf, i) => {
+        const x = side === "left" ? leaf.x : 400 - leaf.x;
+        const r = side === "left" ? leaf.r : -leaf.r;
+        return (
+          <ellipse
+            key={i}
+            cx={x}
+            cy={leaf.y}
+            rx="7"
+            ry="13"
+            fill={GOLD}
+            opacity="0.92"
+            transform={`rotate(${r} ${x} ${leaf.y})`}
+          />
+        );
+      })}
+      <path
+        d={
+          side === "left"
+            ? "M128 262 C98 220, 84 170, 96 108 C104 88, 118 78, 132 74"
+            : "M272 262 C302 220, 316 170, 304 108 C296 88, 282 78, 268 74"
+        }
+        fill="none"
+        stroke={GOLD_DARK}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
 function MedallionSvg({
   award,
   volunteerName,
@@ -80,13 +129,13 @@ function MedallionSvg({
   svgRef: React.RefObject<SVGSVGElement | null>;
   showVolunteerName?: boolean;
 }) {
-  const accent = award.color ?? "#c9a227";
-  const titleLines = wrapTitle(award.title);
+  const titleLines = wrapTitle(award.title.toUpperCase());
   const dateLabel = new Date(award.awarded_at).toLocaleDateString(undefined, {
     month: "long",
     year: "numeric",
   });
-  const titleStartY = showVolunteerName && volunteerName ? 172 : 158;
+  const titleStartY = showVolunteerName && volunteerName ? 188 : 176;
+  const lineHeight = titleLines.length > 2 ? 20 : 24;
 
   return (
     <svg
@@ -96,95 +145,96 @@ function MedallionSvg({
       height={size}
       role="img"
       aria-label={`${award.title} award badge`}
-      className="drop-shadow-md"
+      className="drop-shadow-lg"
     >
       <defs>
-        <radialGradient id={`glow-${award.id}`} cx="32%" cy="28%" r="68%">
-          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id={`gold-${award.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f7e7b8" />
-          <stop offset="45%" stopColor={accent} />
-          <stop offset="100%" stopColor="#6b5418" />
+        <linearGradient id={`gold-metal-${award.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={GOLD_LIGHT} />
+          <stop offset="50%" stopColor={GOLD} />
+          <stop offset="100%" stopColor={GOLD_DARK} />
         </linearGradient>
+        <radialGradient id={`cream-${award.id}`} cx="50%" cy="42%" r="58%">
+          <stop offset="0%" stopColor="#fffdf8" />
+          <stop offset="100%" stopColor={CREAM} />
+        </radialGradient>
       </defs>
 
-      <circle cx="200" cy="200" r="196" fill="#0b1220" />
-      <circle cx="200" cy="200" r="196" fill={`url(#glow-${award.id})`} />
-      <circle
-        cx="200"
-        cy="200"
-        r="188"
-        fill="none"
-        stroke={`url(#gold-${award.id})`}
-        strokeWidth="3.5"
-      />
+      {/* Outer navy disc */}
+      <circle cx="200" cy="200" r="194" fill={NAVY} />
+      <circle cx="200" cy="200" r="186" fill="none" stroke={`url(#gold-metal-${award.id})`} strokeWidth="2.5" />
 
-      {Array.from({ length: 40 }).map((_, i) => {
-        const angle = (i / 40) * Math.PI * 2;
-        const x = 200 + Math.cos(angle) * 176;
-        const y = 200 + Math.sin(angle) * 176;
-        return <circle key={i} cx={x} cy={y} r="2" fill={accent} opacity="0.9" />;
+      {/* Gold bead ring */}
+      {Array.from({ length: 48 }).map((_, i) => {
+        const angle = (i / 48) * Math.PI * 2 - Math.PI / 2;
+        const x = 200 + Math.cos(angle) * 178;
+        const y = 200 + Math.sin(angle) * 178;
+        return <circle key={i} cx={x} cy={y} r="1.8" fill={GOLD} opacity="0.85" />;
       })}
 
-      <circle cx="200" cy="200" r="158" fill="#f8f4ea" />
-      <circle cx="200" cy="200" r="152" fill="none" stroke="#1e293b" strokeWidth="1.2" opacity="0.35" />
+      {/* Cream face */}
+      <circle cx="200" cy="200" r="156" fill={`url(#cream-${award.id})`} />
+      <circle cx="200" cy="200" r="150" fill="none" stroke="#d4cfc0" strokeWidth="1" />
 
-      <path
-        d="M70 232 C92 148, 118 112, 148 96"
-        fill="none"
-        stroke={`url(#gold-${award.id})`}
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M330 232 C308 148, 282 112, 252 96"
-        fill="none"
-        stroke={`url(#gold-${award.id})`}
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
+      <LaurelLeaves side="left" />
+      <LaurelLeaves side="right" />
 
+      {/* Top star */}
       <polygon
-        points="200,54 209,78 234,78 214,93 222,118 200,103 178,118 186,93 166,78 191,78"
-        fill={`url(#gold-${award.id})`}
+        points="200,48 206,66 226,66 210,78 216,98 200,86 184,98 190,78 174,66 194,66"
+        fill={`url(#gold-metal-${award.id})`}
       />
 
       <text
         x="200"
-        y="124"
+        y="118"
         textAnchor="middle"
-        fill="#111827"
-        fontSize="15"
+        fill="#1a1a1a"
+        fontSize="13"
         fontWeight="700"
         fontFamily="Georgia, 'Times New Roman', serif"
-        letterSpacing="3"
+        letterSpacing="4"
       >
         SNS AWARD
       </text>
 
       {showVolunteerName && volunteerName && (
+        <>
+          <line x1="148" y1="132" x2="252" y2="132" stroke={GOLD} strokeWidth="0.8" opacity="0.6" />
+          <text
+            x="200"
+            y="148"
+            textAnchor="middle"
+            fill="#5c5c5c"
+            fontSize="11"
+            fontFamily="Georgia, 'Times New Roman', serif"
+          >
+            {volunteerName}
+          </text>
+        </>
+      )}
+
+      {!showVolunteerName && (
         <text
           x="200"
-          y="144"
+          y="142"
           textAnchor="middle"
-          fill="#64748b"
-          fontSize="11"
+          fill="#888"
+          fontSize="9"
           fontFamily="Georgia, 'Times New Roman', serif"
+          letterSpacing="2"
         >
-          {volunteerName}
+          — AWARDED TO —
         </text>
       )}
 
       {titleLines.map((line, index) => (
         <text
-          key={line}
+          key={`${line}-${index}`}
           x="200"
-          y={titleStartY + index * 24}
+          y={titleStartY + index * lineHeight}
           textAnchor="middle"
-          fill="#111827"
-          fontSize={index === 0 ? 19 : 16}
+          fill="#111"
+          fontSize={titleLines.length > 2 ? 15 : index === 0 ? 20 : 17}
           fontWeight="700"
           fontFamily="Georgia, 'Times New Roman', serif"
         >
@@ -192,37 +242,47 @@ function MedallionSvg({
         </text>
       ))}
 
+      {/* Ribbon */}
       <path
-        d="M112 286 Q200 322 288 286 L276 306 Q200 338 124 306 Z"
-        fill={`url(#gold-${award.id})`}
+        d="M108 288 C140 310, 168 316, 200 316 C232 316, 260 310, 292 288 L282 304 C252 322, 226 328, 200 328 C174 328, 148 322, 118 304 Z"
+        fill={`url(#gold-metal-${award.id})`}
+      />
+      <path
+        d="M108 288 C140 310, 168 316, 200 316 C232 316, 260 310, 292 288"
+        fill="none"
+        stroke={GOLD_DARK}
+        strokeWidth="0.8"
+        opacity="0.5"
       />
       <text
         x="200"
-        y="302"
+        y="312"
         textAnchor="middle"
-        fill="#111827"
-        fontSize="9.5"
+        fill="#1a1a1a"
+        fontSize="8.5"
         fontWeight="700"
         fontFamily="Georgia, 'Times New Roman', serif"
-        letterSpacing="1.4"
+        letterSpacing="1.2"
       >
         {dateLabel.toUpperCase()}
       </text>
 
       <text
         x="200"
-        y="336"
+        y="348"
         textAnchor="middle"
-        fill="#64748b"
-        fontSize="10.5"
+        fill="#666"
+        fontSize="10"
         fontFamily="Georgia, 'Times New Roman', serif"
+        letterSpacing="1"
       >
         SNS Family
       </text>
 
-      <circle cx="176" cy="352" r="4" fill={accent} />
-      <circle cx="200" cy="356" r="4.8" fill={accent} />
-      <circle cx="224" cy="352" r="4" fill={accent} />
+      <polygon points="194,356 200,364 206,356" fill={GOLD} />
+      <circle cx="178" cy="358" r="3.2" fill={GOLD} />
+      <circle cx="200" cy="361" r="3.8" fill={GOLD} />
+      <circle cx="222" cy="358" r="3.2" fill={GOLD} />
     </svg>
   );
 }
@@ -246,7 +306,6 @@ export default function AwardBadge({
   const handleShare = async () => {
     if (!svgRef.current) return;
     const safeName = award.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-
     try {
       const clone = svgRef.current.cloneNode(true) as SVGSVGElement;
       clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -255,7 +314,6 @@ export default function AwardBadge({
       const file = new File([blob], `sns-award-${safeName}.svg`, {
         type: "image/svg+xml",
       });
-
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           title: award.title,
@@ -267,7 +325,6 @@ export default function AwardBadge({
     } catch {
       /* fall through */
     }
-
     handleDownload();
   };
 
@@ -280,7 +337,6 @@ export default function AwardBadge({
         svgRef={svgRef}
         showVolunteerName={showVolunteerName}
       />
-
       {showActions && (
         <div className="flex items-center gap-1">
           <button
@@ -295,7 +351,7 @@ export default function AwardBadge({
           <button
             type="button"
             onClick={handleShare}
-            className="p-1.5 rounded-full text-[var(--brand)] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 active:scale-95 transition-transform"
+            className="p-1.5 rounded-full text-[var(--text-muted)] hover:text-[var(--brand)] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 active:scale-95 transition-transform"
             aria-label="Share award"
             title="Share"
           >

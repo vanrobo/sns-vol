@@ -11,7 +11,7 @@ type Props = {
 function showDescription(text?: string) {
   const value = text?.trim();
   if (!value) return false;
-  if (/^(this is a test|example)$/i.test(value)) return false;
+  if (/test|example/i.test(value)) return false;
   return true;
 }
 
@@ -24,21 +24,21 @@ export default function AwardsCarousel({ awards, volunteerName }: Props) {
         My Awards
       </h2>
       <div className="-mx-5 px-5">
-        <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2 scroll-px-5">
+        <div className="flex gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2 scroll-px-5">
           {awards.map((award) => (
             <article
               key={award.id}
-              className="snap-center shrink-0 w-[min(72vw,172px)] flex flex-col items-center"
+              className="snap-center shrink-0 w-[min(78vw,240px)] flex flex-col items-center"
             >
               <AwardBadge
                 award={award}
                 volunteerName={volunteerName}
-                size={160}
+                size={200}
                 showVolunteerName={false}
                 showActions
               />
               {showDescription(award.description) && (
-                <p className="text-[10px] text-[var(--text-muted)] text-center leading-relaxed line-clamp-2 mt-1 px-1">
+                <p className="text-[10px] text-[var(--text-muted)] text-center leading-relaxed line-clamp-2 mt-1 px-2">
                   {award.description}
                 </p>
               )}

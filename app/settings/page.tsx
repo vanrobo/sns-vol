@@ -10,10 +10,8 @@ import {
   Sun,
   Moon,
   Bell,
-  ChevronDown,
   Type,
-  Minus,
-  Plus,
+  ChevronDown,
 } from "lucide-react";
 import InstallAppSetting from "@/components/settings/InstallAppSetting";
 import AppDataSettings from "@/components/settings/AppDataSettings";
@@ -24,11 +22,9 @@ import {
   setPushEnabledLocally,
 } from "@/lib/push/browser-notifications";
 import {
-  bumpFontScale,
   FONT_SCALE,
   readFontScale,
-  applyFontScale,
-  writeFontScale,
+  setFontScale as applyStoredFontScale,
 } from "@/lib/font-scale";
 import { haptic } from "@/lib/haptics";
 
@@ -73,48 +69,55 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                disabled={fontScale <= FONT_SCALE.MIN}
-                onClick={() => {
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+                  85%
+                </span>
+                <span className="text-base font-black tabular-nums text-[var(--brand)]">
+                  {Math.round(fontScale * 100)}%
+                </span>
+                <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+                  125%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={85}
+                max={125}
+                step={5}
+                value={Math.round(fontScale * 100)}
+                onChange={(e) => {
                   haptic("selection");
-                  setFontScale(bumpFontScale(-FONT_SCALE.STEP));
+                  setFontScale(
+                    applyStoredFontScale(Number(e.target.value) / 100),
+                  );
                 }}
-                className="p-3 rounded-xl border border-[var(--border)] disabled:opacity-40"
-                aria-label="Decrease text size"
-              >
-                <Minus size={18} />
-              </button>
-              <span className="text-sm font-bold tabular-nums">
-                {Math.round(fontScale * 100)}%
-              </span>
-              <button
-                type="button"
-                disabled={fontScale >= FONT_SCALE.MAX}
-                onClick={() => {
-                  haptic("selection");
-                  setFontScale(bumpFontScale(FONT_SCALE.STEP));
-                }}
-                className="p-3 rounded-xl border border-[var(--border)] disabled:opacity-40"
-                aria-label="Increase text size"
-              >
-                <Plus size={18} />
-              </button>
-            </div>
-            <div className="mt-3 flex justify-between items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  haptic("selection");
-                  writeFontScale(FONT_SCALE.DEFAULT);
-                  applyFontScale(FONT_SCALE.DEFAULT);
-                  setFontScale(FONT_SCALE.DEFAULT);
-                }}
-                className="text-xs font-bold text-[var(--brand)]"
-              >
-                Reset to 100%
-              </button>
+                aria-label="Text size"
+                className="w-full h-2 rounded-full appearance-none bg-slate-200 dark:bg-[#27272a] accent-[var(--brand)] cursor-pointer"
+              />
+              <div className="flex justify-center gap-2">
+                {([85, 100, 125] as const).map((pct) => {
+                  const active = Math.round(fontScale * 100) === pct;
+                  return (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => {
+                        haptic("selection");
+                        setFontScale(applyStoredFontScale(pct / 100));
+                      }}
+                      className={`min-w-[3.25rem] py-1.5 px-3 rounded-lg text-xs font-bold tabular-nums transition-colors ${
+                        active
+                          ? "bg-[var(--brand)] text-white"
+                          : "border border-[var(--border)] text-[var(--text-muted)] hover:bg-slate-50 dark:hover:bg-[#18181B]"
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

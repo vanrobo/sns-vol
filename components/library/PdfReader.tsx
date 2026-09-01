@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import {
   ChevronLeft,
@@ -22,44 +22,58 @@ type Props = {
   sourceUrl?: string;
 };
 
-function useSpreadLayout() {
-  const [spread, setSpread] = useState(false);
-  const [pageWidth, setPageWidth] = useState(320);
+type Layout = {
+  spread: boolean;
+  pageWidth: number;
+};
 
-  useEffect(() => {
-    const update = () => {
-      const landscape = window.innerWidth > window.innerHeight && window.innerWidth >= 640;
-      setSpread(landscape);
-      const gutter = landscape ? 56 : 32;
-      const pages = landscape ? 2 : 1;
-      const maxSingle = landscape ? 380 : 520;
-      setPageWidth(Math.min((window.innerWidth - gutter) / pages, maxSingle));
-    };
+function measureLayout(width: number, height: number): Layout {
+  const landscape = width > height;
+  const spread = landscape && width >= 520;
+  const gutter = spread ? 12 : 16;
 
-    update();
-    window.addEventListener("resize", update);
-    window.addEventListener("orientationchange", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("orientationchange", update);
-    };
-  }, []);
+  const pageWidth = spread
+    ? Math.floor((width - gutter) / 2)
+    : Math.min(Math.floor(width - gutter), 520);
 
-  return { spread, pageWidth };
+  return { spread, pageWidth: Math.max(pageWidth, 160) };
 }
 
 export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [layout, setLayout] = useState<Layout>({ spread: false, pageWidth: 300 });
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [scale, setScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { spread, pageWidth } = useSpreadLayout();
 
   const fileUrl = useMemo(
     () => `/api/library/pdf/${publicationId}`,
     [publicationId],
   );
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setLayout(measureLayout(rect.width, rect.height));
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    window.addEventListener("orientationchange", update);
+    window.addEventListener("resize", update);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("orientationchange", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -80,6 +94,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
     setError("Could not load this PDF. Check the link or try again later.");
   }, []);
 
+  const { spread, pageWidth } = layout;
   const rightPage = spread && page + 1 <= numPages ? page + 1 : null;
 
   const prev = () => {
@@ -150,7 +165,10 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto flex justify-center items-start p-4">
+      <div
+        ref={containerRef}
+        className="flex-1 min-h-0 overflow-auto flex justify-center items-start p-3 sm:p-4"
+      >
         {error ? (
           <div className="flex flex-col items-center justify-center text-center px-4 py-8 gap-3 m-auto">
             <p className="text-sm text-red-600">{error}</p>
@@ -167,7 +185,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
             )}
           </div>
         ) : (
-          <div className="relative w-full flex justify-center">
+          <div className="relative w-full max-w-full flex justify-center">
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
                 <Loader2 className="animate-spin text-[var(--brand)]" size={28} />
@@ -178,7 +196,9 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
               onLoadSuccess={onLoadSuccess}
               onLoadError={onLoadError}
               loading=""
-              className={`shadow-xl rounded-lg overflow-hidden bg-white ${spread ? "flex gap-1" : ""}`}
+              className={`bg-white shadow-xl rounded-lg overflow-hidden ${
+                spread ? "inline-flex flex-row gap-1.5 shrink-0" : ""
+              }`}
             >
               <Page
                 pageNumber={page}
@@ -186,7 +206,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
                 scale={scale}
                 renderTextLayer
                 renderAnnotationLayer
-                className="mx-auto"
+                className="shrink-0"
               />
               {rightPage && (
                 <Page
@@ -195,7 +215,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
                   scale={scale}
                   renderTextLayer
                   renderAnnotationLayer
-                  className="mx-auto"
+                  className="shrink-0"
                 />
               )}
             </Document>

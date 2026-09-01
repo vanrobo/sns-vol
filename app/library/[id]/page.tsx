@@ -12,7 +12,7 @@ export default async function LibraryReaderPage({ params }: Props) {
   if (!publication) notFound();
 
   return (
-    <div className="h-[100dvh] flex flex-col max-w-md mx-auto bg-[var(--surface-muted)] overflow-hidden">
+    <div className="h-[100dvh] flex flex-col w-full max-w-md mx-auto landscape:max-w-none landscape:mx-0 bg-[var(--surface-muted)] overflow-hidden">
       <div className="shrink-0 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)] px-3 py-2">
         <Link
           href="/library"

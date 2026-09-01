@@ -2,9 +2,14 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Event } from "@/types";
+import { expandEventDates } from "@/lib/events/dates";
+
+export { expandEventDates } from "@/lib/events/dates";
 
 type Props = {
   events: Event[];
+  monthAnchor: string;
+  onMonthChange: (firstOfMonth: string) => void;
   selectedDate: string;
   onSelectDate: (date: string) => void;
   onDayOpen?: (date: string, dayEvents: Event[]) => void;
@@ -17,28 +22,6 @@ function pad(n: number) {
 
 function toIso(y: number, m: number, d: number) {
   return `${y}-${pad(m + 1)}-${pad(d)}`;
-}
-
-export function expandEventDates(event: Event): string[] {
-  const dates: string[] = [];
-  const start = event.date;
-  if (!start) return dates;
-
-  const cancelled = new Set(event.cancelled_dates ?? []);
-
-  if (!event.is_recurring || !event.end_date) {
-    if (!cancelled.has(start)) dates.push(start);
-    return dates;
-  }
-
-  const cur = new Date(`${start}T12:00:00`);
-  const end = new Date(`${event.end_date}T12:00:00`);
-  while (cur <= end) {
-    const iso = toIso(cur.getFullYear(), cur.getMonth(), cur.getDate());
-    if (!cancelled.has(iso)) dates.push(iso);
-    cur.setDate(cur.getDate() + 1);
-  }
-  return dates;
 }
 
 function getDayDots(iso: string, dayEvents: Event[]): { color: string; key: string }[] {
@@ -63,14 +46,14 @@ function getDayDots(iso: string, dayEvents: Event[]): { color: string; key: stri
 
 export default function EventCalendarView({
   events,
+  monthAnchor,
+  onMonthChange,
   selectedDate,
   onSelectDate,
   onDayOpen,
   embedded = false,
 }: Props) {
-  const anchor = selectedDate
-    ? new Date(`${selectedDate}T12:00:00`)
-    : new Date();
+  const anchor = new Date(`${monthAnchor}T12:00:00`);
   const year = anchor.getFullYear();
   const month = anchor.getMonth();
 
@@ -88,7 +71,7 @@ export default function EventCalendarView({
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month + delta, 1);
-    onSelectDate(toIso(d.getFullYear(), d.getMonth(), 1));
+    onMonthChange(toIso(d.getFullYear(), d.getMonth(), 1));
   };
 
   const monthLabel = anchor.toLocaleDateString(undefined, {

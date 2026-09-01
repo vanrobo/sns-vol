@@ -171,8 +171,10 @@ export default function NotificationsPage() {
                         )}
                       </div>
                       <p
-                        className={`text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2 ${
-                          isExpanded ? "" : "line-clamp-2"
+                        className={`text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2 break-words ${
+                          isExpanded
+                            ? "max-h-48 overflow-y-auto whitespace-pre-wrap"
+                            : "line-clamp-2"
                         }`}
                       >
                         {notif.body}

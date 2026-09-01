@@ -42,9 +42,8 @@ import StaffHomeBanner from "@/components/StaffHomeBanner";
 import QuickAccessGrid from "@/components/home/QuickAccessGrid";
 import UpcomingEvents from "@/components/home/UpcomingEvents";
 import AwardsCarousel from "@/components/home/AwardsCarousel";
-import EventCalendarView, {
-  expandEventDates,
-} from "@/components/events/EventCalendarView";
+import EventCalendarView from "@/components/events/EventCalendarView";
+import { expandEventDates, firstOfMonthIso } from "@/lib/events/dates";
 import { getMyRole, getVolunteerStats } from "@/lib/data/profiles";
 import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
@@ -88,6 +87,7 @@ export default function VolunteeringDashboard() {
   });
   const [tab, setTab] = useState<Tab>("Active");
   const [dateFilter, setDateFilter] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(firstOfMonthIso);
   const [regionFilter, setRegionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [calendarView, setCalendarView] = useState(true);
@@ -523,6 +523,8 @@ export default function VolunteeringDashboard() {
               <EventCalendarView
                 embedded
                 events={allEventsForCalendar}
+                monthAnchor={calendarMonth}
+                onMonthChange={setCalendarMonth}
                 selectedDate={dateFilter}
                 onSelectDate={(d) => setDateFilter(d)}
                 onDayOpen={(date, dayEvents) =>

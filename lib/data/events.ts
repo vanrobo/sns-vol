@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveVolunteer } from "@/lib/auth/guards";
 import { getCheckInStatus } from "@/lib/event-checkin";
+import { hasUpcomingOccurrence } from "@/lib/events/dates";
 import type { Event, EventStatus } from "@/types";
 
 export async function getEvents(status: EventStatus | "attended"): Promise<Event[]> {
@@ -13,11 +14,21 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
   if (!user) return [];
 
   const today = new Date().toISOString().slice(0, 10);
+
   await supabase
     .from("events")
     .update({ status: "closed" })
     .eq("status", "active")
+    .eq("is_recurring", false)
     .lt("date", today);
+
+  await supabase
+    .from("events")
+    .update({ status: "closed" })
+    .eq("status", "active")
+    .eq("is_recurring", true)
+    .not("end_date", "is", null)
+    .lt("end_date", today);
 
   const dbStatus = status === "attended" ? "closed" : status;
 
@@ -101,14 +112,21 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     .from("events")
     .select("*")
     .in("id", eventIds)
-    .eq("status", "active")
-    .gte("date", today)
-    .order("date", { ascending: true })
-    .limit(8);
+    .eq("status", "active");
 
   if (error) throw error;
 
-  return (events ?? []).map((e) => ({
+  const upcoming = (events ?? [])
+    .filter((e) =>
+      hasUpcomingOccurrence(
+        { ...e, required_skills: e.required_skills ?? [] } as Event,
+        today,
+      ),
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 8);
+
+  return upcoming.map((e) => ({
     ...e,
     required_skills: e.required_skills ?? [],
     has_applied: true,
@@ -206,7 +224,7 @@ export async function markAttended(eventId: string) {
 
   const { data: event, error: eventError } = await supabase
     .from("events")
-    .select("date, time_start, time_end")
+    .select("date, time_start, time_end, is_recurring, end_date, cancelled_dates")
     .eq("id", eventId)
     .single();
   if (eventError) throw eventError;

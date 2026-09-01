@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import toast from "react-hot-toast";
+import { showNotificationAlertToast, previewNotificationBody } from "@/components/NotificationAlertToast";
 import {
   hasUnreadNotifications,
   getLatestUnreadNotification,
@@ -22,14 +22,10 @@ function alertForNotification(notif: Notification, shown: Set<string>) {
   if (shown.has(notif.id)) return;
 
   markNotificationShown(notif.id, shown);
-  toast.success(`${notif.title}\n${notif.body}`, {
-    id: `notif-${notif.id}`,
-    duration: 6000,
-    style: { whiteSpace: "pre-line" },
-  });
+  showNotificationAlertToast(notif);
   showBrowserNotification(
     notif.title,
-    notif.body,
+    previewNotificationBody(notif.body, 200),
     getNotificationHref(notif.type),
     notif.id,
   );

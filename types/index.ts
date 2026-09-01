@@ -82,6 +82,21 @@ export interface Notification {
   created_at: string;
 }
 
+export type PublicationKind = "magazine" | "newsletter";
+
+export interface SnsPublication {
+  id: string;
+  title: string;
+  description: string;
+  pdf_url: string;
+  kind: PublicationKind;
+  category: string;
+  published_on: string;
+  sort_order: number;
+  created_by?: string | null;
+  created_at?: string;
+}
+
 export interface AdminData {
   events: Event[];
   users: Profile[];

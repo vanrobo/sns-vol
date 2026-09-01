@@ -10,6 +10,7 @@ import {
   Trophy,
   LayoutDashboard,
   ClipboardList,
+  BookOpen,
 } from "lucide-react";
 import type { AdminData, ApplicationStatus, Event, UserRole } from "@/types";
 import { titleCaseStatus } from "@/types";
@@ -48,6 +49,7 @@ import ApplicationsTable from "@/components/staff/ApplicationsTable";
 import Pagination, { paginate } from "@/components/staff/Pagination";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
+import PublicationsPanel from "@/components/staff/PublicationsPanel";
 import StaffWelcome from "@/components/staff/StaffWelcome";
 import AdminOverview from "@/components/staff/AdminOverview";
 import AdminActionsPanel from "@/components/staff/AdminActionsPanel";
@@ -521,6 +523,7 @@ export default function AdminDashboard() {
     { key: "volunteers", label: "People", icon: Users },
     { key: "applications", label: "Request", icon: ClipboardList },
     { key: "awards", label: "Awards", icon: Trophy },
+    { key: "library", label: "Library", icon: BookOpen },
   ];
 
   return (
@@ -987,6 +990,8 @@ export default function AdminDashboard() {
             />
           </div>
         )}
+
+        {activeTab === "library" && <PublicationsPanel />}
           </>
         )}
       </StaffShell>

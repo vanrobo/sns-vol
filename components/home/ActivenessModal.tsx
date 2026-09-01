@@ -70,6 +70,9 @@ export default function ActivenessModal({
         </div>
 
         <div className="overflow-y-auto p-4 space-y-2 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] px-0.5">
+            Events attended
+          </p>
           {loading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="animate-spin text-[var(--brand)]" size={24} />

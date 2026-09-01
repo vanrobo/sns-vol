@@ -100,8 +100,12 @@ export default function AwardsPanel({
   const loadRecipients = async (awardId: string) => {
     setLoadingRecipients(awardId);
     try {
-      const rows = await getAwardRecipients(awardId);
-      setRecipientsByAward((prev) => ({ ...prev, [awardId]: rows }));
+      const result = await getAwardRecipients(awardId);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      setRecipientsByAward((prev) => ({ ...prev, [awardId]: result.recipients }));
     } catch {
       toast.error("Failed to load recipients.");
     } finally {
@@ -181,7 +185,11 @@ export default function AwardsPanel({
     }
     setActioningId(`grant-${grantUserId}`);
     try {
-      await grantAward(grantUserId, grantAwardId);
+      const result = await grantAward(grantUserId, grantAwardId);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
       toast.success("Award granted!");
       setGrantUserId("");
       setGrantAwardId("");
@@ -189,9 +197,8 @@ export default function AwardsPanel({
       if (recipientsByAward[grantAwardId]) {
         await loadRecipients(grantAwardId);
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to grant award.";
-      toast.error(msg.includes("duplicate") ? "Volunteer already has this award." : msg);
+    } catch {
+      toast.error("Failed to grant award.");
     } finally {
       setActioningId(null);
     }

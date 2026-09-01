@@ -82,39 +82,64 @@ export type AwardRecipient = {
   awarded_at: string;
 };
 
+export type AwardRecipientsResult =
+  | { ok: true; recipients: AwardRecipient[] }
+  | { ok: false; message: string };
+
 export async function getAwardRecipients(
   awardId: string,
-): Promise<AwardRecipient[]> {
-  await requireStaff();
+): Promise<AwardRecipientsResult> {
+  try {
+    await requireStaff();
+  } catch {
+    return { ok: false, message: "Staff access required." };
+  }
+
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("user_awards")
-    .select("id, user_id, awarded_at, profiles(name, college)")
+    .select("id, user_id, awarded_at")
     .eq("award_id", awardId)
     .order("awarded_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    return { ok: false, message: error.message || "Could not load recipients." };
+  }
 
-  return (data ?? []).map((row) => {
-    const r = row as {
-      id: string;
-      user_id: string;
-      awarded_at: string;
-      profiles:
-        | { name: string; college: string }
-        | { name: string; college: string }[]
-        | null;
-    };
-    const profile = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+  if (!rows?.length) {
+    return { ok: true, recipients: [] };
+  }
+
+  const userIds = [...new Set(rows.map((r) => r.user_id))];
+  const { data: profiles, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, name, college")
+    .in("id", userIds);
+
+  if (profileError) {
     return {
-      id: r.id,
-      user_id: r.user_id,
+      ok: false,
+      message: profileError.message || "Could not load volunteer profiles.",
+    };
+  }
+
+  const profileById = new Map(
+    (profiles ?? []).map((p) => [p.id, p as { id: string; name: string; college: string }]),
+  );
+
+  const recipients = rows.map((row) => {
+    const profile = profileById.get(row.user_id);
+    return {
+      id: row.id,
+      user_id: row.user_id,
       name: profile?.name ?? "Volunteer",
       college: profile?.college ?? "",
-      awarded_at: r.awarded_at,
+      awarded_at: row.awarded_at,
     };
   });
+
+  return { ok: true, recipients };
 }
 
 export async function updateAward(
@@ -179,24 +204,50 @@ export async function createAward(input: {
   return data as Award;
 }
 
-export async function grantAward(userId: string, awardId: string) {
-  await requireStaff();
+export type GrantAwardResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+export async function grantAward(
+  userId: string,
+  awardId: string,
+): Promise<GrantAwardResult> {
+  try {
+    await requireStaff();
+  } catch {
+    return { ok: false, message: "Staff access required." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const { data: existing } = await supabase
+    .from("user_awards")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("award_id", awardId)
+    .maybeSingle();
+
+  if (existing) {
+    return { ok: false, message: "This volunteer already has this award." };
+  }
 
   const { error } = await supabase.from("user_awards").insert({
     user_id: userId,
     award_id: awardId,
     awarded_by: user?.id ?? null,
   });
+
   if (error) {
     if (error.code === "23505") {
-      throw new Error("This volunteer already has this award.");
+      return { ok: false, message: "This volunteer already has this award." };
     }
-    throw new Error(error.message || "Could not grant award.");
+    return { ok: false, message: error.message || "Could not grant award." };
   }
+
+  return { ok: true };
 }
 
 export async function deleteAward(awardId: string) {

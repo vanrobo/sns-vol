@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import PWARegister from "@/components/PWARegister";
 import NotificationPoller from "@/components/NotificationPoller";
 import type { Metadata, Viewport } from "next";
-import { APP_NAME, LOGO_ICON_192, BRAND_THEME_COLOR } from "@/lib/brand";
+import { APP_NAME, LOGO_ICON_192, LOGO_ICON_512, FAVICON_SRC, LOGO_APPLE, BRAND_THEME_COLOR } from "@/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,10 +13,12 @@ export const metadata: Metadata = {
   description: "SNS Family volunteer campaigns and digital I-Card",
   icons: {
     icon: [
-      { url: "/icon.png", type: "image/png", sizes: "192x192" },
+      { url: FAVICON_SRC, type: "image/png", sizes: "32x32" },
       { url: LOGO_ICON_192, type: "image/png", sizes: "192x192" },
+      { url: LOGO_ICON_512, type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: [{ url: FAVICON_SRC, type: "image/png" }],
+    apple: [{ url: LOGO_APPLE, sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,

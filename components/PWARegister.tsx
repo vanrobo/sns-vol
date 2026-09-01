@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { initPWAInstallListeners } from "@/lib/pwa-install-store";
 
-const SW_URL = "/sw.js?v=sns-v3";
+const SW_URL = "/sw.js?v=sns-v5";
 
 export default function PWARegister() {
   useEffect(() => {

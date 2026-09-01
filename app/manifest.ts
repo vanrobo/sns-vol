@@ -4,6 +4,7 @@ import {
   LOGO_APPLE,
   LOGO_ICON_192,
   LOGO_ICON_512,
+  FAVICON_SRC,
   BRAND_THEME_COLOR,
 } from "@/lib/brand";
 
@@ -20,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     icons: [
       {
-        src: "/branding/favicon.png",
+        src: FAVICON_SRC,
         sizes: "512x512",
         type: "image/png",
       },

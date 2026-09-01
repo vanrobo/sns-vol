@@ -18,6 +18,7 @@ import {
   broadcastNotification,
   cancelAccountDeletionRequest,
   completeAccountDeletion,
+  reactivateVolunteer,
 } from "@/lib/data/admin";
 
 type Props = {
@@ -116,6 +117,22 @@ export default function VolunteerDetailModal({
       onClose();
     } catch {
       toast.error("Failed to complete deletion.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    if (!confirm(`Reactivate ${volunteer.name}'s account? They will regain app access.`))
+      return;
+    setBusy(true);
+    try {
+      await reactivateVolunteer(volunteer.id);
+      toast.success("Account reactivated.");
+      onUpdated();
+      onClose();
+    } catch {
+      toast.error("Failed to reactivate account.");
     } finally {
       setBusy(false);
     }
@@ -237,8 +254,18 @@ export default function VolunteerDetailModal({
             onClick={handleDelete}
             className="w-full flex items-center justify-center gap-2 bg-red-600 text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50"
           >
-            <Trash2 size={16} /> Deactivate account
+            <Trash2 size={16} /> Restrict / deactivate account
           </button>
+          {volunteer.status === "inactive" && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={handleReactivate}
+              className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white font-bold py-2.5 rounded-lg text-sm disabled:opacity-50"
+            >
+              Reactivate account
+            </button>
+          )}
         </div>
       </div>
     </div>

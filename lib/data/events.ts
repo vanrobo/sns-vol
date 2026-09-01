@@ -195,11 +195,65 @@ export async function withdrawApplication(eventId: string) {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
+  const { data: existing, error: readError } = await supabase
+    .from("applications")
+    .select("status")
+    .eq("user_id", user.id)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (!existing) return;
+  if (existing.status === "approved") {
+    throw new Error(
+      "Approved requests can't be withdrawn. Contact your coordinator if plans changed.",
+    );
+  }
+
   const { error } = await supabase
     .from("applications")
     .delete()
     .eq("user_id", user.id)
     .eq("event_id", eventId);
+  if (error) throw error;
+}
+
+export async function reapplyToEvent(eventId: string) {
+  await requireActiveVolunteer();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: existing, error: readError } = await supabase
+    .from("applications")
+    .select("status")
+    .eq("user_id", user.id)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (readError) throw readError;
+
+  if (existing?.status === "approved") {
+    throw new Error("You're already approved for this event.");
+  }
+  if (existing?.status === "pending") {
+    throw new Error("Your request is already pending review.");
+  }
+
+  if (existing?.status === "declined") {
+    const { error: deleteError } = await supabase
+      .from("applications")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("event_id", eventId);
+    if (deleteError) throw deleteError;
+  }
+
+  const { error } = await supabase.from("applications").insert({
+    user_id: user.id,
+    event_id: eventId,
+    status: "pending",
+  });
   if (error) throw error;
 }
 

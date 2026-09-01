@@ -23,6 +23,7 @@ type AwardsPanelProps = {
   volunteers: Profile[];
   events: Event[];
   canDelete?: boolean;
+  floatingPagination?: boolean;
 };
 
 type EditForm = {
@@ -57,6 +58,7 @@ export default function AwardsPanel({
   volunteers,
   events,
   canDelete = false,
+  floatingPagination = false,
 }: AwardsPanelProps) {
   const [awards, setAwards] = useState<StaffAwardRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -556,6 +558,7 @@ export default function AwardsPanel({
               pageSize={PAGE_SIZE}
               page={page}
               onPageChange={setPage}
+              floating={floatingPagination}
             />
           </>
         )}

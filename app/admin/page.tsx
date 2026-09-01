@@ -50,15 +50,15 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
 import StaffWelcome from "@/components/staff/StaffWelcome";
 import AdminOverview from "@/components/staff/AdminOverview";
-import PendingVolunteersPanel from "@/components/staff/PendingVolunteersPanel";
+import AdminActionsPanel from "@/components/staff/AdminActionsPanel";
 import VolunteerBulkActions from "@/components/staff/VolunteerBulkActions";
 import VolunteerDetailModal from "@/components/staff/VolunteerDetailModal";
 import NotificationBroadcastPanel from "@/components/staff/NotificationBroadcastPanel";
 import { getMyRole } from "@/lib/data/profiles";
 import { readAdminCache, writeAdminCache } from "@/lib/admin-cache";
-import { readAdminActiveTab, writeAdminActiveTab } from "@/lib/admin-tab-store";
+import { useAdminActiveTab, useAdminPeopleFilter } from "@/hooks/useAdminTabState";
 import type { Profile } from "@/types";
-import { Phone, MapPin, Search, CheckSquare, Square } from "lucide-react";
+import { Phone, MapPin, Search, CheckSquare, Square, Loader2 } from "lucide-react";
 
 const VOL_PAGE_SIZE = 10;
 const GRIEV_PAGE_SIZE = 8;
@@ -75,12 +75,17 @@ export default function AdminDashboard() {
       },
   );
   const [loading, setLoading] = useState(!cachedAdmin);
-  const [activeTab, setActiveTab] = useState(() => readAdminActiveTab());
+  const [activeTab, setActiveTab] = useAdminActiveTab();
+  const [volFilterRaw, setVolFilter] = useAdminPeopleFilter();
+  const volFilter = volFilterRaw as "all" | "active" | "inactive" | "pending";
 
-  const changeTab = useCallback((tab: string) => {
+  const changeTab = useCallback((tab: string, peopleFilter?: string) => {
     setActiveTab(tab);
-    writeAdminActiveTab(tab);
-  }, []);
+    if (peopleFilter) {
+      setVolFilter(peopleFilter);
+      setVolPage(1);
+    }
+  }, [setActiveTab, setVolFilter]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -98,9 +103,6 @@ export default function AdminDashboard() {
   const [grievanceNotes, setGrievanceNotes] = useState("");
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [volunteerSearch, setVolunteerSearch] = useState("");
-  const [volFilter, setVolFilter] = useState<"all" | "active" | "inactive">(
-    "all",
-  );
   const [staffName, setStaffName] = useState("Admin");
   const [detailVolunteer, setDetailVolunteer] = useState<Profile | null>(null);
   const [attendanceEvent, setAttendanceEvent] = useState<Event | null>(null);
@@ -181,6 +183,25 @@ export default function AdminDashboard() {
     eventId: string,
     status: ApplicationStatus,
   ) => {
+    const app = data.applications.find(
+      (a) => a.user_id === userId && a.event_id === eventId,
+    );
+    if (app && app.status !== status) {
+      const reversing =
+        (app.status === "approved" && status === "declined") ||
+        (app.status === "approved" && status === "pending");
+      if (
+        reversing &&
+        !window.confirm(
+          status === "declined"
+            ? "Revoke approval? They will lose check-in access for this event."
+            : "Re-open this request for review?",
+        )
+      ) {
+        return;
+      }
+    }
+
     setActioningId(`${userId}-${eventId}`);
     try {
       await updateApplicationStatus(userId, eventId, status);
@@ -390,7 +411,6 @@ export default function AdminDashboard() {
   const deletionRequests = data.users.filter((u) => u.delete_requested_at);
 
   const filteredVolunteers = data.users.filter((v) => {
-    if (v.status === "pending") return false;
     const q = volunteerSearch.toLowerCase();
     const matchesSearch =
       !q ||
@@ -399,11 +419,17 @@ export default function AdminDashboard() {
       (v.phone ?? "").includes(q) ||
       (v.batch ?? "").toLowerCase().includes(q);
     const matchesFilter =
-      volFilter === "all" ||
-      (volFilter === "active" && v.status === "active") ||
-      (volFilter === "inactive" && v.status === "inactive");
+      volFilter === "pending"
+        ? v.status === "pending"
+        : v.status !== "pending" &&
+          (volFilter === "all" ||
+            (volFilter === "active" && v.status === "active") ||
+            (volFilter === "inactive" && v.status === "inactive"));
     return matchesSearch && matchesFilter;
   });
+  const pendingVolunteerCount = data.users.filter(
+    (v) => v.status === "pending",
+  ).length;
   const activeVolunteerCount = data.users.filter(
     (v) => v.status === "active",
   ).length;
@@ -497,14 +523,6 @@ export default function AdminDashboard() {
     { key: "awards", label: "Awards", icon: Trophy },
   ];
 
-  if (loading) {
-    return (
-      <div className="max-w-md mx-auto p-4">
-        <TableSkeleton rows={6} />
-      </div>
-    );
-  }
-
   return (
     <>
       <StaffShell
@@ -515,6 +533,10 @@ export default function AdminDashboard() {
         onRefresh={fetchAdminData}
         onSignOut={() => signOutAction()}
       >
+        {loading ? (
+          <TableSkeleton rows={6} />
+        ) : (
+          <>
         {activeTab === "overview" && (
           <div className="space-y-4">
             <AdminOverview
@@ -523,12 +545,7 @@ export default function AdminDashboard() {
               onNavigate={changeTab}
               onCreateEvent={openCreateModal}
             />
-            <PendingVolunteersPanel
-              volunteers={data.users}
-              actioningId={actioningId}
-              onApprove={handleApproveICard}
-              onOpenDetails={setDetailVolunteer}
-            />
+            <AdminActionsPanel data={data} onNavigate={changeTab} />
             <NotificationBroadcastPanel
               users={data.users}
               batches={uniqueBatches}
@@ -617,6 +634,7 @@ export default function AdminDashboard() {
                   pageSize={GRIEV_PAGE_SIZE}
                   page={grievPage}
                   onPageChange={setGrievPage}
+                  floating
                 />
                 </>
               )}
@@ -684,7 +702,7 @@ export default function AdminDashboard() {
             )}
             <StaffWelcome
               name={staffName}
-              subtitle="Search, batch, notify, and manage active or deactivated volunteers."
+              subtitle="Search, approve sign-ups, batch, notify, and manage volunteers."
             />
             <NotificationBroadcastPanel
               users={data.users}
@@ -695,8 +713,8 @@ export default function AdminDashboard() {
               <div className="p-4 border-b border-[var(--border)] space-y-3">
                 <h2 className="text-lg font-bold">People</h2>
                 <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-                  Manage approved volunteers and staff. New sign-ups are approved
-                  on Dashboard under Pending requests.
+                  Use Pending for new sign-ups. All, Active, and Deactivated are
+                  approved members only.
                 </p>
                 <div className="relative">
                   <Search
@@ -714,9 +732,10 @@ export default function AdminDashboard() {
                     className="w-full pl-9 p-3 border rounded-xl bg-slate-50 dark:bg-[#18181B] border-[var(--border)] outline-emerald-600 text-sm"
                   />
                 </div>
-                <div className="flex bg-slate-100 dark:bg-[#18181B] p-1 rounded-lg">
+                <div className="flex flex-wrap bg-slate-100 dark:bg-[#18181B] p-1 rounded-lg gap-1">
                   {(
                     [
+                      ["pending", "Pending", pendingVolunteerCount] as const,
                       ["all", "All", activeVolunteerCount + inactiveVolunteerCount] as const,
                       ["active", "Active", activeVolunteerCount] as const,
                       ["inactive", "Deactivated", inactiveVolunteerCount] as const,
@@ -729,19 +748,22 @@ export default function AdminDashboard() {
                         setVolFilter(key);
                         setVolPage(1);
                       }}
-                      className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                      className={`flex-1 min-w-[4.5rem] py-1.5 text-xs font-bold rounded-md transition-all ${
                         volFilter === key
-                          ? "bg-white dark:bg-black text-[var(--brand)] shadow-sm"
+                          ? key === "pending"
+                            ? "bg-amber-500 text-white shadow-sm"
+                            : "bg-white dark:bg-black text-[var(--brand)] shadow-sm"
                           : "text-slate-500"
                       }`}
                     >
-                      <span className="inline-flex items-center justify-center gap-1.5">
+                      <span className="inline-flex items-center justify-center gap-1">
                         {label}
-                        <span className="text-[10px] opacity-70">({count})</span>
+                        <span className="text-[10px] opacity-80">({count})</span>
                       </span>
                     </button>
                   ))}
                 </div>
+                {volFilter !== "pending" && (
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -751,9 +773,10 @@ export default function AdminDashboard() {
                     Select all filtered
                   </button>
                 </div>
+                )}
               </div>
 
-              <div className={`p-4 space-y-3 ${selectedVolIds.size > 0 ? "pb-36" : ""}`}>
+              <div className={`p-4 space-y-3 pb-24 ${selectedVolIds.size > 0 ? "pb-36" : ""}`}>
                 {pagedVolunteers.length === 0 ? (
                   <p className="text-center text-sm text-[var(--text-muted)] py-8">
                     No volunteers match this filter.
@@ -769,18 +792,22 @@ export default function AdminDashboard() {
                       }`}
                     >
                       <div className="flex justify-between items-start gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleVolunteerSelect(vol.id)}
-                          className="shrink-0 p-1 text-[var(--brand)]"
-                          aria-label="Select volunteer"
-                        >
-                          {selectedVolIds.has(vol.id) ? (
-                            <CheckSquare size={18} />
-                          ) : (
-                            <Square size={18} className="text-[var(--text-muted)]" />
-                          )}
-                        </button>
+                        {vol.status !== "pending" ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleVolunteerSelect(vol.id)}
+                            className="shrink-0 p-1 text-[var(--brand)]"
+                            aria-label="Select volunteer"
+                          >
+                            {selectedVolIds.has(vol.id) ? (
+                              <CheckSquare size={18} />
+                            ) : (
+                              <Square size={18} className="text-[var(--text-muted)]" />
+                            )}
+                          </button>
+                        ) : (
+                          <div className="w-7 shrink-0" />
+                        )}
                         <div className="min-w-0 flex-1">
                           <p className="font-bold truncate">{vol.name}</p>
                           <p className="text-xs text-[var(--text-muted)] truncate">
@@ -791,7 +818,9 @@ export default function AdminDashboard() {
                           className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${
                             vol.status === "active"
                               ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                              : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              : vol.status === "pending"
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                                : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                           }`}
                         >
                           {titleCaseStatus(vol.status)}
@@ -809,93 +838,119 @@ export default function AdminDashboard() {
                         </p>
                       </div>
 
-                      <p className="text-[10px] font-mono text-[var(--text-muted)]">
-                        {vol.volunteer_id || "No ID yet"} · {titleCaseStatus(vol.role)}
-                      </p>
+                      {vol.status !== "pending" && (
+                        <p className="text-[10px] font-mono text-[var(--text-muted)]">
+                          {vol.volunteer_id || "No ID yet"} · {titleCaseStatus(vol.role)}
+                        </p>
+                      )}
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={vol.role}
-                          disabled={actioningId === vol.id}
-                          onChange={(e) =>
-                            handleRoleChange(vol.id, e.target.value as UserRole)
-                          }
-                          className="text-xs font-bold border border-[var(--border)] rounded-lg p-2 bg-[var(--surface)] outline-emerald-600"
-                        >
-                          <option value="volunteer">Volunteer</option>
-                          <option value="organiser">Organiser</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                        <input
-                          type="text"
-                          placeholder="Batch / area"
-                          defaultValue={vol.batch ?? ""}
-                          disabled={actioningId === vol.id}
-                          onBlur={(e) => {
-                            const next = e.target.value.trim();
-                            if (next === (vol.batch ?? "")) return;
-                            setActioningId(vol.id);
-                            updateUserBatch(vol.id, next)
-                              .then(() => {
-                                toast.success("Batch updated");
-                                setData((prev) => ({
-                                  ...prev,
-                                  users: prev.users.map((u) =>
-                                    u.id === vol.id
-                                      ? { ...u, batch: next || null }
-                                      : u,
-                                  ),
-                                }));
-                              })
-                              .catch(() => toast.error("Failed to update batch"))
-                              .finally(() => setActioningId(null));
-                          }}
-                          className="text-xs border border-[var(--border)] rounded-lg p-2 bg-[var(--surface)] outline-emerald-600"
-                        />
-                      </div>
-
-                      <div className="flex gap-2">
-                        {vol.status === "active" && (
+                      {vol.status === "pending" ? (
+                        <div className="flex gap-2">
                           <button
                             type="button"
                             disabled={actioningId === vol.id}
-                            onClick={() => handleDeactivateVolunteer(vol.id)}
-                            className="flex-1 border border-red-200 text-red-600 dark:border-red-900/50 dark:text-red-400 py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                            onClick={() => handleApproveICard(vol.id)}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
                           >
-                            Deactivate
+                            {actioningId === vol.id && (
+                              <Loader2 size={14} className="animate-spin" />
+                            )}
+                            Approve I-Card
                           </button>
-                        )}
-                        {vol.status === "inactive" && (
                           <button
                             type="button"
-                            disabled={actioningId === vol.id}
-                            onClick={() => handleReactivateVolunteer(vol.id)}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                            onClick={() => setDetailVolunteer(vol)}
+                            className="flex-1 border border-[var(--border)] py-2.5 rounded-lg text-xs font-bold hover:bg-[var(--surface)]"
                           >
-                            Reactivate
+                            Details
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setDetailVolunteer(vol)}
-                          className="flex-1 border border-[var(--border)] py-2.5 rounded-lg text-xs font-bold hover:bg-[var(--surface)]"
-                        >
-                          Details
-                        </button>
-                      </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={vol.role}
+                              disabled={actioningId === vol.id}
+                              onChange={(e) =>
+                                handleRoleChange(vol.id, e.target.value as UserRole)
+                              }
+                              className="text-xs font-bold border border-[var(--border)] rounded-lg p-2 bg-[var(--surface)] outline-emerald-600"
+                            >
+                              <option value="volunteer">Volunteer</option>
+                              <option value="organiser">Organiser</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="Batch / area"
+                              defaultValue={vol.batch ?? ""}
+                              disabled={actioningId === vol.id}
+                              onBlur={(e) => {
+                                const next = e.target.value.trim();
+                                if (next === (vol.batch ?? "")) return;
+                                setActioningId(vol.id);
+                                updateUserBatch(vol.id, next)
+                                  .then(() => {
+                                    toast.success("Batch updated");
+                                    setData((prev) => ({
+                                      ...prev,
+                                      users: prev.users.map((u) =>
+                                        u.id === vol.id
+                                          ? { ...u, batch: next || null }
+                                          : u,
+                                      ),
+                                    }));
+                                  })
+                                  .catch(() => toast.error("Failed to update batch"))
+                                  .finally(() => setActioningId(null));
+                              }}
+                              className="text-xs border border-[var(--border)] rounded-lg p-2 bg-[var(--surface)] outline-emerald-600"
+                            />
+                          </div>
+
+                          <div className="flex gap-2">
+                            {vol.status === "active" && (
+                              <button
+                                type="button"
+                                disabled={actioningId === vol.id}
+                                onClick={() => handleDeactivateVolunteer(vol.id)}
+                                className="flex-1 border border-red-200 text-red-600 dark:border-red-900/50 dark:text-red-400 py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                              >
+                                Deactivate
+                              </button>
+                            )}
+                            {vol.status === "inactive" && (
+                              <button
+                                type="button"
+                                disabled={actioningId === vol.id}
+                                onClick={() => handleReactivateVolunteer(vol.id)}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                              >
+                                Reactivate
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setDetailVolunteer(vol)}
+                              className="flex-1 border border-[var(--border)] py-2.5 rounded-lg text-xs font-bold hover:bg-[var(--surface)]"
+                            >
+                              Details
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))
                 )}
               </div>
 
-              <div className="px-4 pb-4">
-                <Pagination
-                  total={filteredVolunteers.length}
-                  pageSize={VOL_PAGE_SIZE}
-                  page={volPage}
-                  onPageChange={setVolPage}
-                />
-              </div>
+              <Pagination
+                total={filteredVolunteers.length}
+                pageSize={VOL_PAGE_SIZE}
+                page={volPage}
+                onPageChange={setVolPage}
+                floating
+              />
             </div>
           </div>
         )}
@@ -903,12 +958,17 @@ export default function AdminDashboard() {
         {activeTab === "applications" && (
           <div className="space-y-4">
             <h2 className="text-lg font-bold">Requests</h2>
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed -mt-2">
+              Change decisions anytime — approve, decline, revoke, or re-open for
+              review. Volunteers can re-apply after a decline from Applied or Home.
+            </p>
             <ApplicationsTable
               applications={data.applications}
               page={appsPage}
               onPageChange={setAppsPage}
               actioningId={actioningId}
               onAction={handleApplicationAction}
+              floatingPagination
             />
           </div>
         )}
@@ -925,8 +985,11 @@ export default function AdminDashboard() {
               volunteers={data.users}
               events={data.events}
               canDelete
+              floatingPagination
             />
           </div>
+        )}
+          </>
         )}
       </StaffShell>
 

@@ -9,6 +9,7 @@ import {
   getCheckInStatus,
   applyToEvent,
   withdrawApplication,
+  reapplyToEvent,
   markAttended,
   submitFeedback,
 } from "@/lib/data/events";
@@ -301,31 +302,70 @@ export default function VolunteeringDashboard() {
         setSelectedEvent({ ...selectedEvent, has_attended: true });
       } else if (tab === "Active") {
         if (selectedEvent.has_applied) {
-          await withdrawApplication(selectedEvent.id);
-          haptic("warning");
-          toast.success("Interest withdrawn");
+          if (selectedEvent.application_status === "approved") {
+            toast.error(
+              "You're approved for this event. Contact your coordinator if plans changed.",
+            );
+            return;
+          }
+          if (selectedEvent.application_status === "declined") {
+            await reapplyToEvent(selectedEvent.id);
+            haptic("success");
+            toast.success("Request sent again — pending review");
+            setEvents((prev) =>
+              prev.map((e) =>
+                e.id === selectedEvent.id
+                  ? { ...e, has_applied: true, application_status: "pending" }
+                  : e,
+              ),
+            );
+            setSelectedEvent({
+              ...selectedEvent,
+              has_applied: true,
+              application_status: "pending",
+            });
+          } else {
+            await withdrawApplication(selectedEvent.id);
+            haptic("warning");
+            toast.success("Interest withdrawn");
+            setEvents((prev) =>
+              prev.map((e) =>
+                e.id === selectedEvent.id
+                  ? {
+                      ...e,
+                      has_applied: false,
+                      application_status: null,
+                    }
+                  : e,
+              ),
+            );
+            setSelectedEvent({
+              ...selectedEvent,
+              has_applied: false,
+              application_status: null,
+            });
+          }
         } else {
           await applyToEvent(selectedEvent.id);
           haptic("success");
           toast.success("Marked as Interested!");
+          setEvents((prev) =>
+            prev.map((e) =>
+              e.id === selectedEvent.id
+                ? {
+                    ...e,
+                    has_applied: true,
+                    application_status: "pending",
+                  }
+                : e,
+            ),
+          );
+          setSelectedEvent({
+            ...selectedEvent,
+            has_applied: true,
+            application_status: "pending",
+          });
         }
-        const nextApplied = !selectedEvent.has_applied;
-        setEvents((prev) =>
-          prev.map((e) =>
-            e.id === selectedEvent.id
-              ? {
-                  ...e,
-                  has_applied: nextApplied,
-                  application_status: nextApplied ? "pending" : null,
-                }
-              : e,
-          ),
-        );
-        setSelectedEvent({
-          ...selectedEvent,
-          has_applied: nextApplied,
-          application_status: nextApplied ? "pending" : null,
-        });
       } else {
         if (rating === 0) {
           toast.error("Please select a star rating");
@@ -783,19 +823,31 @@ export default function VolunteeringDashboard() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleAction()}
-                      disabled={applying}
+                      disabled={
+                        applying ||
+                        (selectedEvent.has_applied &&
+                          selectedEvent.application_status === "approved")
+                      }
                       className={`flex items-center justify-center gap-2 font-bold py-3 rounded-xl text-[13px] disabled:opacity-50 ${
                         selectedEvent.has_applied
-                          ? "bg-red-50 dark:bg-red-950/20 text-red-600 border border-red-200 dark:border-red-900/50"
+                          ? selectedEvent.application_status === "declined"
+                            ? "bg-[var(--brand)]/10 text-[var(--brand)] border border-[var(--brand)]/25"
+                            : "bg-red-50 dark:bg-red-950/20 text-red-600 border border-red-200 dark:border-red-900/50"
                           : "bg-[var(--brand)]/10 text-[var(--brand)] border border-[var(--brand)]/25"
                       }`}
                     >
                       {applying ? (
                         <Loader2 className="animate-spin" size={16} />
                       ) : selectedEvent.has_applied ? (
-                        <>
-                          <HeartOff size={14} /> Withdraw
-                        </>
+                        selectedEvent.application_status === "declined" ? (
+                          <>
+                            <BookmarkPlus size={14} /> Apply again
+                          </>
+                        ) : (
+                          <>
+                            <HeartOff size={14} /> Withdraw
+                          </>
+                        )
                       ) : (
                         <>
                           <BookmarkPlus size={14} /> Interested

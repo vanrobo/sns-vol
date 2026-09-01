@@ -3,7 +3,7 @@
 import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME_ACCENT, DONATE_URL } from "@/lib/brand";
 import type { ProfileStatus, UserRole } from "@/types";
@@ -12,6 +12,28 @@ import { clearNotificationUnread } from "@/lib/notification-poll-store";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
+import {
+  readCachedRole,
+  readCachedVolunteerStatus,
+  writeCachedSession,
+  clearCachedSession,
+} from "@/lib/role-cache";
+
+function useCachedStaffRole(): UserRole | null {
+  return useSyncExternalStore(
+    () => () => {},
+    readCachedRole,
+    () => null,
+  );
+}
+
+function useCachedVolunteerStatus(): ProfileStatus | null {
+  return useSyncExternalStore(
+    () => () => {},
+    readCachedVolunteerStatus,
+    () => null,
+  );
+}
 
 export default function MobileLayout({
   children,
@@ -24,8 +46,12 @@ export default function MobileLayout({
   const router = useRouter();
   const unsaved = useUnsavedChangesOptional();
   const hasUnread = useNotificationUnread();
-  const [volunteerStatus, setVolunteerStatus] = useState<ProfileStatus | null>(null);
-  const [staffRole, setStaffRole] = useState<UserRole | null>(null);
+  const cachedRole = useCachedStaffRole();
+  const cachedStatus = useCachedVolunteerStatus();
+  const [volunteerStatus, setVolunteerStatus] = useState<ProfileStatus | null>(
+    cachedStatus,
+  );
+  const [staffRole, setStaffRole] = useState<UserRole | null>(cachedRole);
   const mainRef = useRef<HTMLElement>(null);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const { pullDistance, refreshing, ready } = usePullToRefresh({
@@ -43,19 +69,26 @@ export default function MobileLayout({
     const checkAuth = async () => {
       const user = await getCurrentUser();
       if (!user) {
+        clearCachedSession();
         router.push("/login");
         return;
       }
 
       try {
         const session = await getMyRole();
-        if (session?.role === "volunteer") {
+        if (!session) return;
+
+        writeCachedSession(session.role, session.status);
+
+        if (session.role === "volunteer") {
           setVolunteerStatus(session.status);
-        } else if (session?.role === "admin" || session?.role === "organiser") {
+          setStaffRole(null);
+        } else if (session.role === "admin" || session.role === "organiser") {
           setStaffRole(session.role);
+          setVolunteerStatus(null);
         }
       } catch {
-        /* ignore */
+        /* keep cached nav until next successful fetch */
       }
     };
 

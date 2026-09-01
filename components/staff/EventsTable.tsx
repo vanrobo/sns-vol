@@ -234,6 +234,7 @@ export default function EventsTable({
         pageSize={PAGE_SIZE}
         page={page}
         onPageChange={onPageChange}
+        floating
       />
     </div>
   );

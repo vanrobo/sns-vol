@@ -16,7 +16,7 @@ import type { AdminData } from "@/types";
 type AdminOverviewProps = {
   data: AdminData;
   staffName: string;
-  onNavigate: (tab: string) => void;
+  onNavigate: (tab: string, peopleFilter?: string) => void;
   onCreateEvent: () => void;
 };
 
@@ -28,7 +28,7 @@ export default function AdminOverview({
 }: AdminOverviewProps) {
   const activeEvents = data.events.filter((e) => e.status === "active").length;
   const volunteers = data.users.filter((u) => u.role === "volunteer");
-  const pendingVolunteers = volunteers.filter((v) => v.status !== "active");
+  const pendingVolunteers = volunteers.filter((v) => v.status === "pending");
   const openGrievances = data.grievances.filter((g) => g.status === "open");
   const pendingApps = data.applications.filter((a) => a.status === "pending");
 
@@ -36,10 +36,11 @@ export default function AdminOverview({
     pendingVolunteers.length > 0 && {
       key: "volunteers",
       label: `${pendingVolunteers.length} volunteer${pendingVolunteers.length === 1 ? "" : "s"} awaiting approval`,
-      sub: "Review on Dashboard below",
+      sub: "Review under People → Pending",
       icon: Users,
       tone: "amber" as const,
-      tab: "overview",
+      tab: "volunteers",
+      peopleFilter: "pending",
     },
     pendingApps.length > 0 && {
       key: "apps",
@@ -64,6 +65,7 @@ export default function AdminOverview({
     icon: typeof Users;
     tone: "amber" | "blue" | "red";
     tab: string;
+    peopleFilter?: string;
   }>;
 
   const statCards = [
@@ -199,7 +201,7 @@ export default function AdminOverview({
               <button
                 key={item.key}
                 type="button"
-                onClick={() => onNavigate(item.tab)}
+                onClick={() => onNavigate(item.tab, item.peopleFilter)}
                 className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.99] transition-transform ${toneBorder[item.tone]} ${toneBg[item.tone]}`}
               >
                 <div className="w-10 h-10 rounded-full bg-white/80 dark:bg-black/20 flex items-center justify-center shrink-0">

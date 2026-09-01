@@ -192,6 +192,25 @@ export default function OrganiserDashboard() {
     eventId: string,
     status: ApplicationStatus,
   ) => {
+    const app = data.applications.find(
+      (a) => a.user_id === userId && a.event_id === eventId,
+    );
+    if (app && app.status !== status) {
+      const reversing =
+        (app.status === "approved" && status === "declined") ||
+        (app.status === "approved" && status === "pending");
+      if (
+        reversing &&
+        !window.confirm(
+          status === "declined"
+            ? "Revoke approval for this volunteer?"
+            : "Re-open this request for review?",
+        )
+      ) {
+        return;
+      }
+    }
+
     setActioningId(`${userId}-${eventId}`);
     try {
       await updateApplicationStatus(userId, eventId, status);

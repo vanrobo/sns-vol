@@ -357,6 +357,14 @@ export async function updateApplicationStatus(
     .eq("user_id", userId)
     .eq("event_id", eventId);
   if (error) throw error;
+
+  if (status === "declined") {
+    await supabase
+      .from("attendance")
+      .delete()
+      .eq("user_id", userId)
+      .eq("event_id", eventId);
+  }
 }
 
 export async function approveICard(userId: string) {

@@ -4,8 +4,20 @@ import MobileLayout from "@/components/MobileLayout";
 import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { getMyApplications, type MyApplication } from "@/lib/data/applications";
+import {
+  withdrawApplication,
+  reapplyToEvent,
+} from "@/lib/data/events";
 import { titleCaseStatus } from "@/types";
-import { Calendar, MapPin, Loader2, ClipboardList, RefreshCw } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Loader2,
+  ClipboardList,
+  RefreshCw,
+  HeartOff,
+  BookmarkPlus,
+} from "lucide-react";
 import { haptic } from "@/lib/haptics";
 
 function statusClass(status: string) {
@@ -23,6 +35,7 @@ export default function ApplicationsPage() {
   const [apps, setApps] = useState<MyApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actioningId, setActioningId] = useState<string | null>(null);
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
@@ -49,6 +62,38 @@ export default function ApplicationsPage() {
     haptic("success");
   }, [load]);
 
+  const handleWithdraw = async (eventId: string) => {
+    setActioningId(eventId);
+    try {
+      await withdrawApplication(eventId);
+      haptic("warning");
+      toast.success("Interest withdrawn");
+      setApps((prev) => prev.filter((a) => a.event_id !== eventId));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not withdraw.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleReapply = async (eventId: string) => {
+    setActioningId(eventId);
+    try {
+      await reapplyToEvent(eventId);
+      haptic("success");
+      toast.success("Request sent again — pending review");
+      setApps((prev) =>
+        prev.map((a) =>
+          a.event_id === eventId ? { ...a, status: "pending" } : a,
+        ),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not re-apply.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
   return (
     <MobileLayout onRefresh={refresh}>
       <div className="p-5 space-y-6 pb-28">
@@ -69,8 +114,8 @@ export default function ApplicationsPage() {
             </button>
           </div>
           <p className="text-sm text-[var(--text-muted)] leading-relaxed">
-            Every event you&apos;ve marked as interested, with your current
-            status.
+            Every event you&apos;ve marked as interested. If declined, you can
+            apply again from here or Home.
           </p>
         </div>
 
@@ -91,8 +136,8 @@ export default function ApplicationsPage() {
           </div>
         ) : apps.length === 0 ? (
           <div className="border border-dashed border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--text-muted)] leading-relaxed">
-            No applications yet. Once approved, browse events on Home and tap
-            Interested to apply.
+            No applications yet. Browse events on Home and tap Interested to
+            apply.
           </div>
         ) : (
           <div className="space-y-3">
@@ -123,6 +168,35 @@ export default function ApplicationsPage() {
                   Event {titleCaseStatus(app.event_status)} · Applied{" "}
                   {new Date(app.created_at).toLocaleDateString()}
                 </p>
+
+                {app.status === "pending" && (
+                  <button
+                    type="button"
+                    disabled={actioningId === app.event_id}
+                    onClick={() => handleWithdraw(app.event_id)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 text-xs font-bold disabled:opacity-50"
+                  >
+                    <HeartOff size={14} />
+                    Withdraw interest
+                  </button>
+                )}
+                {app.status === "declined" && (
+                  <button
+                    type="button"
+                    disabled={actioningId === app.event_id}
+                    onClick={() => handleReapply(app.event_id)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[var(--brand)] text-white text-xs font-bold disabled:opacity-50"
+                  >
+                    <BookmarkPlus size={14} />
+                    Apply again
+                  </button>
+                )}
+                {app.status === "approved" && (
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed pt-1">
+                    You&apos;re approved — check in from Home on event day. Contact
+                    your coordinator if plans changed.
+                  </p>
+                )}
               </div>
             ))}
           </div>

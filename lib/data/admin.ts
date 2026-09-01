@@ -202,6 +202,17 @@ export async function adminDeleteVolunteer(userId: string) {
   if (error) throw error;
 }
 
+export async function cancelAccountDeletionRequest(userId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ delete_requested_at: null })
+    .eq("id", userId);
+  if (error) throw error;
+}
+
 export async function completeAccountDeletion(userId: string) {
   await requireAdmin();
   const supabase = await createClient();

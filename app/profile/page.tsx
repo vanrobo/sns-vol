@@ -16,6 +16,7 @@ import {
   uploadAvatar,
   signOut,
   requestDeleteAccount,
+  cancelDeleteAccountRequest,
 } from "@/lib/data/profiles";
 import type { Profile } from "@/types";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
@@ -303,9 +304,30 @@ function ProfilePageContent() {
       return;
     try {
       await requestDeleteAccount();
+      setProfile((prev) =>
+        prev ? { ...prev, delete_requested_at: new Date().toISOString() } : prev,
+      );
       toast.success("Deletion request submitted.");
     } catch {
       toast.error("Could not submit request.");
+    }
+  };
+
+  const handleCancelDeleteRequest = async () => {
+    if (
+      !window.confirm(
+        "Cancel your account deletion request? Your account will stay active.",
+      )
+    )
+      return;
+    try {
+      await cancelDeleteAccountRequest();
+      setProfile((prev) =>
+        prev ? { ...prev, delete_requested_at: null } : prev,
+      );
+      toast.success("Deletion request cancelled.");
+    } catch {
+      toast.error("Could not cancel request.");
     }
   };
 
@@ -664,20 +686,41 @@ function ProfilePageContent() {
         </div>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
+          {profile.delete_requested_at && (
+            <div className="p-4 px-5 space-y-3 bg-red-50 dark:bg-red-950/20">
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                Account deletion requested on{" "}
+                {new Date(profile.delete_requested_at).toLocaleDateString()}
+              </p>
+              <p className="text-xs text-red-600/80 dark:text-red-400/80 leading-relaxed">
+                An admin may confirm permanent deletion. You can cancel this
+                request anytime before that.
+              </p>
+              <button
+                type="button"
+                onClick={handleCancelDeleteRequest}
+                className="w-full py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 font-bold text-sm hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors"
+              >
+                Cancel deletion request
+              </button>
+            </div>
+          )}
           <button
             onClick={handleLogout}
-            className="w-full p-4 px-5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors rounded-t-xl"
+            className={`w-full p-4 px-5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors ${profile.delete_requested_at ? "rounded-b-xl" : "rounded-t-xl"}`}
           >
             <LogOut size={16} className="text-gray-400" />
             <span className="font-semibold text-sm">Sign Out</span>
           </button>
-          <button
-            onClick={handleDeleteAccount}
-            className="w-full p-4 px-5 flex items-center gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors rounded-b-xl"
-          >
-            <AlertTriangle size={16} />
-            <span className="font-semibold text-sm">Request to Delete</span>
-          </button>
+          {!profile.delete_requested_at && (
+            <button
+              onClick={handleDeleteAccount}
+              className="w-full p-4 px-5 flex items-center gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors rounded-b-xl"
+            >
+              <AlertTriangle size={16} />
+              <span className="font-semibold text-sm">Request to Delete</span>
+            </button>
+          )}
         </div>
       </div>
 

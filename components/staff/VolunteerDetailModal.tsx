@@ -16,6 +16,7 @@ import { titleCaseStatus } from "@/types";
 import {
   adminDeleteVolunteer,
   broadcastNotification,
+  cancelAccountDeletionRequest,
   completeAccountDeletion,
 } from "@/lib/data/admin";
 
@@ -75,6 +76,26 @@ export default function VolunteerDetailModal({
       onClose();
     } catch {
       toast.error("Failed to deactivate account.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCancelDeletionRequest = async () => {
+    if (
+      !confirm(
+        `Cancel the deletion request for ${volunteer.name}? Their account will stay active.`,
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await cancelAccountDeletionRequest(volunteer.id);
+      toast.success("Deletion request cancelled.");
+      onUpdated();
+      onClose();
+    } catch {
+      toast.error("Failed to cancel deletion request.");
     } finally {
       setBusy(false);
     }
@@ -191,6 +212,14 @@ export default function VolunteerDetailModal({
                 Deletion requested{" "}
                 {new Date(volunteer.delete_requested_at).toLocaleDateString()}
               </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleCancelDeletionRequest}
+                className="w-full flex items-center justify-center gap-2 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 font-bold py-2.5 rounded-lg text-sm disabled:opacity-50"
+              >
+                Cancel deletion request
+              </button>
               <button
                 type="button"
                 disabled={busy}

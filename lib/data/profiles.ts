@@ -179,6 +179,20 @@ export async function requestDeleteAccount() {
   if (error) throw error;
 }
 
+export async function cancelDeleteAccountRequest() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ delete_requested_at: null })
+    .eq("id", user.id);
+  if (error) throw error;
+}
+
 /** @deprecated Use requestDeleteAccount — kept for admin tooling */
 export async function deleteAccount() {
   const supabase = await createClient();

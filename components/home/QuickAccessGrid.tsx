@@ -1,15 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Trophy, BadgeCheck, Activity, ScanLine } from "lucide-react";
+import { Trophy, BadgeCheck, Activity } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { UserRole } from "@/types";
 
 type Props = {
   awardCount: number;
   activenessPercent: number | null;
-  role?: UserRole;
-  onScanAttendance?: () => void;
   onActivenessClick?: () => void;
 };
 
@@ -26,71 +23,38 @@ type Item = {
 export default function QuickAccessGrid({
   awardCount,
   activenessPercent,
-  role = "volunteer",
-  onScanAttendance,
   onActivenessClick,
 }: Props) {
-  const isStaff = role === "admin" || role === "organiser";
-  const portalHref = role === "admin" ? "/admin" : "/organiser";
-
-  const items: Item[] = isStaff
-    ? [
-        {
-          key: "scan",
-          label: "Scan",
-          icon: ScanLine,
-          value: "Attendance",
-          onClick: onScanAttendance,
-          className:
-            "bg-gradient-to-br from-emerald-600 to-emerald-800 border-emerald-700/30 text-white shadow-md",
-        },
-        {
-          key: "awards",
-          label: "Awards",
-          icon: Trophy,
-          value: "Manage",
-          href: portalHref,
-        },
-        {
-          key: "icard",
-          label: "I-Card",
-          icon: BadgeCheck,
-          value: "Verify",
-          onClick: onScanAttendance,
-          className:
-            "bg-gradient-to-br from-indigo-600 to-violet-700 border-indigo-700/30 text-white shadow-md",
-        },
-      ]
-    : [
-        {
-          key: "activeness",
-          label: "Activeness",
-          icon: Activity,
-          value: activenessPercent !== null ? `${activenessPercent}%` : "—",
-          onClick: onActivenessClick,
-        },
-        {
-          key: "awards",
-          label: "Awards",
-          icon: Trophy,
-          value: String(awardCount),
-          href: "/profile#awards",
-        },
-        {
-          key: "icard",
-          label: "I-Card",
-          icon: BadgeCheck,
-          value: "Open",
-          href: "/i-card",
-          className:
-            "bg-gradient-to-br from-indigo-600 to-violet-700 border-indigo-700/30 text-white shadow-md",
-        },
-      ];
+  const items: Item[] = [
+    {
+      key: "activeness",
+      label: "Activeness",
+      icon: Activity,
+      value: activenessPercent !== null ? `${activenessPercent}%` : "—",
+      onClick: onActivenessClick,
+    },
+    {
+      key: "awards",
+      label: "Awards",
+      icon: Trophy,
+      value: String(awardCount),
+      href: "/profile#awards",
+    },
+    {
+      key: "icard",
+      label: "I-Card",
+      icon: BadgeCheck,
+      value: "Open",
+      href: "/i-card",
+      className:
+        "bg-gradient-to-br from-indigo-600 to-violet-700 border-indigo-700/30 text-white shadow-md",
+    },
+  ];
 
   return (
     <div className="grid grid-cols-3 gap-2 min-w-0">
       {items.map(({ key, label, icon: Icon, value, href, onClick, className }) => {
-        const isAccent = key === "icard" || key === "scan";
+        const isAccent = key === "icard";
         const inner = (
           <>
             <Icon

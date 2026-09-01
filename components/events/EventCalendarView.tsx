@@ -199,11 +199,14 @@ export default function EventCalendarView({
             </span>
           </div>
           {locationGroups.length > 0 && (
-            <div className="rounded-xl border border-[var(--border)] bg-slate-50/80 dark:bg-[#18181B]/50 p-3 space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                Locations this month
-              </p>
-              <div className="flex flex-wrap gap-2">
+            <details className="rounded-xl border border-[var(--border)] bg-slate-50/80 dark:bg-[#18181B]/50 p-3 group">
+              <summary className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] cursor-pointer list-none flex items-center justify-between gap-2">
+                <span>Locations this month ({locationGroups.length})</span>
+                <span className="text-[var(--brand)] normal-case tracking-normal font-semibold">
+                  Show
+                </span>
+              </summary>
+              <div className="flex flex-wrap gap-2 pt-3">
                 {locationGroups.map(({ label, days }) => (
                   <span
                     key={label}
@@ -215,7 +218,7 @@ export default function EventCalendarView({
                   </span>
                 ))}
               </div>
-            </div>
+            </details>
           )}
         </div>
       )}

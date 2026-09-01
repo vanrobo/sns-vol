@@ -34,6 +34,7 @@ import {
   Clock,
   Search,
   RefreshCw,
+  ScanLine,
 } from "lucide-react";
 import { EventListSkeleton } from "@/components/ui/Skeleton";
 import Pagination, { paginate } from "@/components/staff/Pagination";
@@ -501,13 +502,15 @@ export default function VolunteeringDashboard() {
             <h1 className="text-2xl font-black tracking-tight">
               Hi, {session.name.split(" ")[0]}
             </h1>
-            <QuickAccessGrid
-              awardCount={0}
-              activenessPercent={null}
-              role={session.role}
-              onScanAttendance={() => setScanOpen(true)}
-            />
             <StaffHomeBanner role={session.role} />
+            <button
+              type="button"
+              onClick={() => setScanOpen(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 border border-emerald-700/30 text-white font-bold py-3.5 shadow-md active:scale-[0.98] transition-transform"
+            >
+              <ScanLine size={20} />
+              Scan I-Card for attendance
+            </button>
           </div>
         )}
 

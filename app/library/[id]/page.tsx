@@ -12,8 +12,8 @@ export default async function LibraryReaderPage({ params }: Props) {
   if (!publication) notFound();
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--surface-muted)] max-w-md mx-auto">
-      <div className="sticky top-0 z-50 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)] px-3 py-2">
+    <div className="h-[100dvh] flex flex-col max-w-md mx-auto bg-[var(--surface-muted)] overflow-hidden">
+      <div className="shrink-0 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)] px-3 py-2">
         <Link
           href="/library"
           className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--brand)] py-2"
@@ -22,7 +22,13 @@ export default async function LibraryReaderPage({ params }: Props) {
           Back to library
         </Link>
       </div>
-      <PdfReader url={publication.pdf_url} title={publication.title} />
+      <div className="flex-1 min-h-0">
+        <PdfReader
+          publicationId={publication.id}
+          title={publication.title}
+          sourceUrl={publication.pdf_url}
+        />
+      </div>
     </div>
   );
 }

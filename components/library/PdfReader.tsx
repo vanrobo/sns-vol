@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import {
   ChevronLeft,
@@ -9,24 +9,38 @@ import {
   ZoomOut,
   Loader2,
   BookOpen,
+  ExternalLink,
 } from "lucide-react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 type Props = {
-  url: string;
+  publicationId: string;
   title: string;
+  sourceUrl?: string;
 };
 
-export default function PdfReader({ url, title }: Props) {
+export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [scale, setScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageWidth, setPageWidth] = useState(320);
+
+  const fileUrl = useMemo(
+    () => `/api/library/pdf/${publicationId}`,
+    [publicationId],
+  );
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setNumPages(0);
+    setPage(1);
+  }, [publicationId]);
 
   useEffect(() => {
     const update = () => {
@@ -55,7 +69,7 @@ export default function PdfReader({ url, title }: Props) {
   const zoomOut = () => setScale((s) => Math.max(0.6, +(s - 0.15).toFixed(2)));
 
   return (
-    <div className="flex flex-col min-h-[70dvh] bg-[var(--surface-muted)]">
+    <div className="flex h-full min-h-0 flex-col bg-[var(--surface-muted)]">
       <div className="shrink-0 px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3">
         <div className="min-w-0 flex items-center gap-2">
           <BookOpen size={18} className="text-[var(--brand)] shrink-0" />
@@ -65,7 +79,8 @@ export default function PdfReader({ url, title }: Props) {
           <button
             type="button"
             onClick={zoomOut}
-            className="p-2 rounded-lg border border-[var(--border)]"
+            disabled={!!error}
+            className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
             aria-label="Zoom out"
           >
             <ZoomOut size={16} />
@@ -76,7 +91,8 @@ export default function PdfReader({ url, title }: Props) {
           <button
             type="button"
             onClick={zoomIn}
-            className="p-2 rounded-lg border border-[var(--border)]"
+            disabled={!!error}
+            className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
             aria-label="Zoom in"
           >
             <ZoomIn size={16} />
@@ -84,18 +100,31 @@ export default function PdfReader({ url, title }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto flex justify-center p-4">
+      <div className="flex-1 min-h-0 overflow-auto flex justify-center p-4">
         {error ? (
-          <p className="text-sm text-red-600 text-center py-12 px-4">{error}</p>
+          <div className="flex flex-col items-center justify-center text-center px-4 py-8 gap-3 m-auto">
+            <p className="text-sm text-red-600">{error}</p>
+            {sourceUrl && (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--brand)] underline"
+              >
+                Open original PDF
+                <ExternalLink size={14} />
+              </a>
+            )}
+          </div>
         ) : (
-          <div className="relative">
+          <div className="relative w-full flex justify-center">
             {loading && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center z-10">
                 <Loader2 className="animate-spin text-[var(--brand)]" size={28} />
               </div>
             )}
             <Document
-              file={url}
+              file={fileUrl}
               onLoadSuccess={onLoadSuccess}
               onLoadError={onLoadError}
               loading=""
@@ -114,7 +143,7 @@ export default function PdfReader({ url, title }: Props) {
         )}
       </div>
 
-      <div className="shrink-0 px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3 pb-safe">
+      <div className="shrink-0 mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
           onClick={prev}

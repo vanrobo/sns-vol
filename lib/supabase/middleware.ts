@@ -30,11 +30,13 @@ export async function updateSession(request: NextRequest) {
 
   const isEventPage = path === "/event" || path.startsWith("/event/");
   const isLibraryPage = path === "/library" || path.startsWith("/library/");
+  const isLibraryApi = path.startsWith("/api/library");
   const isAuthPage = path === "/login" || path === "/signup";
   const isCronRoute = path.startsWith("/api/cron");
   const isPublicPage =
     isEventPage ||
     isLibraryPage ||
+    isLibraryApi ||
     path.startsWith("/verify/") ||
     path.startsWith("/_next") ||
     path.includes(".");
@@ -74,6 +76,7 @@ export async function updateSession(request: NextRequest) {
       isAuthPage ||
       isPublicPage ||
       isCronRoute ||
+      isLibraryApi ||
       path.startsWith("/favicon");
 
     if (!user && !isPublic) {

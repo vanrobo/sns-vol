@@ -1,4 +1,4 @@
-const SW_VERSION = "sns-v3";
+const SW_VERSION = "sns-v4";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

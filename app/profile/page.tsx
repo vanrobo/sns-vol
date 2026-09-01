@@ -1,10 +1,10 @@
 // app/profile/page.tsx
 "use client";
 import MobileLayout from "@/components/MobileLayout";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
 import { haptic } from "@/lib/haptics";
@@ -52,9 +52,14 @@ import {
 
 import { GOOGLE_REVIEW_URL } from "@/lib/brand";
 import SkillPicker from "@/components/ui/SkillPicker";
+import CenterPicker from "@/components/ui/CenterPicker";
+import OnboardingBanner from "@/components/onboarding/OnboardingBanner";
+import { getProfileCompletion } from "@/lib/onboarding";
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const onboardingMode = searchParams.get("onboarding") === "1";
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme, resolvedTheme, setTheme } = useTheme();
   const unsavedCtx = useUnsavedChangesOptional();
@@ -88,6 +93,7 @@ export default function ProfilePage() {
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [onboardingPrimed, setOnboardingPrimed] = useState(false);
 
   useEffect(() => {
     setPortalReady(true);
@@ -130,6 +136,16 @@ export default function ProfilePage() {
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!onboardingMode || !profile || onboardingPrimed) return;
+    const hasPhone = (profile.phone?.replace(/\D/g, "") ?? "").length >= 10;
+    const hasSkills = (profile.skills?.length ?? 0) > 0;
+
+    if (!hasPhone || !profile.address?.trim()) setIsEditingInfo(true);
+    if (!hasSkills) setIsEditingSkills(true);
+    setOnboardingPrimed(true);
+  }, [onboardingMode, profile, onboardingPrimed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -221,6 +237,9 @@ export default function ProfilePage() {
       toast.success("Profile saved");
       setIsEditingInfo(false);
       setIsEditingSkills(false);
+      if (onboardingMode && updated.status === "pending") {
+        router.push("/pending");
+      }
     } catch {
       toast.error("Could not save profile");
     } finally {
@@ -271,10 +290,16 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   const displayAvatar = previewUrl || profile.avatar_url;
+  const { percent: onboardingPercent } = getProfileCompletion(profile);
+  const showOnboardingBanner =
+    onboardingMode && profile.status === "pending" && onboardingPercent < 100;
 
   return (
     <MobileLayout>
       <div className={`p-5 space-y-6 ${showSaveBar ? "pb-36" : "pb-28"}`}>
+        {showOnboardingBanner && (
+          <OnboardingBanner percent={onboardingPercent} />
+        )}
         <div className="flex flex-col items-center pt-4 relative">
           <div
             onClick={() => fileInputRef.current?.click()}
@@ -356,19 +381,17 @@ export default function ProfilePage() {
               <BookOpen size={16} className="text-slate-400 shrink-0" />
               <div className="flex-1 border-b border-[var(--border)] pb-2">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  School / College
+                  Concern Center
                 </p>
                 {isEditingInfo ? (
-                  <input
-                    type="text"
+                  <CenterPicker
                     value={profile.college}
-                    onChange={(e) =>
-                      setProfile({ ...profile, college: e.target.value })
-                    }
-                    className="w-full bg-[var(--surface-input)] border-none rounded-md px-2.5 py-1.5 outline-none text-sm font-semibold"
+                    onChange={(college) => setProfile({ ...profile, college })}
                   />
                 ) : (
-                  <p className="text-[15px] font-semibold">{profile.college}</p>
+                  <p className="text-[15px] font-semibold">
+                    {profile.college || "Not selected"}
+                  </p>
                 )}
               </div>
             </div>
@@ -683,5 +706,19 @@ export default function ProfilePage() {
           document.body,
         )}
     </MobileLayout>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <MobileLayout>
+          <ProfileSkeleton />
+        </MobileLayout>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
   );
 }

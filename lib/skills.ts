@@ -66,3 +66,20 @@ export const SKILLS_ADDED_V2 = SKILL_DB.filter(
       "Public Speaking",
     ].includes(s),
 );
+
+function normalizeSkill(skill: string) {
+  return skill.trim().toLowerCase();
+}
+
+/** Overlap % of event required skills the volunteer has. Null if event lists ≤3 skills. */
+export function computeSkillMatch(
+  volunteerSkills: string[],
+  requiredSkills: string[] | null | undefined,
+): number | null {
+  const required = (requiredSkills ?? []).filter(Boolean);
+  if (required.length <= 3) return null;
+
+  const volunteerSet = new Set(volunteerSkills.map(normalizeSkill));
+  const matched = required.filter((s) => volunteerSet.has(normalizeSkill(s))).length;
+  return Math.round((matched / required.length) * 100);
+}

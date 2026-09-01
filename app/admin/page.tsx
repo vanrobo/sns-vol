@@ -537,7 +537,7 @@ export default function AdminDashboard() {
                   />
                   <input
                     type="text"
-                    placeholder="Search name, college, phone, batch..."
+                    placeholder="Search name, center, phone, batch..."
                     value={volunteerSearch}
                     onChange={(e) => {
                       setVolunteerSearch(e.target.value);

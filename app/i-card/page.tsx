@@ -112,10 +112,10 @@ export default function ICardPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600">
-                        Institution
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+                        Concern Center
                       </p>
-                      <p className="text-sm font-semibold truncate">
+                      <p className="text-base font-semibold truncate">
                         {profile.college}
                       </p>
                     </div>

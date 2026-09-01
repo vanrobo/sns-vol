@@ -147,7 +147,7 @@ export default function VolunteerDetailModal({
               {volunteer.address || "—"}
             </p>
             <p className="text-xs text-[var(--text-muted)]">
-              College: {volunteer.college || "—"}
+              Concern Center: {volunteer.college || "—"}
             </p>
             <p className="text-xs text-[var(--text-muted)]">
               Batch / area: {volunteer.batch || "—"}

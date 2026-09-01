@@ -5,6 +5,7 @@ import type { Event } from "@/types";
 import type { EventInput } from "@/lib/data/admin";
 import VenuePicker from "@/components/staff/VenuePicker";
 import SkillPicker from "@/components/ui/SkillPicker";
+import CenterPicker from "@/components/ui/CenterPicker";
 
 type EventFormModalProps = {
   open: boolean;
@@ -112,13 +113,11 @@ export default function EventFormModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-2">Region / Area</label>
-              <input
-                type="text"
+              <label className="block text-sm font-bold mb-2">Concern Center</label>
+              <CenterPicker
                 value={form.region ?? ""}
-                onChange={(e) => onChange({ ...form, region: e.target.value })}
-                placeholder="e.g. Dwarka, South Delhi"
-                className="w-full border p-3 rounded-xl dark:bg-gray-800 border-[var(--border)] outline-emerald-600"
+                onChange={(region) => onChange({ ...form, region })}
+                placeholder="Select concern center"
               />
             </div>
             <div>

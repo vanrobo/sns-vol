@@ -48,6 +48,9 @@ import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
 import { APP_NAME } from "@/lib/brand";
 import { readHomeCache, writeHomeCache } from "@/lib/home-cache";
+import { readProfileCache } from "@/lib/profile-cache";
+import { computeSkillMatch } from "@/lib/skills";
+import { SNS_CENTERS, matchesCenter, isSnsCenter } from "@/lib/centers";
 import {
   eventsCacheKey,
   readEventsCache,
@@ -84,7 +87,7 @@ export default function VolunteeringDashboard() {
   const [dateFilter, setDateFilter] = useState("");
   const [regionFilter, setRegionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [calendarView, setCalendarView] = useState(false);
+  const [calendarView, setCalendarView] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [applying, setApplying] = useState(false);
   const [rating, setRating] = useState(0);
@@ -108,6 +111,10 @@ export default function VolunteeringDashboard() {
     events: Event[];
   } | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [mySkills, setMySkills] = useState<string[]>(() => {
+    const uid = readHomeCache()?.userId;
+    return readProfileCache(uid)?.profile.skills ?? [];
+  });
   const [portalReady, setPortalReady] = useState(false);
 
   useEffect(() => {
@@ -123,6 +130,10 @@ export default function VolunteeringDashboard() {
         if (nextSession && s) {
           setUserId(s.id);
           setSession(nextSession);
+          setMySkills(s.skills ?? []);
+          if (isSnsCenter(s.college ?? "")) {
+            setRegionFilter(s.college);
+          }
           setMyAwards(awards);
           if (st) setStats(st);
           writeHomeCache({
@@ -195,9 +206,7 @@ export default function VolunteeringDashboard() {
         );
       }
       if (regionFilter !== "all") {
-        fetched = fetched.filter(
-          (e) => (e.region || e.venue) === regionFilter,
-        );
+        fetched = fetched.filter((e) => matchesCenter(e.region, regionFilter));
       }
       if (!dateFilter) {
         fetched = fetched.filter((e) => !e.is_recurring);
@@ -337,12 +346,6 @@ export default function VolunteeringDashboard() {
     }
   };
 
-  const getSkillMatch = (id: string) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i) * 37) % 40;
-    return 60 + hash;
-  };
-
   const getCardColor = (category?: string) => {
     switch (category?.toLowerCase()) {
       case "stem":
@@ -383,15 +386,7 @@ export default function VolunteeringDashboard() {
     setRating(0);
   };
 
-  const regions = [
-    "all",
-    ...new Set(
-      allEventsForCalendar
-        .map((e) => e.region || e.venue)
-        .filter(Boolean)
-        .filter((r) => !/mumbai/i.test(r)),
-    ),
-  ];
+  const centers = ["all", ...SNS_CENTERS];
 
   const displayedEvents = events.filter((evt) => {
     const q = searchQuery.trim().toLowerCase();
@@ -399,6 +394,7 @@ export default function VolunteeringDashboard() {
     return (
       evt.title.toLowerCase().includes(q) ||
       evt.venue.toLowerCase().includes(q) ||
+      (evt.region ?? "").toLowerCase().includes(q) ||
       (evt.category ?? "").toLowerCase().includes(q) ||
       (evt.description ?? "").toLowerCase().includes(q)
     );
@@ -462,27 +458,27 @@ export default function VolunteeringDashboard() {
               />
               <input
                 type="search"
-                placeholder="Search events by title, venue, category..."
+                placeholder="Search events by title, center, venue..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg text-xs font-medium outline-[var(--brand)]"
+                className="w-full pl-9 p-3 bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg text-sm font-medium outline-[var(--brand)]"
               />
             </div>
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-xs font-bold outline-[var(--brand)]"
+              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-3 text-sm font-bold outline-[var(--brand)]"
             >
-              {regions.map((r) => (
+              {centers.map((r) => (
                 <option key={r} value={r}>
-                  {r === "all" ? "All regions / venues" : r}
+                  {r === "all" ? "All concern centers" : r}
                 </option>
               ))}
             </select>
             <button
               type="button"
               onClick={() => setCalendarView((v) => !v)}
-              className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
                 calendarView
                   ? "bg-[var(--brand)] text-white"
                   : "text-[var(--brand)] bg-[var(--brand)]/10 hover:bg-[var(--brand)]/15"
@@ -536,8 +532,8 @@ export default function VolunteeringDashboard() {
               </div>
             ) : (
               displayedEvents.map((evt) => {
-                const matchPercentage = getSkillMatch(evt.id);
-                const isHighMatch = matchPercentage >= 75;
+                const matchPercentage = computeSkillMatch(mySkills, evt.required_skills);
+                const isHighMatch = matchPercentage !== null && matchPercentage >= 75;
                 return (
                   <div
                     key={evt.id}
@@ -546,9 +542,14 @@ export default function VolunteeringDashboard() {
                   >
                     <div className="flex-1 pr-4">
                       <div className="flex gap-2 mb-2 flex-wrap items-center">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
                           {evt.category || "Community"}
                         </span>
+                        {evt.region && (
+                          <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                            {evt.region}
+                          </span>
+                        )}
                         {tab === "Active" && evt.has_applied && evt.application_status && (
                           <span
                             className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex items-center gap-1 ${applicationStatusClass(evt.application_status)}`}
@@ -556,7 +557,9 @@ export default function VolunteeringDashboard() {
                             {titleCaseStatus(evt.application_status)}
                           </span>
                         )}
-                        {tab === "Active" && !evt.has_applied && (
+                        {tab === "Active" &&
+                          !evt.has_applied &&
+                          matchPercentage !== null && (
                           <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-[var(--brand)]/10 text-[var(--brand)] flex items-center gap-1.5">
                             {isHighMatch && (
                               <span className="relative flex h-2 w-2">
@@ -638,24 +641,33 @@ export default function VolunteeringDashboard() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] p-4 rounded-xl">
                   <Calendar size={16} className="text-[var(--brand)] mb-2" />
-                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">
+                  <p className="text-[11px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">
                     Date
                   </p>
-                  <p className="text-sm font-semibold truncate">
+                  <p className="text-base font-semibold truncate">
                     {selectedEvent.date}
+                  </p>
+                </div>
+                <div className="bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] p-4 rounded-xl">
+                  <MapPin size={16} className="text-[var(--brand)] mb-2" />
+                  <p className="text-[11px] text-slate-500 uppercase font-bold tracking-wider mb-0.5">
+                    Concern Center
+                  </p>
+                  <p className="text-base font-semibold truncate">
+                    {selectedEvent.region || "Not specified"}
                   </p>
                 </div>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.venue)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] p-4 rounded-xl hover:border-emerald-500 transition-colors"
+                  className="col-span-2 block bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] p-4 rounded-xl hover:border-emerald-500 transition-colors"
                 >
                   <MapPin size={16} className="text-[var(--brand)] mb-2" />
-                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
+                  <p className="text-[11px] text-slate-500 uppercase font-bold tracking-wider mb-0.5 flex items-center gap-1">
                     Venue <ExternalLink size={10} />
                   </p>
-                  <p className="text-sm font-semibold text-emerald-600 truncate underline">
+                  <p className="text-base font-semibold text-emerald-600 underline">
                     {selectedEvent.venue}
                   </p>
                 </a>

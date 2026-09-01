@@ -144,14 +144,14 @@ export default function MobileLayout({
               className={`flex flex-col items-center gap-1 transition-all ${isActive ? "text-[var(--brand)]" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}
             >
               <Icon
-                size={22}
+                size={24}
                 className={
                   isActive
                     ? "fill-[var(--brand)]/10 stroke-[var(--brand)]"
                     : "stroke-current"
                 }
               />
-              <span className="text-[10px] font-bold tracking-wider mt-0.5">
+              <span className="text-xs font-bold tracking-wider mt-0.5">
                 {item.name}
               </span>
             </Link>

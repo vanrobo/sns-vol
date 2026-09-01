@@ -5,21 +5,23 @@ type BrandLogoProps = {
   size?: number;
   showFamily?: boolean;
   className?: string;
+  roundedFull?: boolean;
 };
 
 export default function BrandLogo({
   size = 40,
   showFamily = true,
   className = "",
+  roundedFull = false,
 }: BrandLogoProps) {
   return (
     <div className={`flex items-center gap-2 min-w-0 ${className}`}>
       <Image
         src={LOGO_SRC}
-        alt="SNS"
+        alt="SNS Stand N Stride"
         width={size}
         height={size}
-        className="rounded-lg shrink-0 object-contain"
+        className={`${roundedFull ? "rounded-full" : "rounded-lg"} shrink-0 object-cover`}
         priority
       />
       {showFamily && (

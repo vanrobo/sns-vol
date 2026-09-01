@@ -350,14 +350,6 @@ export default function AdminDashboard() {
   const uniqueBatches = [
     ...new Set(data.users.map((u) => u.batch).filter(Boolean) as string[]),
   ];
-  const uniqueRegions = [
-    ...new Set(
-      data.events
-        .map((e) => e.region)
-        .filter(Boolean)
-        .filter((r) => !/mumbai/i.test(r as string)) as string[],
-    ),
-  ];
 
   const selectAllFilteredVolunteers = () => {
     setSelectedVolIds(new Set(filteredVolunteers.map((v) => v.id)));
@@ -454,12 +446,18 @@ export default function AdminDashboard() {
         onSignOut={() => signOutAction()}
       >
         {activeTab === "overview" && (
-          <AdminOverview
-            data={data}
-            staffName={staffName}
-            onNavigate={(tab) => startTransition(() => setActiveTab(tab))}
-            onCreateEvent={openCreateModal}
-          />
+          <div className="space-y-4">
+            <AdminOverview
+              data={data}
+              staffName={staffName}
+              onNavigate={(tab) => startTransition(() => setActiveTab(tab))}
+              onCreateEvent={openCreateModal}
+            />
+            <NotificationBroadcastPanel
+              users={data.users}
+              batches={uniqueBatches}
+            />
+          </div>
         )}
 
         {activeTab === "events" && (
@@ -526,7 +524,6 @@ export default function AdminDashboard() {
             <NotificationBroadcastPanel
               users={data.users}
               batches={uniqueBatches}
-              regions={uniqueRegions}
             />
 
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">

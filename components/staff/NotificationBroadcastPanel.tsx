@@ -4,52 +4,47 @@ import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Bell, Loader2, Users } from "lucide-react";
 import { broadcastNotification } from "@/lib/data/admin";
+import { SNS_CENTERS } from "@/lib/centers";
 import type { Profile } from "@/types";
 
 type Props = {
   users: Profile[];
   batches: string[];
-  regions: string[];
 };
+
+function activeVolunteers(users: Profile[]) {
+  return users.filter((u) => u.role === "volunteer" && u.status === "active");
+}
 
 function countRecipients(
   users: Profile[],
-  target: "all" | "batch" | "region",
+  target: "all" | "batch" | "center",
   batch: string,
-  region: string,
+  center: string,
 ): number {
-  const active = users.filter(
-    (u) => u.role === "volunteer" && u.status === "active",
-  );
+  const active = activeVolunteers(users);
 
   if (target === "all") return active.length;
   if (target === "batch") {
     return active.filter((u) => u.batch === batch).length;
   }
-  if (!region) return 0;
-  const needle = region.toLowerCase();
-  return active.filter(
-    (u) =>
-      u.batch?.toLowerCase().includes(needle) ||
-      u.address?.toLowerCase().includes(needle),
-  ).length;
+  if (!center) return 0;
+  return active.filter((u) => u.college === center).length;
 }
 
-export default function NotificationBroadcastPanel({
-  users,
-  batches,
-  regions,
-}: Props) {
+export default function NotificationBroadcastPanel({ users, batches }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [target, setTarget] = useState<"all" | "batch" | "region">("all");
+  const [target, setTarget] = useState<"all" | "batch" | "center">("all");
   const [batch, setBatch] = useState("");
-  const [region, setRegion] = useState("");
+  const [center, setCenter] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const activeCount = useMemo(() => activeVolunteers(users).length, [users]);
+
   const recipientCount = useMemo(
-    () => countRecipients(users, target, batch, region),
-    [users, target, batch, region],
+    () => countRecipients(users, target, batch, center),
+    [users, target, batch, center],
   );
 
   const submit = async (e: React.FormEvent) => {
@@ -62,8 +57,8 @@ export default function NotificationBroadcastPanel({
       toast.error("Select a batch.");
       return;
     }
-    if (target === "region" && !region) {
-      toast.error("Select a region.");
+    if (target === "center" && !center) {
+      toast.error("Select a concern center.");
       return;
     }
     if (recipientCount === 0) {
@@ -78,9 +73,9 @@ export default function NotificationBroadcastPanel({
         body: body.trim(),
         all: target === "all",
         batch: target === "batch" ? batch : undefined,
-        region: target === "region" ? region : undefined,
+        center: target === "center" ? center : undefined,
       });
-      toast.success(`In-app alert sent to ${count} volunteer(s).`);
+      toast.success(`In-app alert sent to ${count} active volunteer(s).`);
       setTitle("");
       setBody("");
     } catch {
@@ -94,8 +89,8 @@ export default function NotificationBroadcastPanel({
     target === "all"
       ? "all active volunteers"
       : target === "batch"
-        ? `batch “${batch || "…"}”`
-        : `region “${region || "…"}”`;
+        ? `batch "${batch || "…"}"`
+        : `center "${center || "…"}"`;
 
   return (
     <form
@@ -104,12 +99,10 @@ export default function NotificationBroadcastPanel({
     >
       <div>
         <h3 className="font-bold flex items-center gap-2 text-sm">
-          <Bell size={16} className="text-[var(--brand)]" /> Broadcast in-app
-          alert
+          <Bell size={16} className="text-[var(--brand)]" /> Notify volunteers
         </h3>
         <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
-          Sends to everyone in the audience below, not the checkboxes on
-          volunteer cards.
+          Send an in-app alert to active volunteers. {activeCount} active now.
         </p>
       </div>
 
@@ -118,9 +111,9 @@ export default function NotificationBroadcastPanel({
         onChange={(e) => setTarget(e.target.value as typeof target)}
         className="w-full p-2.5 rounded-lg border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] text-xs font-bold"
       >
-        <option value="all">All active volunteers</option>
+        <option value="all">All active volunteers ({activeCount})</option>
         <option value="batch">By batch / area</option>
-        <option value="region">By event region</option>
+        <option value="center">By concern center</option>
       </select>
 
       {target === "batch" && (
@@ -139,17 +132,17 @@ export default function NotificationBroadcastPanel({
         </select>
       )}
 
-      {target === "region" && (
+      {target === "center" && (
         <select
-          value={region}
-          onChange={(e) => setRegion(e.target.value)}
+          value={center}
+          onChange={(e) => setCenter(e.target.value)}
           required
           className="w-full p-2.5 rounded-lg border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] text-xs font-bold"
         >
-          <option value="">Select region</option>
-          {regions.map((r) => (
-            <option key={r} value={r}>
-              {r}
+          <option value="">Select concern center</option>
+          {SNS_CENTERS.map((c) => (
+            <option key={c} value={c}>
+              {c}
             </option>
           ))}
         </select>
@@ -184,7 +177,7 @@ export default function NotificationBroadcastPanel({
         ) : (
           <Users size={16} />
         )}
-        Send to {recipientCount} volunteer{recipientCount === 1 ? "" : "s"}
+        Send to {recipientCount} active volunteer{recipientCount === 1 ? "" : "s"}
       </button>
     </form>
   );

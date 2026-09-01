@@ -1,7 +1,7 @@
 /** Resize/compress a photo for avatar upload (keeps uploads under server limits). */
 export async function compressAvatarFile(
   file: File,
-  maxSizePx = 1024,
+  maxSizePx = 512,
   quality = 0.82,
 ): Promise<File> {
   if (!file.type.startsWith("image/")) return file;

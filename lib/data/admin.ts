@@ -241,13 +241,16 @@ export async function broadcastNotification(input: {
   all?: boolean;
   batch?: string;
   region?: string;
+  center?: string;
 }): Promise<number> {
   await requireAdmin();
   const supabase = await createClient();
 
   let userIds: string[];
 
-  const isBroadcast = Boolean(input.all || input.batch || input.region);
+  const isBroadcast = Boolean(
+    input.all || input.batch || input.region || input.center,
+  );
 
   if (isBroadcast) {
     let q = supabase
@@ -258,6 +261,8 @@ export async function broadcastNotification(input: {
 
     if (input.batch) {
       q = q.eq("batch", input.batch);
+    } else if (input.center) {
+      q = q.eq("college", input.center);
     } else if (input.region) {
       q = q.or(
         `batch.ilike.%${input.region}%,address.ilike.%${input.region}%`,
@@ -282,8 +287,15 @@ export async function broadcastNotification(input: {
     type: "event" as const,
   }));
 
-  const { error: insertError } = await supabase.from("notifications").insert(rows);
-  if (insertError) throw insertError;
+  const chunkSize = 100;
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize);
+    const { error: insertError } = await supabase
+      .from("notifications")
+      .insert(chunk);
+    if (insertError) throw insertError;
+  }
+
   return userIds.length;
 }
 

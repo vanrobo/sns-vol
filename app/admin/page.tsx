@@ -19,6 +19,7 @@ import {
   updateEvent,
   closeEvent,
   reopenEvent,
+  deleteEvent,
   updateApplicationStatus,
   approveICard,
   resolveGrievance,
@@ -242,6 +243,22 @@ export default function AdminDashboard() {
       setData((prev) => ({ ...prev, events: [copy, ...prev.events] }));
     } catch {
       toast.error("Failed to duplicate event.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    setActioningId(eventId);
+    try {
+      await deleteEvent(eventId);
+      toast.success("Event deleted.");
+      setData((prev) => ({
+        ...prev,
+        events: prev.events.filter((e) => e.id !== eventId),
+      }));
+    } catch {
+      toast.error("Failed to delete event.");
     } finally {
       setActioningId(null);
     }
@@ -486,6 +503,7 @@ export default function AdminDashboard() {
               onDuplicate={handleDuplicateEvent}
               onCancelOccurrence={setCancelEvent}
               onViewAttendance={setAttendanceEvent}
+              onDelete={handleDeleteEvent}
               closingId={actioningId}
             />
           </div>

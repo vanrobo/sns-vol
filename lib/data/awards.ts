@@ -191,7 +191,12 @@ export async function grantAward(userId: string, awardId: string) {
     award_id: awardId,
     awarded_by: user?.id ?? null,
   });
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("This volunteer already has this award.");
+    }
+    throw new Error(error.message || "Could not grant award.");
+  }
 }
 
 export async function deleteAward(awardId: string) {

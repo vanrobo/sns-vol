@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock, Copy, Users, CalendarOff } from "lucide-react";
+import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock, Copy, Users, CalendarOff, Trash2 } from "lucide-react";
 import type { Event } from "@/types";
 import { titleCaseStatus } from "@/types";
 import { getEventPublicUrl } from "@/lib/events/share";
@@ -17,6 +17,7 @@ type EventsTableProps = {
   onDuplicate?: (event: Event) => void;
   onCancelOccurrence?: (event: Event) => void;
   onViewAttendance?: (event: Event) => void;
+  onDelete?: (eventId: string) => void;
   closingId: string | null;
 };
 
@@ -32,6 +33,7 @@ export default function EventsTable({
   onDuplicate,
   onCancelOccurrence,
   onViewAttendance,
+  onDelete,
   closingId,
 }: EventsTableProps) {
   const paged = paginate(events, page, PAGE_SIZE);
@@ -163,6 +165,25 @@ export default function EventsTable({
                 className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 text-xs font-bold disabled:opacity-50"
               >
                 <Unlock size={14} /> Reopen
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                disabled={closingId === evt.id}
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Delete "${evt.title}"? Applications and attendance records will be removed.`,
+                    )
+                  ) {
+                    onDelete(evt.id);
+                  }
+                }}
+                className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300 text-xs font-bold disabled:opacity-50"
+                aria-label="Delete event"
+              >
+                <Trash2 size={14} />
               </button>
             )}
           </div>

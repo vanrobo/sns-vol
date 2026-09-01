@@ -10,6 +10,7 @@ import {
   closeEvent,
   reopenEvent,
   duplicateEvent,
+  deleteEvent,
   cancelEventOccurrence,
   updateApplicationStatus,
   type EventInput,
@@ -172,6 +173,20 @@ export default function OrganiserDashboard() {
     }
   };
 
+  const handleDeleteEvent = async (eventId: string) => {
+    setActioningId(eventId);
+    try {
+      await deleteEvent(eventId);
+      haptic("warning");
+      toast.success("Event deleted.");
+      fetchData();
+    } catch {
+      toast.error("Failed to delete event.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
   const handleApplicationAction = async (
     userId: string,
     eventId: string,
@@ -191,8 +206,8 @@ export default function OrganiserDashboard() {
   };
 
   const tabs = [
-    { key: "events", label: "Events", icon: Calendar },
-    { key: "applications", label: "Applications", icon: Award },
+    { key: "events", label: "Event organize", icon: Calendar },
+    { key: "applications", label: "Approval", icon: Award },
     { key: "awards", label: "Awards", icon: Trophy },
   ];
 
@@ -239,10 +254,10 @@ export default function OrganiserDashboard() {
             </div>
             <StaffWelcome
               name={staffName}
-              subtitle="Manage your events and review applications."
+              subtitle="Add, edit, or delete events and manage your schedule."
             />
             <div className="flex justify-between items-center gap-3">
-              <h2 className="text-lg font-bold">Events</h2>
+              <h2 className="text-lg font-bold">Event organize</h2>
               <button
                 type="button"
                 onClick={openCreateModal}
@@ -261,6 +276,7 @@ export default function OrganiserDashboard() {
               onDuplicate={handleDuplicateEvent}
               onCancelOccurrence={setCancelEvent}
               onViewAttendance={setAttendanceEvent}
+              onDelete={handleDeleteEvent}
               closingId={actioningId}
             />
           </div>
@@ -268,7 +284,7 @@ export default function OrganiserDashboard() {
 
         {activeTab === "applications" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold">Applications</h2>
+            <h2 className="text-lg font-bold">Approval</h2>
             <ApplicationsTable
               applications={data.applications}
               page={appsPage}

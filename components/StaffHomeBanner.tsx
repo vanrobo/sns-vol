@@ -14,10 +14,10 @@ export default function StaffHomeBanner({ role, name }: StaffHomeBannerProps) {
 
   const isAdmin = role === "admin";
   const href = isAdmin ? "/admin" : "/organiser";
-  const title = isAdmin ? "Admin Dashboard" : "Organiser Dashboard";
+  const title = isAdmin ? "Admin Dashboard" : "Event organize";
   const subtitle = isAdmin
     ? "Manage events, volunteers, grievances, applications & awards"
-    : "Publish events, review applications & grant awards";
+    : "Add, edit, delete events, approve volunteers & grant awards";
 
   return (
     <Link

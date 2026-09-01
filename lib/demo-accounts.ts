@@ -10,8 +10,8 @@ export const DEMO_ACCOUNTS = [
   {
     label: "Organiser",
     email: "demo-organiser@sns-vol.demo",
-    description: "Organiser panel: publish events and manage applications",
-    path: "/organiser",
+    description: "Family member + organiser: volunteer home & event organize panel",
+    path: "/",
   },
   {
     label: "Volunteer",

@@ -88,7 +88,8 @@ export default function MobileLayout({
               }
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md shadow-emerald-600/20 transition-all"
             >
-              <LayoutDashboard size={12} /> Dashboard
+              <LayoutDashboard size={12} />{" "}
+              {staffRole === "admin" ? "Dashboard" : "Event organize"}
             </Link>
           )}
           <a

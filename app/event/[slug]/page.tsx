@@ -20,14 +20,14 @@ type Props = { params: Promise<{ slug: string }> };
 
 function appHomeForUser(role: UserRole, status: ProfileStatus): string {
   if (role === "admin") return "/admin";
-  if (role === "organiser") return "/organiser";
+  if (role === "organiser") return "/";
   if (status === "pending") return "/pending";
   return "/";
 }
 
 function appHomeLabel(role: UserRole, status: ProfileStatus): string {
   if (role === "admin") return "Open Admin Dashboard";
-  if (role === "organiser") return "Open Organiser Dashboard";
+  if (role === "organiser") return "Open Event organize";
   if (status === "pending") return "Continue Your Application";
   return `Open in ${APP_NAME}`;
 }

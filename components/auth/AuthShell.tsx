@@ -21,7 +21,7 @@ export default function AuthShell({
           <div className="flex justify-center mb-3">
             <BrandLogo size={112} showFamily={false} roundedFull />
           </div>
-          <p className="text-sm font-bold uppercase tracking-widest text-[var(--brand)]">
+          <p className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--brand)] mt-1">
             {APP_NAME}
           </p>
         </div>

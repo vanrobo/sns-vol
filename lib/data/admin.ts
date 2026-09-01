@@ -176,6 +176,13 @@ export async function reopenEvent(id: string) {
   if (error) throw error;
 }
 
+export async function deleteEvent(id: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await supabase.from("events").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function adminDeleteVolunteer(userId: string) {
   await requireAdmin();
   const supabase = await createClient();

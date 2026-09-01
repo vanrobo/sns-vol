@@ -71,7 +71,7 @@ export function getProfileCompletion(profile: Profile | null): {
 
 export function onboardingRedirect(status: string, role: string): string {
   if (role === "admin") return "/admin";
-  if (role === "organiser") return "/organiser";
+  if (role === "organiser") return "/";
   if (status === "pending") return "/profile?onboarding=1";
   return "/";
 }

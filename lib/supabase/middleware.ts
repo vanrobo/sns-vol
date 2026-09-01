@@ -90,7 +90,7 @@ export async function updateSession(request: NextRequest) {
 
     if (user && isAuthPage) {
       if (profile?.role === "admin") return redirectTo(request, "/admin");
-      if (profile?.role === "organiser") return redirectTo(request, "/organiser");
+      if (profile?.role === "organiser") return redirectTo(request, "/");
       if (profile?.role === "volunteer" && profile.status === "pending") {
         return redirectTo(request, "/pending");
       }

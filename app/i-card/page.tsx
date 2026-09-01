@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import { ICardSkeleton } from "@/components/ui/Skeleton";
 import { APP_NAME, APP_SITE_HOST } from "@/lib/brand";
 
-const QR_SIZE = 168;
+const QR_SIZE = 236;
 
 export default function ICardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -61,17 +61,16 @@ export default function ICardPage() {
           </p>
 
           <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-emerald-700/30 bg-white dark:bg-[#0a0a0a]">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-4 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-3 flex justify-between items-center">
               <div>
-                <p className="text-white font-black text-lg leading-tight tracking-tight">
+                <p className="text-white font-black text-base leading-tight tracking-tight">
                   {APP_NAME}
                 </p>
-                <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-[0.2em] mt-0.5">
-                  Official Volunteer ID
+                <p className="text-emerald-100 text-[9px] font-bold uppercase tracking-[0.18em] mt-0.5">
+                  Volunteer I-Card
                 </p>
               </div>
-              <ShieldCheck size={28} className="text-white/70 shrink-0" />
+              <ShieldCheck size={22} className="text-white/70 shrink-0" />
             </div>
 
             {!isActive ? (
@@ -87,9 +86,8 @@ export default function ICardPage() {
               </div>
             ) : (
               <>
-                {/* Identity row */}
-                <div className="p-5 flex gap-4 border-b border-[var(--border)]">
-                  <div className="w-20 h-24 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="px-4 py-3 border-b border-[var(--border)] flex gap-3 items-center">
+                  <div className="w-14 h-16 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center overflow-hidden shrink-0">
                     {profile.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -98,60 +96,30 @@ export default function ICardPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="text-emerald-600" size={36} />
+                      <User className="text-emerald-600" size={28} />
                     )}
                   </div>
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600">
-                        Name
-                      </p>
-                      <p className="text-lg font-black uppercase leading-tight truncate">
-                        {profile.name}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600">
-                        Volunteer ID
-                      </p>
-                      <p className="text-sm font-black font-mono tracking-wide text-emerald-700 dark:text-emerald-400">
-                        {profile.volunteer_id || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-                        Concern Center
-                      </p>
-                      <p className="text-base font-semibold truncate">
-                        {profile.college}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Meta row */}
-                <div className="px-5 py-3 grid grid-cols-1 gap-3 border-b border-[var(--border)] bg-slate-50/80 dark:bg-[#141414]">
-                  <div>
-                    <p className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
-                      Volunteer ID
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-black uppercase leading-tight truncate">
+                      {profile.name}
                     </p>
-                    <p className="text-sm font-black font-mono tracking-wide text-emerald-700 dark:text-emerald-400">
+                    <p className="text-xs font-bold font-mono text-emerald-700 dark:text-emerald-400">
                       {profile.volunteer_id || "—"}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
-                      Valid Until
+                    <p className="text-[11px] font-medium text-[var(--text-muted)] truncate">
+                      {profile.college}
                     </p>
-                    <p className="text-xs font-bold font-mono">
-                      {profile.valid_until || "—"}
+                    <p className="text-[10px] text-[var(--text-muted)]">
+                      Valid until{" "}
+                      <span className="font-semibold text-[var(--text)]">
+                        {profile.valid_until || "—"}
+                      </span>
                     </p>
                   </div>
                 </div>
 
-                {/* Large scannable QR */}
-                <div className="p-6 flex flex-col items-center bg-white dark:bg-[#0a0a0a]">
-                  <div className="bg-white p-3 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 shadow-sm">
+                <div className="px-4 py-5 flex flex-col items-center bg-white dark:bg-[#0a0a0a]">
+                  <div className="bg-white p-2.5 rounded-xl border-2 border-neutral-200 dark:border-neutral-700 shadow-sm">
                     {qrUrl ? (
                       <QRCodeSVG
                         value={qrUrl}
@@ -168,10 +136,10 @@ export default function ICardPage() {
                       </div>
                     )}
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mt-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mt-3">
                     Scan to verify ID
                   </p>
-                  <p className="text-[10px] text-emerald-600 font-semibold mt-1">
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
                     {siteHost}
                   </p>
                 </div>
@@ -182,8 +150,8 @@ export default function ICardPage() {
           </div>
 
           <p className="text-[9px] text-center text-[var(--text-muted)] mt-4 font-medium leading-relaxed">
-            Hold your phone steady and brighten the screen for faster scanning.
-            Do not share your QR code publicly.
+            Brighten your screen and hold steady for faster scanning. Do not
+            share your QR publicly.
           </p>
         </div>
       </div>

@@ -8,17 +8,10 @@ type Props = {
   volunteerName?: string;
 };
 
-function formatAwardDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function showDescription(text?: string) {
   const value = text?.trim();
   if (!value) return false;
-  if (/^this is a test/i.test(value)) return false;
+  if (/^(this is a test|example)$/i.test(value)) return false;
   return true;
 }
 
@@ -35,30 +28,17 @@ export default function AwardsCarousel({ awards, volunteerName }: Props) {
           {awards.map((award) => (
             <article
               key={award.id}
-              className="snap-center shrink-0 w-[min(76vw,210px)] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm flex flex-col items-center"
+              className="snap-center shrink-0 w-[min(72vw,172px)] flex flex-col items-center"
             >
-              <div className="w-full flex items-start justify-between gap-2 mb-2">
-                <div className="min-w-0">
-                  <p className="font-bold text-sm leading-tight line-clamp-2">
-                    {award.title}
-                  </p>
-                  <p className="text-[10px] font-semibold text-[var(--brand)] mt-0.5">
-                    {formatAwardDate(award.awarded_at)}
-                  </p>
-                </div>
-              </div>
-
               <AwardBadge
                 award={award}
                 volunteerName={volunteerName}
-                variant="compact"
-                size={118}
+                size={160}
+                showVolunteerName={false}
                 showActions
-                iconOnlyActions
               />
-
               {showDescription(award.description) && (
-                <p className="text-[11px] text-[var(--text-muted)] text-center leading-relaxed line-clamp-2 mt-2 w-full border-t border-[var(--border)] pt-2">
+                <p className="text-[10px] text-[var(--text-muted)] text-center leading-relaxed line-clamp-2 mt-1 px-1">
                   {award.description}
                 </p>
               )}

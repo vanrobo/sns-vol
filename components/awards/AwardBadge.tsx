@@ -10,11 +10,10 @@ type Props = {
   volunteerName?: string;
   size?: number;
   showActions?: boolean;
-  iconOnlyActions?: boolean;
-  variant?: "compact" | "full";
+  showVolunteerName?: boolean;
 };
 
-function wrapTitle(title: string, max = 20) {
+function wrapTitle(title: string, max = 18) {
   const words = title.trim().split(/\s+/);
   const lines: string[] = [];
   let line = "";
@@ -68,83 +67,18 @@ function exportSvgAsPng(svg: SVGSVGElement, filename: string) {
   image.src = url;
 }
 
-function CompactMedallion({
-  award,
-  size,
-  svgRef,
-}: {
-  award: UserAward;
-  size: number;
-  svgRef: React.RefObject<SVGSVGElement | null>;
-}) {
-  const accent = award.color ?? "#34c759";
-
-  return (
-    <svg
-      ref={svgRef}
-      viewBox="0 0 200 200"
-      width={size}
-      height={size}
-      role="img"
-      aria-hidden
-      className="drop-shadow-md"
-    >
-      <defs>
-        <linearGradient id={`ring-${award.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={accent} stopOpacity="0.95" />
-          <stop offset="100%" stopColor="#0f172a" />
-        </linearGradient>
-      </defs>
-      <circle cx="100" cy="100" r="96" fill={`url(#ring-${award.id})`} />
-      <circle cx="100" cy="100" r="82" fill="#faf8f3" />
-      <circle cx="100" cy="100" r="78" fill="none" stroke={accent} strokeWidth="1.5" opacity="0.45" />
-      <polygon
-        points="100,34 104,46 117,46 107,54 111,66 100,58 89,66 93,54 83,46 96,46"
-        fill={accent}
-      />
-      <circle cx="100" cy="96" r="28" fill={accent} opacity="0.12" />
-      <text
-        x="100"
-        y="103"
-        textAnchor="middle"
-        fill={accent}
-        fontSize="26"
-        fontWeight="700"
-        fontFamily="Georgia, serif"
-      >
-        ★
-      </text>
-      <path
-        d="M62 142 Q100 156 138 142 L132 152 Q100 164 68 152 Z"
-        fill={accent}
-        opacity="0.9"
-      />
-      <text
-        x="100"
-        y="149"
-        textAnchor="middle"
-        fill="#fff"
-        fontSize="7"
-        fontWeight="700"
-        fontFamily="system-ui, sans-serif"
-        letterSpacing="1"
-      >
-        SNS FAMILY
-      </text>
-    </svg>
-  );
-}
-
-function FullMedallion({
+function MedallionSvg({
   award,
   volunteerName,
   size,
   svgRef,
+  showVolunteerName = false,
 }: {
   award: UserAward;
   volunteerName?: string;
   size: number;
   svgRef: React.RefObject<SVGSVGElement | null>;
+  showVolunteerName?: boolean;
 }) {
   const accent = award.color ?? "#c9a227";
   const titleLines = wrapTitle(award.title);
@@ -152,6 +86,7 @@ function FullMedallion({
     month: "long",
     year: "numeric",
   });
+  const titleStartY = showVolunteerName && volunteerName ? 172 : 158;
 
   return (
     <svg
@@ -161,79 +96,133 @@ function FullMedallion({
       height={size}
       role="img"
       aria-label={`${award.title} award badge`}
-      className="drop-shadow-lg"
+      className="drop-shadow-md"
     >
       <defs>
+        <radialGradient id={`glow-${award.id}`} cx="32%" cy="28%" r="68%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+        </radialGradient>
         <linearGradient id={`gold-${award.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f5e6b8" />
-          <stop offset="50%" stopColor={accent} />
-          <stop offset="100%" stopColor="#5b4a12" />
+          <stop offset="0%" stopColor="#f7e7b8" />
+          <stop offset="45%" stopColor={accent} />
+          <stop offset="100%" stopColor="#6b5418" />
         </linearGradient>
       </defs>
-      <circle cx="200" cy="200" r="194" fill="#0f172a" />
-      <circle cx="200" cy="200" r="188" fill="none" stroke={`url(#gold-${award.id})`} strokeWidth="3" />
-      <circle cx="200" cy="200" r="162" fill="#faf8f3" />
+
+      <circle cx="200" cy="200" r="196" fill="#0b1220" />
+      <circle cx="200" cy="200" r="196" fill={`url(#glow-${award.id})`} />
+      <circle
+        cx="200"
+        cy="200"
+        r="188"
+        fill="none"
+        stroke={`url(#gold-${award.id})`}
+        strokeWidth="3.5"
+      />
+
+      {Array.from({ length: 40 }).map((_, i) => {
+        const angle = (i / 40) * Math.PI * 2;
+        const x = 200 + Math.cos(angle) * 176;
+        const y = 200 + Math.sin(angle) * 176;
+        return <circle key={i} cx={x} cy={y} r="2" fill={accent} opacity="0.9" />;
+      })}
+
+      <circle cx="200" cy="200" r="158" fill="#f8f4ea" />
+      <circle cx="200" cy="200" r="152" fill="none" stroke="#1e293b" strokeWidth="1.2" opacity="0.35" />
+
+      <path
+        d="M70 232 C92 148, 118 112, 148 96"
+        fill="none"
+        stroke={`url(#gold-${award.id})`}
+        strokeWidth="5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M330 232 C308 148, 282 112, 252 96"
+        fill="none"
+        stroke={`url(#gold-${award.id})`}
+        strokeWidth="5"
+        strokeLinecap="round"
+      />
+
       <polygon
-        points="200,52 208,74 232,74 213,88 221,112 200,98 179,112 187,88 168,74 192,74"
+        points="200,54 209,78 234,78 214,93 222,118 200,103 178,118 186,93 166,78 191,78"
         fill={`url(#gold-${award.id})`}
       />
+
       <text
         x="200"
-        y="118"
+        y="124"
         textAnchor="middle"
-        fill="#334155"
-        fontSize="16"
+        fill="#111827"
+        fontSize="15"
         fontWeight="700"
-        fontFamily="Georgia, serif"
-        letterSpacing="2.5"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        letterSpacing="3"
       >
         SNS AWARD
       </text>
-      {volunteerName && (
+
+      {showVolunteerName && volunteerName && (
         <text
           x="200"
-          y="140"
+          y="144"
           textAnchor="middle"
           fill="#64748b"
-          fontSize="12"
-          fontFamily="Georgia, serif"
+          fontSize="11"
+          fontFamily="Georgia, 'Times New Roman', serif"
         >
           {volunteerName}
         </text>
       )}
+
       {titleLines.map((line, index) => (
         <text
           key={line}
           x="200"
-          y={168 + index * 26}
+          y={titleStartY + index * 24}
           textAnchor="middle"
           fill="#111827"
-          fontSize={index === 0 ? 20 : 17}
+          fontSize={index === 0 ? 19 : 16}
           fontWeight="700"
-          fontFamily="Georgia, serif"
+          fontFamily="Georgia, 'Times New Roman', serif"
         >
           {line}
         </text>
       ))}
+
       <path
-        d="M118 286 Q200 318 282 286 L272 304 Q200 332 128 304 Z"
+        d="M112 286 Q200 322 288 286 L276 306 Q200 338 124 306 Z"
         fill={`url(#gold-${award.id})`}
       />
       <text
         x="200"
-        y="300"
+        y="302"
         textAnchor="middle"
         fill="#111827"
-        fontSize="10"
+        fontSize="9.5"
         fontWeight="700"
-        fontFamily="Georgia, serif"
-        letterSpacing="1.2"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        letterSpacing="1.4"
       >
         {dateLabel.toUpperCase()}
       </text>
-      <text x="200" y="336" textAnchor="middle" fill="#64748b" fontSize="11" fontFamily="Georgia, serif">
+
+      <text
+        x="200"
+        y="336"
+        textAnchor="middle"
+        fill="#64748b"
+        fontSize="10.5"
+        fontFamily="Georgia, 'Times New Roman', serif"
+      >
         SNS Family
       </text>
+
+      <circle cx="176" cy="352" r="4" fill={accent} />
+      <circle cx="200" cy="356" r="4.8" fill={accent} />
+      <circle cx="224" cy="352" r="4" fill={accent} />
     </svg>
   );
 }
@@ -241,13 +230,11 @@ function FullMedallion({
 export default function AwardBadge({
   award,
   volunteerName,
-  size,
+  size = 168,
   showActions = true,
-  iconOnlyActions = false,
-  variant = "full",
+  showVolunteerName = false,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const displaySize = size ?? (variant === "compact" ? 132 : 220);
 
   const handleDownload = () => {
     if (!svgRef.current) return;
@@ -284,48 +271,35 @@ export default function AwardBadge({
     handleDownload();
   };
 
-  const actionBtnClass = iconOnlyActions
-    ? "p-2 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--brand)] active:scale-95 transition-transform"
-    : "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-bold";
-
-  const shareBtnClass = iconOnlyActions
-    ? "p-2 rounded-full bg-[var(--brand)] text-white active:scale-95 transition-transform"
-    : "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--brand)] text-white text-xs font-bold";
-
   return (
-    <div className="flex flex-col items-center gap-2">
-      {variant === "compact" ? (
-        <CompactMedallion award={award} size={displaySize} svgRef={svgRef} />
-      ) : (
-        <FullMedallion
-          award={award}
-          volunteerName={volunteerName}
-          size={displaySize}
-          svgRef={svgRef}
-        />
-      )}
+    <div className="flex flex-col items-center gap-1.5">
+      <MedallionSvg
+        award={award}
+        volunteerName={volunteerName}
+        size={size}
+        svgRef={svgRef}
+        showVolunteerName={showVolunteerName}
+      />
 
       {showActions && (
-        <div className={`flex items-center ${iconOnlyActions ? "gap-1.5" : "gap-2"}`}>
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={handleDownload}
-            className={actionBtnClass}
+            className="p-1.5 rounded-full text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-slate-100 dark:hover:bg-[#18181B] active:scale-95 transition-transform"
             aria-label="Save award image"
             title="Save image"
           >
-            <Download size={iconOnlyActions ? 16 : 14} />
-            {!iconOnlyActions && "Save image"}
+            <Download size={15} />
           </button>
           <button
             type="button"
             onClick={handleShare}
-            className={shareBtnClass}
+            className="p-1.5 rounded-full text-[var(--brand)] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 active:scale-95 transition-transform"
             aria-label="Share award"
             title="Share"
           >
-            <Share2 size={iconOnlyActions ? 16 : 14} />
-            {!iconOnlyActions && "Share"}
+            <Share2 size={15} />
           </button>
         </div>
       )}

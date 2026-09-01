@@ -22,13 +22,39 @@ type Props = {
   sourceUrl?: string;
 };
 
+function useSpreadLayout() {
+  const [spread, setSpread] = useState(false);
+  const [pageWidth, setPageWidth] = useState(320);
+
+  useEffect(() => {
+    const update = () => {
+      const landscape = window.innerWidth > window.innerHeight && window.innerWidth >= 640;
+      setSpread(landscape);
+      const gutter = landscape ? 56 : 32;
+      const pages = landscape ? 2 : 1;
+      const maxSingle = landscape ? 380 : 520;
+      setPageWidth(Math.min((window.innerWidth - gutter) / pages, maxSingle));
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, []);
+
+  return { spread, pageWidth };
+}
+
 export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [scale, setScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pageWidth, setPageWidth] = useState(320);
+  const { spread, pageWidth } = useSpreadLayout();
 
   const fileUrl = useMemo(
     () => `/api/library/pdf/${publicationId}`,
@@ -42,15 +68,6 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
     setPage(1);
   }, [publicationId]);
 
-  useEffect(() => {
-    const update = () => {
-      setPageWidth(Math.min(window.innerWidth - 32, 520));
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
   const onLoadSuccess = useCallback(({ numPages: total }: { numPages: number }) => {
     setNumPages(total);
     setPage(1);
@@ -63,17 +80,50 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
     setError("Could not load this PDF. Check the link or try again later.");
   }, []);
 
-  const prev = () => setPage((p) => Math.max(1, p - 1));
-  const next = () => setPage((p) => Math.min(numPages, p + 1));
+  const rightPage = spread && page + 1 <= numPages ? page + 1 : null;
+
+  const prev = () => {
+    if (!spread) {
+      setPage((p) => Math.max(1, p - 1));
+      return;
+    }
+    if (page === numPages && numPages % 2 === 1) {
+      setPage(Math.max(1, numPages - 2));
+      return;
+    }
+    setPage((p) => Math.max(1, p - 2));
+  };
+
+  const next = () => {
+    if (!spread) {
+      setPage((p) => Math.min(numPages, p + 1));
+      return;
+    }
+    if (page + 2 <= numPages) {
+      setPage((p) => p + 2);
+      return;
+    }
+    if (page < numPages) {
+      setPage(numPages);
+    }
+  };
+
   const zoomIn = () => setScale((s) => Math.min(2.5, +(s + 0.15).toFixed(2)));
   const zoomOut = () => setScale((s) => Math.max(0.6, +(s - 0.15).toFixed(2)));
+
+  const pageLabel = rightPage ? `${page}–${rightPage}` : String(page);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--surface-muted)]">
       <div className="shrink-0 px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3">
         <div className="min-w-0 flex items-center gap-2">
           <BookOpen size={18} className="text-[var(--brand)] shrink-0" />
-          <p className="font-bold text-sm truncate">{title}</p>
+          <div className="min-w-0">
+            <p className="font-bold text-sm truncate">{title}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">
+              {spread ? "Landscape · 2-page spread" : "Portrait · single page"}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -100,7 +150,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto flex justify-center p-4">
+      <div className="flex-1 min-h-0 overflow-auto flex justify-center items-start p-4">
         {error ? (
           <div className="flex flex-col items-center justify-center text-center px-4 py-8 gap-3 m-auto">
             <p className="text-sm text-red-600">{error}</p>
@@ -128,7 +178,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
               onLoadSuccess={onLoadSuccess}
               onLoadError={onLoadError}
               loading=""
-              className="shadow-xl rounded-lg overflow-hidden bg-white"
+              className={`shadow-xl rounded-lg overflow-hidden bg-white ${spread ? "flex gap-1" : ""}`}
             >
               <Page
                 pageNumber={page}
@@ -138,6 +188,16 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
                 renderAnnotationLayer
                 className="mx-auto"
               />
+              {rightPage && (
+                <Page
+                  pageNumber={rightPage}
+                  width={pageWidth}
+                  scale={scale}
+                  renderTextLayer
+                  renderAnnotationLayer
+                  className="mx-auto"
+                />
+              )}
             </Document>
           </div>
         )}
@@ -153,8 +213,8 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
           <ChevronLeft size={16} />
           Prev
         </button>
-        <p className="text-xs font-bold text-[var(--text-muted)]">
-          Page {page} of {numPages || "—"}
+        <p className="text-xs font-bold text-[var(--text-muted)] text-center">
+          Page {pageLabel} of {numPages || "—"}
         </p>
         <button
           type="button"

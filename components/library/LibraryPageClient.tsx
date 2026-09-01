@@ -17,9 +17,9 @@ import { APP_NAME_ACCENT } from "@/lib/brand";
 
 const MAGAZINE_CATEGORIES = [
   { key: "all", label: "All" },
-  { key: "general", label: "General" },
-  { key: "steam", label: "STEAM" },
-  { key: "legal", label: "Legal" },
+  { key: "children", label: "Children" },
+  { key: "women", label: "Women" },
+  { key: "cyber", label: "Cyber" },
 ];
 
 function categoryLabel(key: string) {
@@ -95,7 +95,7 @@ export default function LibraryPageClient() {
               SNS <span className="text-[var(--brand)]">{APP_NAME_ACCENT}</span>
             </h1>
             <p className="text-[11px] text-[var(--text-muted)] font-medium">
-              Magazine & newsletters — public library
+              SNS magazines & newsletters
             </p>
           </div>
         </div>

@@ -18,10 +18,10 @@ import {
   requestDeleteAccount,
   cancelDeleteAccountRequest,
 } from "@/lib/data/profiles";
-import type { Profile } from "@/types";
+import type { Profile, UserAward } from "@/types";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
 import { getMyAwards } from "@/lib/data/awards";
-import type { UserAward } from "@/types";
+import AwardBadge from "@/components/awards/AwardBadge";
 import {
   User,
   Loader2,
@@ -631,19 +631,23 @@ function ProfilePageContent() {
               you here.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               {myAwards.map((a) => (
                 <div
                   key={a.id}
-                  className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40"
+                  className="flex flex-col items-center rounded-xl border border-[var(--border)] bg-slate-50/50 dark:bg-[#18181B]/40 p-4"
                 >
-                  <p className="font-bold text-sm">{a.title}</p>
+                  <AwardBadge
+                    award={a}
+                    volunteerName={profile.name}
+                    size={240}
+                    showActions
+                  />
                   {a.description && (
-                    <p className="text-xs text-gray-500 mt-0.5">{a.description}</p>
+                    <p className="text-xs text-[var(--text-muted)] text-center mt-3 leading-relaxed">
+                      {a.description}
+                    </p>
                   )}
-                  <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-1">
-                    {new Date(a.awarded_at).toLocaleDateString()}
-                  </p>
                 </div>
               ))}
             </div>

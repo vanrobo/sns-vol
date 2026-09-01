@@ -17,13 +17,6 @@ export const QUICK_LINKS: QuickLink[] = [
     external: false,
   },
   {
-    id: "publications",
-    label: "Publications",
-    href: "https://standnstride.org/publication/",
-    description: "SNS articles and updates",
-    external: true,
-  },
-  {
     id: "website",
     label: "Stand N Stride",
     href: "https://standnstride.org/",

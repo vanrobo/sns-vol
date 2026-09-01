@@ -132,7 +132,7 @@ export default function NotificationsPage() {
                 In-app alerts
               </h2>
               <p className="text-[#98989D] text-[13px] leading-relaxed">
-                Tap an alert to expand. Use Open to go to the related screen.
+                Tap an alert to expand. Showing your latest 10 alerts.
               </p>
             </div>
             {refreshing && (

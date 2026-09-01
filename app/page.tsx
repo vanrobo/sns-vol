@@ -538,7 +538,7 @@ export default function VolunteeringDashboard() {
               loading={upcomingLoading}
               onSelect={setSelectedEvent}
             />
-            <AwardsCarousel awards={myAwards} />
+            <AwardsCarousel awards={myAwards} volunteerName={session.name} />
           </div>
         )}
 

@@ -26,7 +26,7 @@ export default async function LibraryReaderPage({ params }: Props) {
         <PdfReader
           publicationId={publication.id}
           title={publication.title}
-          sourceUrl={publication.pdf_url}
+          sourceUrl={publication.source_url ?? publication.pdf_url}
         />
       </div>
     </div>

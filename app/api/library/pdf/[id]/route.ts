@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getPublicationById } from "@/lib/data/publications";
+import { getSnsMenuPublicationById } from "@/lib/library/sns-menu";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const publication = await getPublicationById(id);
+  const publication = await getSnsMenuPublicationById(id);
 
   if (!publication?.pdf_url) {
     return NextResponse.json({ error: "Publication not found" }, { status: 404 });
@@ -18,8 +18,7 @@ export async function GET(_request: Request, context: RouteContext) {
         Accept: "application/pdf,*/*",
         "User-Agent": "SNS-Family-Library/1.0",
       },
-      cache: "force-cache",
-      next: { revalidate: 3600 },
+      cache: "no-store",
     });
   } catch {
     return NextResponse.json({ error: "Failed to reach PDF host" }, { status: 502 });
@@ -40,7 +39,7 @@ export async function GET(_request: Request, context: RouteContext) {
     status: 200,
     headers: {
       "Content-Type": contentType,
-      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      "Cache-Control": "public, max-age=1800, stale-while-revalidate=3600",
       "Content-Disposition": "inline",
     },
   });

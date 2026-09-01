@@ -5,20 +5,11 @@ import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTheme } from "next-themes";
 import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
 import { haptic } from "@/lib/haptics";
 import { compressAvatarFile } from "@/lib/compress-image";
-import InstallAppSetting from "@/components/settings/InstallAppSetting";
-import AppDataSettings from "@/components/settings/AppDataSettings";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
 import Link from "next/link";
-import {
-  canUseBrowserNotifications,
-  isPushEnabledLocally,
-  requestBrowserNotificationPermission,
-  setPushEnabledLocally,
-} from "@/lib/push/browser-notifications";
 import {
   getProfile,
   updateProfile,
@@ -40,15 +31,12 @@ import {
   Check,
   ChevronDown,
   LogOut,
-  Sun,
-  Moon,
   AlertTriangle,
   Settings,
   Shield,
   BookOpen,
   Camera,
   Award,
-  Bell,
 } from "lucide-react";
 
 import { GOOGLE_REVIEW_URL } from "@/lib/brand";
@@ -62,7 +50,6 @@ function ProfilePageContent() {
   const searchParams = useSearchParams();
   const onboardingMode = searchParams.get("onboarding") === "1";
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { theme, resolvedTheme, setTheme } = useTheme();
   const unsavedCtx = useUnsavedChangesOptional();
 
   const cached = readProfileCache();
@@ -93,12 +80,10 @@ function ProfilePageContent() {
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isEditingSkills, setIsEditingSkills] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
-  const [pushEnabled, setPushEnabled] = useState(false);
   const [onboardingPrimed, setOnboardingPrimed] = useState(false);
 
   useEffect(() => {
     setPortalReady(true);
-    setPushEnabled(isPushEnabledLocally());
   }, []);
 
   const profileSnapshot = useMemo(() => {
@@ -563,62 +548,24 @@ function ProfilePageContent() {
           </div>
         </div>
 
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)] overflow-hidden">
-          <InstallAppSetting />
-        </div>
-
-        <AppDataSettings />
+        <Link
+          href="/settings"
+          onClick={(e) => unsavedCtx?.guardNavigation(e, "/settings")}
+          className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Settings size={16} className="text-[var(--brand)]" />
+            <div>
+              <span className="font-semibold text-sm block">App settings</span>
+              <p className="text-[10px] text-[var(--text-muted)]">
+                Theme, text size, cache, alerts & version
+              </p>
+            </div>
+          </div>
+          <ChevronDown size={14} className="-rotate-90 text-slate-400" />
+        </Link>
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
-          <div className="p-4 px-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <Bell size={16} className="text-[var(--brand)] shrink-0" />
-              <div className="min-w-0">
-                <span className="font-semibold text-sm block">Browser alerts</span>
-                <p className="text-[10px] text-[var(--text-muted)] leading-snug">
-                  Pop-ups while this site is open, not true phone push when
-                  closed
-                </p>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={pushEnabled}
-                disabled={!canUseBrowserNotifications()}
-                onChange={async () => {
-                  if (!canUseBrowserNotifications()) {
-                    toast.error("Notifications not supported on this device.");
-                    return;
-                  }
-                  if (!pushEnabled) {
-                    const perm = await requestBrowserNotificationPermission();
-                    if (perm !== "granted") {
-                      toast.error("Enable notifications in browser settings.");
-                      return;
-                    }
-                    setPushEnabled(true);
-                    setPushEnabledLocally(true);
-                    toast.success("Browser alerts enabled");
-                  } else {
-                    setPushEnabled(false);
-                    setPushEnabledLocally(false);
-                    toast.success("Browser alerts disabled");
-                  }
-                }}
-              />
-              <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--brand)] peer-disabled:opacity-40" />
-            </label>
-          </div>
-          <Link
-            href="/notifications"
-            onClick={(e) => unsavedCtx?.guardNavigation(e, "/notifications")}
-            className="p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
-          >
-              <span className="font-semibold text-sm">In-app alert history</span>
-            <ChevronDown size={14} className="-rotate-90 text-slate-400" />
-          </Link>
           <div className="p-4 px-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Shield size={16} className="text-slate-400" />
@@ -641,42 +588,6 @@ function ProfilePageContent() {
               />
               <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--brand)]" />
             </label>
-          </div>
-        </div>
-
-        <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
-          <div className="p-4 px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Settings size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">Theme Mode</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setTheme("system")}
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-all ${
-                  theme === "system"
-                    ? "bg-[var(--brand)] text-white"
-                    : "bg-slate-100 dark:bg-[#18181B] text-[var(--text-muted)]"
-                }`}
-              >
-                Auto
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTheme(resolvedTheme === "dark" ? "light" : "dark")
-                }
-                className="p-1.5 bg-slate-100 dark:bg-[#1C1C1E] rounded-md active:scale-95 transition-transform"
-                aria-label="Toggle light or dark"
-              >
-                {resolvedTheme === "dark" ? (
-                  <Sun size={14} className="text-yellow-500" />
-                ) : (
-                  <Moon size={14} className="text-blue-500" />
-                )}
-              </button>
-            </div>
           </div>
         </div>
 

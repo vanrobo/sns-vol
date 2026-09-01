@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Users, Trophy, CalendarDays, ClipboardList } from "lucide-react";
+import { Trophy, CalendarDays, ClipboardList, BadgeCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 type Props = {
-  batch: string | null;
   awardCount: number;
   onEventsClick?: () => void;
 };
@@ -19,12 +18,11 @@ type Item = {
 };
 
 export default function QuickAccessGrid({
-  batch,
   awardCount,
   onEventsClick,
 }: Props) {
   const items: Item[] = [
-    { key: "batch", label: "Batch", icon: Users },
+    { key: "icard", label: "I-Card", icon: BadgeCheck, href: "/i-card" },
     { key: "awards", label: "Awards", icon: Trophy, href: "/profile#awards" },
     {
       key: "applications",
@@ -44,10 +42,10 @@ export default function QuickAccessGrid({
     <div className="grid grid-cols-4 gap-2">
       {items.map(({ key, label, icon: Icon, href, onClick }) => {
         const subtitle =
-          key === "batch"
-            ? batch || "-"
-            : key === "awards"
-              ? String(awardCount)
+          key === "awards"
+            ? String(awardCount)
+            : key === "icard"
+              ? "View"
               : key === "applications"
                 ? "View"
                 : "View";

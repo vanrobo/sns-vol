@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, startTransition } from "react";
 import toast from "react-hot-toast";
-import { Plus, Calendar, Award, Trophy } from "lucide-react";
+import { Plus, Calendar, Award, Trophy, Users } from "lucide-react";
 import type { ApplicationStatus, Event } from "@/types";
 import {
   createEvent,
@@ -34,6 +34,7 @@ import CancelOccurrenceModal from "@/components/staff/CancelOccurrenceModal";
 import ApplicationsTable from "@/components/staff/ApplicationsTable";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import AwardsPanel from "@/components/staff/AwardsPanel";
+import OrganiserVolunteersPanel from "@/components/staff/OrganiserVolunteersPanel";
 import type { OrganiserData } from "@/lib/data/organiser";
 
 export default function OrganiserDashboard() {
@@ -208,6 +209,7 @@ export default function OrganiserDashboard() {
   const tabs = [
     { key: "events", label: "Event organize", icon: Calendar },
     { key: "applications", label: "Approval", icon: Award },
+    { key: "volunteers", label: "Volunteers", icon: Users },
     { key: "awards", label: "Awards", icon: Trophy },
   ];
 
@@ -291,6 +293,25 @@ export default function OrganiserDashboard() {
               onPageChange={setAppsPage}
               actioningId={actioningId}
               onAction={handleApplicationAction}
+            />
+          </div>
+        )}
+
+        {activeTab === "volunteers" && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold">Volunteers</h2>
+            <OrganiserVolunteersPanel
+              volunteers={data.users}
+              actioningId={actioningId}
+              onActioningChange={setActioningId}
+              onUpdated={(userId, batch) =>
+                setData((prev) => ({
+                  ...prev,
+                  users: prev.users.map((u) =>
+                    u.id === userId ? { ...u, batch } : u,
+                  ),
+                }))
+              }
             />
           </div>
         )}

@@ -378,12 +378,12 @@ export async function resolveGrievance(id: string, adminNotes: string) {
 }
 
 export async function updateUserBatch(userId: string, batch: string) {
-  await requireAdmin();
+  await requireStaff();
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("profiles")
-    .update({ batch: batch.trim() || null })
-    .eq("id", userId);
+  const { error } = await supabase.rpc("set_volunteer_batch", {
+    p_user_id: userId,
+    p_batch: batch.trim(),
+  });
   if (error) throw error;
 }
 

@@ -4,6 +4,7 @@ import { UnsavedChangesProvider } from "@/components/UnsavedChangesProvider";
 import { Toaster } from "react-hot-toast";
 import PWARegister from "@/components/PWARegister";
 import NotificationPoller from "@/components/NotificationPoller";
+import FontScaleProvider from "@/components/FontScaleProvider";
 import type { Metadata, Viewport } from "next";
 import { APP_NAME, LOGO_ICON_192, LOGO_ICON_512, FAVICON_SRC, LOGO_APPLE, BRAND_THEME_COLOR } from "@/lib/brand";
 import "./globals.css";
@@ -48,9 +49,11 @@ export default function RootLayout({
           enableSystem
         >
           <UnsavedChangesProvider>
-            <PWARegister />
-            <NotificationPoller />
-            {children}
+            <FontScaleProvider>
+              <PWARegister />
+              <NotificationPoller />
+              {children}
+            </FontScaleProvider>
           </UnsavedChangesProvider>
           <Toaster
             position="top-center"

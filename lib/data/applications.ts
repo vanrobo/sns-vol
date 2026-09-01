@@ -21,35 +21,41 @@ export async function getMyApplications(): Promise<MyApplication[]> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data, error } = await supabase
+  const { data: apps, error } = await supabase
     .from("applications")
-    .select("id, event_id, status, created_at, events(title, date, venue, status)")
+    .select("id, event_id, status, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
+  if (!apps?.length) return [];
 
-  return (data ?? []).map((row) => {
-    const r = row as {
-      id: string;
-      event_id: string;
-      status: ApplicationStatus;
-      created_at: string;
-      events:
-        | { title: string; date: string; venue: string; status: string }
-        | { title: string; date: string; venue: string; status: string }[]
-        | null;
-    };
-    const event = Array.isArray(r.events) ? r.events[0] : r.events;
+  const eventIds = [...new Set(apps.map((a) => a.event_id))];
+  const { data: events, error: eventsError } = await supabase
+    .from("events")
+    .select("id, title, date, venue, status")
+    .in("id", eventIds);
+
+  if (eventsError) throw eventsError;
+
+  const eventMap = new Map(
+    (events ?? []).map((e) => [
+      e.id,
+      e as { title: string; date: string; venue: string; status: string },
+    ]),
+  );
+
+  return apps.map((row) => {
+    const event = eventMap.get(row.event_id);
     return {
-      id: r.id,
-      event_id: r.event_id,
-      status: r.status,
+      id: row.id,
+      event_id: row.event_id,
+      status: row.status as ApplicationStatus,
       event_title: event?.title ?? "Unknown event",
       event_date: event?.date ?? "",
       event_venue: event?.venue ?? "",
       event_status: event?.status ?? "active",
-      created_at: r.created_at,
+      created_at: row.created_at,
     };
   });
 }

@@ -33,8 +33,10 @@ import {
   CalendarDays,
   Clock,
   Search,
+  RefreshCw,
 } from "lucide-react";
 import { EventListSkeleton } from "@/components/ui/Skeleton";
+import Pagination, { paginate } from "@/components/staff/Pagination";
 import SkillChips from "@/components/ui/SkillChips";
 import StaffHomeBanner from "@/components/StaffHomeBanner";
 import QuickAccessGrid from "@/components/home/QuickAccessGrid";
@@ -71,6 +73,7 @@ function applicationStatusClass(status: ApplicationStatus) {
 }
 
 type Tab = "Active" | "Closed" | "Attended";
+const EVENTS_PAGE_SIZE = 8;
 
 export default function VolunteeringDashboard() {
   const [events, setEvents] = useState<Event[]>(() => {
@@ -111,6 +114,9 @@ export default function VolunteeringDashboard() {
     events: Event[];
   } | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [upcomingLoading, setUpcomingLoading] = useState(true);
+  const [eventsRefreshing, setEventsRefreshing] = useState(false);
+  const [eventsPage, setEventsPage] = useState(1);
   const [mySkills, setMySkills] = useState<string[]>(() => {
     const uid = readHomeCache()?.userId;
     return readProfileCache(uid)?.profile.skills ?? [];
@@ -143,9 +149,11 @@ export default function VolunteeringDashboard() {
             stats: st,
           });
           if (s.role === "volunteer") {
+            setUpcomingLoading(true);
             getUpcomingEvents()
               .then(setUpcomingEvents)
-              .catch(() => setUpcomingEvents([]));
+              .catch(() => setUpcomingEvents([]))
+              .finally(() => setUpcomingLoading(false));
           }
         }
       },
@@ -162,7 +170,6 @@ export default function VolunteeringDashboard() {
           const status =
             t === "Attended" ? "attended" : t === "Active" ? "active" : "closed";
           let fetched = await getEvents(status);
-          if (t === "Active") fetched = fetched.filter((e) => !e.is_recurring);
           const calendarEvents =
             t === "Active" ? await getEvents("active") : [];
           writeEventsCache(userId, key, fetched, calendarEvents);
@@ -188,6 +195,8 @@ export default function VolunteeringDashboard() {
 
     if (!opts?.silent && !cached) {
       setLoading(true);
+    } else if (opts?.silent) {
+      setEventsRefreshing(true);
     } else if (cached) {
       setEvents(cached.events);
       if (cached.calendarEvents.length > 0) {
@@ -208,9 +217,6 @@ export default function VolunteeringDashboard() {
       if (regionFilter !== "all") {
         fetched = fetched.filter((e) => matchesCenter(e.region, regionFilter));
       }
-      if (!dateFilter) {
-        fetched = fetched.filter((e) => !e.is_recurring);
-      }
       fetched = [...fetched].sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
@@ -229,6 +235,7 @@ export default function VolunteeringDashboard() {
       if (!cached) toast.error("Connection failed");
     } finally {
       setLoading(false);
+      setEventsRefreshing(false);
     }
   }, [tab, dateFilter, regionFilter, userId]);
 
@@ -256,9 +263,11 @@ export default function VolunteeringDashboard() {
     }
     await loadEvents({ silent: true });
     if (s?.role === "volunteer") {
+      setUpcomingLoading(true);
       getUpcomingEvents()
         .then(setUpcomingEvents)
-        .catch(() => setUpcomingEvents([]));
+        .catch(() => setUpcomingEvents([]))
+        .finally(() => setUpcomingLoading(false));
     }
     haptic("success");
   }, [loadEvents]);
@@ -388,6 +397,10 @@ export default function VolunteeringDashboard() {
 
   const centers = ["all", ...SNS_CENTERS];
 
+  useEffect(() => {
+    setEventsPage(1);
+  }, [tab, dateFilter, regionFilter, searchQuery]);
+
   const displayedEvents = events.filter((evt) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
@@ -399,6 +412,8 @@ export default function VolunteeringDashboard() {
       (evt.description ?? "").toLowerCase().includes(q)
     );
   });
+
+  const pagedEvents = paginate(displayedEvents, eventsPage, EVENTS_PAGE_SIZE);
 
   return (
     <MobileLayout onRefresh={refreshHome}>
@@ -421,12 +436,12 @@ export default function VolunteeringDashboard() {
               )}
             </div>
             <QuickAccessGrid
-              batch={session.batch}
               awardCount={myAwards.length}
               onEventsClick={() => setCalendarView(true)}
             />
             <UpcomingEvents
               events={upcomingEvents}
+              loading={upcomingLoading}
               onSelect={setSelectedEvent}
             />
             <AwardsCarousel awards={myAwards} />
@@ -438,18 +453,35 @@ export default function VolunteeringDashboard() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Filter size={14} className="text-[var(--brand)]" /> Events
+                {eventsRefreshing && (
+                  <Loader2 size={12} className="animate-spin text-[var(--brand)]" />
+                )}
               </span>
-              {(dateFilter || regionFilter !== "all") && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    setDateFilter("");
-                    setRegionFilter("all");
-                  }}
-                  className="text-[11px] font-bold text-red-500 hover:underline"
+                  type="button"
+                  onClick={() => loadEvents()}
+                  disabled={loading || eventsRefreshing}
+                  className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] disabled:opacity-50"
+                  aria-label="Refresh events"
                 >
-                  Clear
+                  <RefreshCw
+                    size={14}
+                    className={loading || eventsRefreshing ? "animate-spin" : ""}
+                  />
                 </button>
-              )}
+                {(dateFilter || regionFilter !== "all") && (
+                  <button
+                    onClick={() => {
+                      setDateFilter("");
+                      setRegionFilter("all");
+                    }}
+                    className="text-[11px] font-bold text-red-500 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
             <div className="relative">
               <Search
@@ -531,7 +563,8 @@ export default function VolunteeringDashboard() {
                 No events found match this selection.
               </div>
             ) : (
-              displayedEvents.map((evt) => {
+              <>
+                {pagedEvents.map((evt) => {
                 const matchPercentage = computeSkillMatch(mySkills, evt.required_skills);
                 const isHighMatch = matchPercentage !== null && matchPercentage >= 75;
                 return (
@@ -590,7 +623,14 @@ export default function VolunteeringDashboard() {
                     </div>
                   </div>
                 );
-              })
+              })}
+                <Pagination
+                  total={displayedEvents.length}
+                  pageSize={EVENTS_PAGE_SIZE}
+                  page={eventsPage}
+                  onPageChange={setEventsPage}
+                />
+              </>
             )}
           </div>
         </div>

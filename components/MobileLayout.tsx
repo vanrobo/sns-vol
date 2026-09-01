@@ -1,6 +1,6 @@
 // components/MobileLayout.tsx
 "use client";
-import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard } from "lucide-react";
+import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
@@ -62,6 +62,7 @@ export default function MobileLayout({
   const navItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Profile", path: "/profile", icon: User },
+    { name: "Settings", path: "/settings", icon: Settings },
     { name: "I-Card", path: "/i-card", icon: BadgeCheck },
     { name: "Grievance", path: "/grievance", icon: AlertCircle },
   ];
@@ -133,7 +134,7 @@ export default function MobileLayout({
         {children}
       </main>
 
-      <nav className="fixed bottom-0 w-full max-w-md bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-t border-[var(--border)] flex justify-around p-4 z-50 pb-safe shrink-0">
+      <nav className="fixed bottom-0 w-full max-w-md bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-t border-[var(--border)] flex justify-around px-1 py-3 z-50 pb-safe shrink-0">
         {navItems.map((item) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;
@@ -142,17 +143,17 @@ export default function MobileLayout({
               key={item.name}
               href={item.path}
               onClick={(e) => guard(e, item.path)}
-              className={`flex flex-col items-center gap-1 transition-all ${isActive ? "text-[var(--brand)]" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}
+              className={`flex flex-col items-center gap-0.5 min-w-0 flex-1 transition-all ${isActive ? "text-[var(--brand)]" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}
             >
               <Icon
-                size={24}
+                size={22}
                 className={
                   isActive
                     ? "fill-[var(--brand)]/10 stroke-[var(--brand)]"
                     : "stroke-current"
                 }
               />
-              <span className="text-xs font-bold tracking-wider mt-0.5">
+              <span className="text-[10px] font-bold tracking-wide truncate max-w-full">
                 {item.name}
               </span>
             </Link>

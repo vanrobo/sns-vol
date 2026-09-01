@@ -112,6 +112,7 @@ export async function updateSession(request: NextRequest) {
     const pendingAllowed =
       path === "/pending" ||
       path === "/profile" ||
+      path === "/settings" ||
       path === "/notifications" ||
       path === "/applications" ||
       path === "/login" ||

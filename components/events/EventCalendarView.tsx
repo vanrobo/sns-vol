@@ -41,6 +41,26 @@ export function expandEventDates(event: Event): string[] {
   return dates;
 }
 
+function getDayDots(iso: string, dayEvents: Event[]): { color: string; key: string }[] {
+  const recurring = dayEvents.filter((e) => e.is_recurring);
+  const oneOff = dayEvents.filter((e) => !e.is_recurring);
+  const dots: { color: string; key: string }[] = [];
+
+  if (recurring.length > 0) {
+    const classOff = recurring.some((e) => (e.cancelled_dates ?? []).includes(iso));
+    dots.push({
+      key: "class",
+      color: classOff ? "#ef4444" : "#9ca3af",
+    });
+  }
+
+  if (oneOff.length > 0) {
+    dots.push({ key: "event", color: "#22c55e" });
+  }
+
+  return dots;
+}
+
 export default function EventCalendarView({
   events,
   selectedDate,
@@ -121,7 +141,7 @@ export default function EventCalendarView({
           const iso = toIso(year, month, day);
           const dayEvents = byDate.get(iso) ?? [];
           const isSelected = selectedDate === iso;
-          const primary = dayEvents[0];
+          const dots = getDayDots(iso, dayEvents);
 
           return (
             <button
@@ -137,13 +157,13 @@ export default function EventCalendarView({
               }`}
             >
               <span>{day}</span>
-              {dayEvents.length > 0 && (
+              {dots.length > 0 && (
                 <span className="flex gap-0.5">
-                  {dayEvents.slice(0, 3).map((e) => (
+                  {dots.map((dot) => (
                     <span
-                      key={e.id}
+                      key={dot.key}
                       className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: e.color ?? "var(--brand)" }}
+                      style={{ backgroundColor: dot.color }}
                     />
                   ))}
                 </span>
@@ -159,6 +179,20 @@ export default function EventCalendarView({
           {(byDate.get(selectedDate) ?? []).length === 1 ? "" : "s"} on{" "}
           {new Date(`${selectedDate}T12:00:00`).toLocaleDateString()}
         </p>
+      )}
+
+      {embedded && (
+        <div className="flex flex-wrap justify-center gap-3 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wide">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#9ca3af]" /> Class
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#ef4444]" /> Class off
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#22c55e]" /> Event
+          </span>
+        </div>
       )}
     </div>
   );

@@ -85,14 +85,17 @@ export async function getUpcomingEvents(): Promise<Event[]> {
 
   const { data: apps, error: appsError } = await supabase
     .from("applications")
-    .select("event_id")
+    .select("event_id, status")
     .eq("user_id", user.id)
-    .eq("status", "approved");
+    .in("status", ["pending", "approved"]);
 
   if (appsError) throw appsError;
   if (!apps?.length) return [];
 
-  const eventIds = apps.map((a) => a.event_id);
+  const statusByEvent = new Map(
+    apps.map((a) => [a.event_id, a.status as Event["application_status"]]),
+  );
+  const eventIds = [...statusByEvent.keys()];
 
   const { data: events, error } = await supabase
     .from("events")
@@ -101,7 +104,7 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     .eq("status", "active")
     .gte("date", today)
     .order("date", { ascending: true })
-    .limit(5);
+    .limit(8);
 
   if (error) throw error;
 
@@ -109,7 +112,7 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     ...e,
     required_skills: e.required_skills ?? [],
     has_applied: true,
-    application_status: "approved" as const,
+    application_status: statusByEvent.get(e.id) ?? "pending",
     has_attended: false,
   })) as Event[];
 }

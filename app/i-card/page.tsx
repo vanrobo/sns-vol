@@ -105,10 +105,10 @@ export default function ICardPage() {
                     </div>
                     <div>
                       <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-600">
-                        ID Number
+                        Volunteer ID
                       </p>
-                      <p className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                        {profile.volunteer_id}
+                      <p className="text-sm font-black font-mono tracking-wide text-emerald-700 dark:text-emerald-400">
+                        {profile.volunteer_id || "—"}
                       </p>
                     </div>
                     <div>
@@ -123,25 +123,23 @@ export default function ICardPage() {
                 </div>
 
                 {/* Meta row */}
-                <div className="px-5 py-3 grid grid-cols-2 gap-3 border-b border-[var(--border)] bg-slate-50/80 dark:bg-[#141414]">
+                <div className="px-5 py-3 grid grid-cols-1 gap-3 border-b border-[var(--border)] bg-slate-50/80 dark:bg-[#141414]">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
+                      Volunteer ID
+                    </p>
+                    <p className="text-sm font-black font-mono tracking-wide text-emerald-700 dark:text-emerald-400">
+                      {profile.volunteer_id || "—"}
+                    </p>
+                  </div>
                   <div>
                     <p className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
                       Valid Until
                     </p>
                     <p className="text-xs font-bold font-mono">
-                      {profile.valid_until || "-"}
+                      {profile.valid_until || "—"}
                     </p>
                   </div>
-                  {profile.batch && (
-                    <div>
-                      <p className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
-                        Batch / Area
-                      </p>
-                      <p className="text-xs font-semibold truncate">
-                        {profile.batch}
-                      </p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Large scannable QR */}

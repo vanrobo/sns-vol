@@ -8,7 +8,7 @@ import { User, ShieldCheck } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { ICardSkeleton } from "@/components/ui/Skeleton";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, APP_SITE_HOST } from "@/lib/brand";
 
 const QR_SIZE = 168;
 
@@ -16,6 +16,13 @@ export default function ICardPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [siteHost, setSiteHost] = useState(APP_SITE_HOST);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setSiteHost(window.location.host);
+    }
+  }, []);
 
   useEffect(() => {
     Promise.all([getProfile(), getQrVerifyUrl()])
@@ -165,7 +172,7 @@ export default function ICardPage() {
                     Scan to verify ID
                   </p>
                   <p className="text-[10px] text-emerald-600 font-semibold mt-1">
-                    sns-vol.vercel.app
+                    {siteHost}
                   </p>
                 </div>
               </>

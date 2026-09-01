@@ -90,8 +90,9 @@ export default function ApplicationsPage() {
             </button>
           </div>
         ) : apps.length === 0 ? (
-          <div className="border border-dashed border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--text-muted)]">
-            No applications yet. Browse events on Home and tap Interested.
+          <div className="border border-dashed border-[var(--border)] rounded-xl p-10 text-center text-sm text-[var(--text-muted)] leading-relaxed">
+            No applications yet. Once approved, browse events on Home and tap
+            Interested to apply.
           </div>
         ) : (
           <div className="space-y-3">

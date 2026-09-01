@@ -5,6 +5,7 @@ import MobileLayout from "@/components/MobileLayout";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { getUserGrievances, submitGrievance } from "@/lib/data/grievances";
+import { getMyRole } from "@/lib/data/profiles";
 import type { Grievance } from "@/types";
 import { titleCaseStatus } from "@/types";
 import {
@@ -24,6 +25,13 @@ export default function GrievancePage() {
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [pastTickets, setPastTickets] = useState<Grievance[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
+  const [isPendingVolunteer, setIsPendingVolunteer] = useState(false);
+
+  useEffect(() => {
+    getMyRole()
+      .then((s) => setIsPendingVolunteer(s?.role === "volunteer" && s.status === "pending"))
+      .catch(() => setIsPendingVolunteer(false));
+  }, []);
 
   useEffect(() => {
     getUserGrievances()
@@ -87,10 +95,21 @@ export default function GrievancePage() {
           </p>
         </div>
 
+        {isPendingVolunteer && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex gap-3 text-sm">
+            <Info size={18} className="text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-amber-900 dark:text-amber-100 leading-relaxed">
+              New complaints open after I-Card approval. You can still review past
+              tickets below if any were submitted earlier.
+            </p>
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
-          className="bg-[var(--surface)] rounded-xl p-6 border border-[var(--border)] space-y-5 shadow-sm"
+          className={`bg-[var(--surface)] rounded-xl p-6 border border-[var(--border)] space-y-5 shadow-sm ${isPendingVolunteer ? "opacity-60" : ""}`}
         >
+          <fieldset disabled={isPendingVolunteer} className="space-y-5 disabled:cursor-not-allowed">
           <div>
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
               Complaint Category
@@ -150,6 +169,7 @@ export default function GrievancePage() {
               </>
             )}
           </button>
+          </fieldset>
         </form>
 
         <div className="space-y-4">

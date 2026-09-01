@@ -490,18 +490,21 @@ export async function getEventAttendance(
   });
 }
 
-export async function bulkApproveICards(userIds: string[]): Promise<number> {
+export async function bulkApproveICards(
+  userIds: string[],
+): Promise<{ succeeded: number; failed: number }> {
   await requireAdmin();
-  let count = 0;
+  let succeeded = 0;
+  let failed = 0;
   for (const userId of userIds) {
     try {
       await approveICard(userId);
-      count++;
+      succeeded++;
     } catch {
-      /* skip failed rows */
+      failed++;
     }
   }
-  return count;
+  return { succeeded, failed };
 }
 
 export async function bulkUpdateUserBatch(userIds: string[], batch: string) {

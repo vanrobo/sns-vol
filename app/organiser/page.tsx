@@ -181,8 +181,9 @@ export default function OrganiserDashboard() {
       haptic("warning");
       toast.success("Event deleted.");
       fetchData();
-    } catch {
-      toast.error("Failed to delete event.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to delete event.";
+      toast.error(msg);
     } finally {
       setActioningId(null);
     }

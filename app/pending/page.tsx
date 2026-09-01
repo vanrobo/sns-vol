@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import MobileLayout from "@/components/MobileLayout";
 import Link from "next/link";
-import { Clock, User, LogOut, Bell, Loader2 } from "lucide-react";
+import { Clock, User, LogOut, Bell, Loader2, ClipboardList } from "lucide-react";
 import { signOutAction } from "@/lib/actions/auth";
 import { getProfile } from "@/lib/data/profiles";
 import { getProfileCompletion } from "@/lib/onboarding";
@@ -57,6 +57,12 @@ export default function PendingPage() {
           >
             <User size={16} />
             {profileReady ? "Review profile" : "Complete profile"}
+          </Link>
+          <Link
+            href="/applications"
+            className="flex items-center justify-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3 text-sm font-bold hover:bg-slate-50 dark:hover:bg-[#18181B] transition-colors"
+          >
+            <ClipboardList size={16} /> Applied events
           </Link>
           <Link
             href="/notifications"

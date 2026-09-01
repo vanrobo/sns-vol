@@ -23,3 +23,8 @@ export const GOOGLE_REVIEW_URL =
 export const DONATE_URL =
   process.env.NEXT_PUBLIC_DONATE_URL?.trim() ||
   "https://dev.standnstride.org/donate";
+
+/** Public site host for QR footers and share links (no protocol). */
+export const APP_SITE_HOST =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
+  "sns-vol.vercel.app";

@@ -114,6 +114,7 @@ export async function updateSession(request: NextRequest) {
       path === "/profile" ||
       path === "/settings" ||
       path === "/notifications" ||
+      path === "/i-card" ||
       path === "/applications" ||
       path === "/login" ||
       path === "/signup" ||
@@ -139,6 +140,16 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   } catch (err) {
     console.error("Supabase middleware error:", err);
+    const hasSessionCookie = request.cookies
+      .getAll()
+      .some(
+        (c) =>
+          c.name.includes("auth-token") ||
+          (c.name.startsWith("sb-") && c.name.includes("auth")),
+      );
+    if (hasSessionCookie && !isAuthPage) {
+      return NextResponse.next({ request });
+    }
     if (!isAuthPage && path !== "/" && !isEventPage) {
       return redirectTo(request, "/login");
     }

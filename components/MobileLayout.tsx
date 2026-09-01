@@ -1,12 +1,12 @@
 // components/MobileLayout.tsx
 "use client";
-import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard, Settings } from "lucide-react";
+import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard, Settings, Clock, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME_ACCENT, DONATE_URL } from "@/lib/brand";
-import type { UserRole } from "@/types";
+import type { UserRole, ProfileStatus } from "@/types";
 import { useNotificationUnread } from "@/hooks/useNotificationUnread";
 import { clearNotificationUnread } from "@/lib/notification-poll-store";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
@@ -25,6 +25,7 @@ export default function MobileLayout({
   const unsaved = useUnsavedChangesOptional();
   const hasUnread = useNotificationUnread();
   const [staffRole, setStaffRole] = useState<UserRole | null>(null);
+  const [volunteerStatus, setVolunteerStatus] = useState<ProfileStatus | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const { pullDistance, refreshing, ready } = usePullToRefresh({
@@ -51,6 +52,9 @@ export default function MobileLayout({
         if (session && (session.role === "admin" || session.role === "organiser")) {
           setStaffRole(session.role);
         }
+        if (session?.role === "volunteer") {
+          setVolunteerStatus(session.status);
+        }
       } catch {
         /* ignore */
       }
@@ -59,19 +63,30 @@ export default function MobileLayout({
     checkAuth();
   }, [router]);
 
-  const navItems = [
-    { name: "Home", path: "/", icon: Home },
-    { name: "I-Card", path: "/i-card", icon: BadgeCheck },
-    { name: "Grievance", path: "/grievance", icon: AlertCircle },
-    { name: "Profile", path: "/profile", icon: User },
-  ];
+  const isPendingVolunteer = volunteerStatus === "pending";
+
+  const navItems = isPendingVolunteer
+    ? [
+        { name: "Status", path: "/pending", icon: Clock },
+        { name: "I-Card", path: "/i-card", icon: BadgeCheck },
+        { name: "Applied", path: "/applications", icon: ClipboardList },
+        { name: "Profile", path: "/profile", icon: User },
+      ]
+    : [
+        { name: "Home", path: "/", icon: Home },
+        { name: "I-Card", path: "/i-card", icon: BadgeCheck },
+        { name: "Grievance", path: "/grievance", icon: AlertCircle },
+        { name: "Profile", path: "/profile", icon: User },
+      ];
+
+  const brandHref = isPendingVolunteer ? "/pending" : "/";
 
   return (
     <div className="max-w-md mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">
       <header className="shrink-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
         <Link
-          href="/"
-          onClick={(e) => guard(e, "/")}
+          href={brandHref}
+          onClick={(e) => guard(e, brandHref)}
           className="min-w-0"
         >
           <h1 className="text-lg font-black tracking-tight text-[var(--text)]">

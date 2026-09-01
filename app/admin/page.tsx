@@ -257,8 +257,9 @@ export default function AdminDashboard() {
         ...prev,
         events: prev.events.filter((e) => e.id !== eventId),
       }));
-    } catch {
-      toast.error("Failed to delete event.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to delete event.";
+      toast.error(msg);
     } finally {
       setActioningId(null);
     }
@@ -383,8 +384,14 @@ export default function AdminDashboard() {
     }
     setActioningId("bulk-approve");
     try {
-      const count = await bulkApproveICards(ids);
-      toast.success(`Approved ${count} volunteer(s).`);
+      const { succeeded, failed } = await bulkApproveICards(ids);
+      if (failed > 0) {
+        toast.success(
+          `Approved ${succeeded} volunteer(s). ${failed} could not be approved.`,
+        );
+      } else {
+        toast.success(`Approved ${succeeded} volunteer(s).`);
+      }
       await fetchAdminData();
       clearVolunteerSelection();
     } catch {

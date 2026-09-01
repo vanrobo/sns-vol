@@ -70,6 +70,7 @@ function ProfilePageContent() {
     () => cached?.profile ?? null,
   );
   const [loading, setLoading] = useState(!cached?.profile);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
   const [myAwards, setMyAwards] = useState<UserAward[]>(
@@ -103,11 +104,7 @@ function ProfilePageContent() {
     baselineSnapshot !== "" &&
     profileSnapshot !== baselineSnapshot;
 
-  const showSaveBar =
-    hasUnsavedChanges ||
-    isEditingInfo ||
-    isEditingSkills ||
-    Boolean(pendingAvatar);
+  const showSaveBar = hasUnsavedChanges || Boolean(pendingAvatar);
 
   useEffect(() => {
     unsavedCtx?.setHasUnsaved(hasUnsavedChanges);
@@ -137,12 +134,13 @@ function ProfilePageContent() {
     let cancelled = false;
 
     (async () => {
+      setLoadError(null);
       try {
         const data = await getProfile();
         if (cancelled) return;
 
         if (!data) {
-          toast.error("Profile not found. Try signing out and back in.");
+          setLoadError("Profile not found. Try signing out and back in.");
           return;
         }
 
@@ -158,9 +156,9 @@ function ProfilePageContent() {
           }),
         );
 
-        const cached = readProfileCache(data.id);
-        if (cached?.userId === data.id) {
-          setMyAwards(cached.awards);
+        const profileCached = readProfileCache(data.id);
+        if (profileCached?.userId === data.id) {
+          setMyAwards(profileCached.awards);
         }
 
         let awards: UserAward[] = [];
@@ -173,7 +171,9 @@ function ProfilePageContent() {
 
         writeProfileCache({ userId: data.id, profile: data, awards });
       } catch {
-        if (!cancelled) toast.error("Failed to load profile");
+        if (!cancelled) {
+          setLoadError("Failed to load profile. Check your connection and try again.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -183,6 +183,37 @@ function ProfilePageContent() {
       cancelled = true;
     };
   }, []);
+
+  const reloadProfile = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const data = await getProfile();
+      if (!data) {
+        setLoadError("Profile not found. Try signing out and back in.");
+        setProfile(null);
+        return;
+      }
+      setProfile(data);
+      setBaselineSnapshot(
+        JSON.stringify({
+          name: data.name,
+          college: data.college,
+          phone: data.phone ?? "",
+          address: data.address ?? "",
+          skills: data.skills,
+          hasAvatar: false,
+        }),
+      );
+      const awards = await getMyAwards().catch(() => [] as UserAward[]);
+      setMyAwards(awards);
+      writeProfileCache({ userId: data.id, profile: data, awards });
+    } catch {
+      setLoadError("Failed to load profile. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!profile) return;
@@ -201,7 +232,6 @@ function ProfilePageContent() {
         address: profile.address,
         skills: profile.skills,
         avatar_url: avatarUrl,
-        email_notifs: profile.email_notifs,
         public_profile: profile.public_profile,
       });
       setProfile(updated);
@@ -284,7 +314,35 @@ function ProfilePageContent() {
         <ProfileSkeleton />
       </MobileLayout>
     );
-  if (!profile) return null;
+
+  if (!profile) {
+    return (
+      <MobileLayout>
+        <div className="p-5 pb-28 flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
+          <AlertTriangle size={32} className="text-amber-500" />
+          <p className="text-sm text-[var(--text-muted)] max-w-xs leading-relaxed">
+            {loadError ?? "Could not load your profile."}
+          </p>
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            <button
+              type="button"
+              onClick={() => reloadProfile()}
+              className="w-full bg-[var(--brand)] text-white font-bold py-3 rounded-xl text-sm"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => signOut().then(() => router.push("/login"))}
+              className="w-full text-sm font-bold text-red-500"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   const displayAvatar = previewUrl || profile.avatar_url;
   const { percent: onboardingPercent, steps: onboardingSteps } =
@@ -577,11 +635,13 @@ function ProfilePageContent() {
                 className="sr-only peer"
                 checked={profile.public_profile}
                 onChange={async () => {
-                  const next = !profile.public_profile;
+                  const prev = profile.public_profile;
+                  const next = !prev;
                   setProfile({ ...profile, public_profile: next });
                   try {
                     await updateProfile({ public_profile: next });
                   } catch {
+                    setProfile({ ...profile, public_profile: prev });
                     toast.error("Could not update preference");
                   }
                 }}

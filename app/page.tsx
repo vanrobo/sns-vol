@@ -225,8 +225,10 @@ export default function VolunteeringDashboard() {
       let calendarEvents: Event[] = [];
       if (tab === "Active") {
         calendarEvents = await getEvents("active");
-        setAllEventsForCalendar(calendarEvents);
+      } else {
+        calendarEvents = fetched;
       }
+      setAllEventsForCalendar(calendarEvents);
 
       if (userId) {
         writeEventsCache(userId, cacheKey, fetched, calendarEvents);

@@ -339,6 +339,12 @@ export default function AdminDashboard() {
       (volFilter === "active" && v.status === "active");
     return matchesSearch && matchesFilter;
   });
+  const pendingVolunteerCount = data.users.filter(
+    (v) => v.status !== "active",
+  ).length;
+  const activeVolunteerCount = data.users.filter(
+    (v) => v.status === "active",
+  ).length;
   const pagedVolunteers = paginate(filteredVolunteers, volPage, VOL_PAGE_SIZE);
   const pagedGrievances = paginate(data.grievances, grievPage, GRIEV_PAGE_SIZE);
   const uniqueBatches = [
@@ -549,11 +555,11 @@ export default function AdminDashboard() {
                 <div className="flex bg-slate-100 dark:bg-[#18181B] p-1 rounded-lg">
                   {(
                     [
-                      ["all", "All"],
-                      ["pending", "Pending"],
-                      ["active", "Active"],
+                      ["all", "All", data.users.length] as const,
+                      ["pending", "Pending", pendingVolunteerCount] as const,
+                      ["active", "Active", activeVolunteerCount] as const,
                     ] as const
-                  ).map(([key, label]) => (
+                  ).map(([key, label, count]) => (
                     <button
                       key={key}
                       type="button"
@@ -567,7 +573,20 @@ export default function AdminDashboard() {
                           : "text-slate-500"
                       }`}
                     >
-                      {label}
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        {label}
+                        {key === "pending" && count > 0 && (
+                          <span
+                            className={`min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[10px] font-bold leading-none inline-flex items-center justify-center ${
+                              volFilter === key
+                                ? "bg-amber-500 text-white"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                            }`}
+                          >
+                            {count}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   ))}
                 </div>

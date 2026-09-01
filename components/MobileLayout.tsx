@@ -61,10 +61,9 @@ export default function MobileLayout({
 
   const navItems = [
     { name: "Home", path: "/", icon: Home },
-    { name: "Profile", path: "/profile", icon: User },
-    { name: "Settings", path: "/settings", icon: Settings },
     { name: "I-Card", path: "/i-card", icon: BadgeCheck },
     { name: "Grievance", path: "/grievance", icon: AlertCircle },
+    { name: "Profile", path: "/profile", icon: User },
   ];
 
   return (
@@ -107,9 +106,18 @@ export default function MobileLayout({
           </a>
 
           <Link
+            href="/settings"
+            onClick={(e) => guard(e, "/settings")}
+            className="p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors"
+            aria-label="Settings"
+          >
+            <Settings size={22} />
+          </Link>
+
+          <Link
             href="/notifications"
             onClick={(e) => guard(e, "/notifications")}
-            className="relative p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors ml-1"
+            className="relative p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors"
           >
             <Bell size={22} />
             {hasUnread && (
@@ -153,7 +161,7 @@ export default function MobileLayout({
                     : "stroke-current"
                 }
               />
-              <span className="text-[10px] font-bold tracking-wide truncate max-w-full">
+              <span className="text-[10px] font-bold tracking-wide truncate max-w-full px-0.5">
                 {item.name}
               </span>
             </Link>

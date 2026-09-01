@@ -42,7 +42,7 @@ export default function AdminOverview({
     },
     pendingApps.length > 0 && {
       key: "apps",
-      label: `${pendingApps.length} pending application${pendingApps.length === 1 ? "" : "s"}`,
+      label: `${pendingApps.length} pending request${pendingApps.length === 1 ? "" : "s"}`,
       sub: "Approve or decline event interest",
       icon: ClipboardList,
       tone: "blue" as const,
@@ -51,10 +51,10 @@ export default function AdminOverview({
     openGrievances.length > 0 && {
       key: "grievances",
       label: `${openGrievances.length} open grievance${openGrievances.length === 1 ? "" : "s"}`,
-      sub: "Needs admin response",
+      sub: "Review on Dashboard",
       icon: AlertCircle,
       tone: "red" as const,
-      tab: "grievances",
+      tab: "overview",
     },
   ].filter(Boolean) as Array<{
     key: string;
@@ -156,7 +156,7 @@ export default function AdminOverview({
           onClick={() => onNavigate("applications")}
           className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--surface)] border border-[var(--border)] text-xs font-bold"
         >
-          <ClipboardList size={14} className="text-[var(--brand)]" /> Applications
+          <ClipboardList size={14} className="text-[var(--brand)]" /> Requests
         </button>
       </div>
 

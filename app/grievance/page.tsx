@@ -16,7 +16,10 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
+import { GOOGLE_REVIEW_URL } from "@/lib/brand";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+
+const GOOGLE_REVIEW_KEY = "sns-google-review-used-v1";
 
 export default function GrievancePage() {
   const [description, setDescription] = useState("");
@@ -26,8 +29,14 @@ export default function GrievancePage() {
   const [pastTickets, setPastTickets] = useState<Grievance[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [isPendingVolunteer, setIsPendingVolunteer] = useState(false);
+  const [googleReviewUsed, setGoogleReviewUsed] = useState(true);
 
   useEffect(() => {
+    try {
+      setGoogleReviewUsed(localStorage.getItem(GOOGLE_REVIEW_KEY) === "1");
+    } catch {
+      setGoogleReviewUsed(false);
+    }
     getMyRole()
       .then((s) => setIsPendingVolunteer(s?.role === "volunteer" && s.status === "pending"))
       .catch(() => setIsPendingVolunteer(false));
@@ -228,6 +237,33 @@ export default function GrievancePage() {
             </div>
           )}
         </div>
+
+        {!googleReviewUsed && (
+          <div className="bg-gradient-to-br from-[var(--brand)] to-emerald-700 rounded-xl p-5 text-white shadow-md relative overflow-hidden">
+            <div className="relative z-10 space-y-2">
+              <h4 className="font-bold text-sm">Review us on Google</h4>
+              <p className="text-xs text-white/90 leading-relaxed">
+                Share a selfie review on our Google page — shown once here.
+              </p>
+              <a
+                href={GOOGLE_REVIEW_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  try {
+                    localStorage.setItem(GOOGLE_REVIEW_KEY, "1");
+                  } catch {
+                    /* ignore */
+                  }
+                  setGoogleReviewUsed(true);
+                }}
+                className="inline-block bg-white text-emerald-800 font-bold py-1.5 px-4 rounded-full text-xs shadow hover:bg-slate-50 transition-colors"
+              >
+                Rate on Google
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </MobileLayout>
   );

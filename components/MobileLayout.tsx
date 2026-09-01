@@ -1,12 +1,12 @@
 // components/MobileLayout.tsx
 "use client";
-import { Home, User, BadgeCheck, AlertCircle, Bell, Heart, LayoutDashboard, Settings, Clock, ClipboardList } from "lucide-react";
+import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
 import { APP_NAME_ACCENT, DONATE_URL } from "@/lib/brand";
-import type { UserRole, ProfileStatus } from "@/types";
+import type { ProfileStatus } from "@/types";
 import { useNotificationUnread } from "@/hooks/useNotificationUnread";
 import { clearNotificationUnread } from "@/lib/notification-poll-store";
 import { useUnsavedChangesOptional } from "@/components/UnsavedChangesProvider";
@@ -24,7 +24,6 @@ export default function MobileLayout({
   const router = useRouter();
   const unsaved = useUnsavedChangesOptional();
   const hasUnread = useNotificationUnread();
-  const [staffRole, setStaffRole] = useState<UserRole | null>(null);
   const [volunteerStatus, setVolunteerStatus] = useState<ProfileStatus | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
@@ -49,9 +48,6 @@ export default function MobileLayout({
 
       try {
         const session = await getMyRole();
-        if (session && (session.role === "admin" || session.role === "organiser")) {
-          setStaffRole(session.role);
-        }
         if (session?.role === "volunteer") {
           setVolunteerStatus(session.status);
         }
@@ -68,15 +64,15 @@ export default function MobileLayout({
   const navItems = isPendingVolunteer
     ? [
         { name: "Status", path: "/pending", icon: Clock },
-        { name: "I-Card", path: "/i-card", icon: BadgeCheck },
-        { name: "Applied", path: "/applications", icon: ClipboardList },
         { name: "Profile", path: "/profile", icon: User },
+        { name: "Applied", path: "/applications", icon: ClipboardList },
+        { name: "Settings", path: "/settings", icon: Settings },
       ]
     : [
         { name: "Home", path: "/", icon: Home },
-        { name: "I-Card", path: "/i-card", icon: BadgeCheck },
-        { name: "Grievance", path: "/grievance", icon: AlertCircle },
         { name: "Profile", path: "/profile", icon: User },
+        { name: "Grievance", path: "/grievance", icon: AlertCircle },
+        { name: "Settings", path: "/settings", icon: Settings },
       ];
 
   const brandHref = isPendingVolunteer ? "/pending" : "/";
@@ -94,19 +90,7 @@ export default function MobileLayout({
           </h1>
         </Link>
 
-        <div className="flex items-center gap-3">
-          {staffRole && (
-            <Link
-              href={staffRole === "admin" ? "/admin" : "/organiser"}
-              onClick={(e) =>
-                guard(e, staffRole === "admin" ? "/admin" : "/organiser")
-              }
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md shadow-emerald-600/20 transition-all"
-            >
-              <LayoutDashboard size={12} />{" "}
-              {staffRole === "admin" ? "Dashboard" : "Event organize"}
-            </Link>
-          )}
+        <div className="flex items-center gap-2 shrink-0">
           <a
             href={DONATE_URL}
             target="_blank"
@@ -119,15 +103,6 @@ export default function MobileLayout({
           >
             <Heart size={12} className="fill-white" /> Donate
           </a>
-
-          <Link
-            href="/settings"
-            onClick={(e) => guard(e, "/settings")}
-            className="p-1 text-[var(--text-muted)] hover:text-black dark:hover:text-white transition-colors"
-            aria-label="Settings"
-          >
-            <Settings size={22} />
-          </Link>
 
           <Link
             href="/notifications"

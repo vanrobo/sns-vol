@@ -24,24 +24,28 @@ function toIso(y: number, m: number, d: number) {
   return `${y}-${pad(m + 1)}-${pad(d)}`;
 }
 
+function isSunday(iso: string) {
+  return new Date(`${iso}T12:00:00`).getDay() === 0;
+}
+
+/** One aggregated dot per day: green = class/event day, red = canceled or Sunday (no class). */
 function getDayDots(iso: string, dayEvents: Event[]): { color: string; key: string }[] {
+  if (dayEvents.length === 0) return [];
+
   const recurring = dayEvents.filter((e) => e.is_recurring);
   const oneOff = dayEvents.filter((e) => !e.is_recurring);
-  const dots: { color: string; key: string }[] = [];
+  const classCanceled = recurring.some((e) => (e.cancelled_dates ?? []).includes(iso));
+  const sundayNoClass = isSunday(iso) && recurring.length > 0;
 
-  if (recurring.length > 0) {
-    const classOff = recurring.some((e) => (e.cancelled_dates ?? []).includes(iso));
-    dots.push({
-      key: "class",
-      color: classOff ? "#ef4444" : "#9ca3af",
-    });
+  if (sundayNoClass || classCanceled) {
+    return [{ key: "off", color: "#ef4444" }];
   }
 
-  if (oneOff.length > 0) {
-    dots.push({ key: "event", color: "#22c55e" });
+  if (recurring.length > 0 || oneOff.length > 0) {
+    return [{ key: "active", color: "#22c55e" }];
   }
 
-  return dots;
+  return [];
 }
 
 export default function EventCalendarView({
@@ -167,13 +171,10 @@ export default function EventCalendarView({
       {embedded && (
         <div className="flex flex-wrap justify-center gap-3 text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wide">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#9ca3af]" /> Class
+            <span className="w-2 h-2 rounded-full bg-[#22c55e]" /> Class / event
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#ef4444]" /> Class off
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#22c55e]" /> Event
+            <span className="w-2 h-2 rounded-full bg-[#ef4444]" /> Off / Sunday
           </span>
         </div>
       )}

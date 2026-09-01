@@ -37,9 +37,10 @@ import {
   BookOpen,
   Camera,
   Award,
+  BadgeCheck,
+  CalendarDays,
 } from "lucide-react";
 
-import { GOOGLE_REVIEW_URL } from "@/lib/brand";
 import SkillPicker from "@/components/ui/SkillPicker";
 import CenterPicker from "@/components/ui/CenterPicker";
 import OnboardingBanner from "@/components/onboarding/OnboardingBanner";
@@ -550,6 +551,53 @@ function ProfilePageContent() {
           </p>
         )}
 
+        <div className="grid grid-cols-1 gap-2">
+          <Link
+            href="/i-card"
+            onClick={(e) => unsavedCtx?.guardNavigation(e, "/i-card")}
+            className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <BadgeCheck size={18} className="text-[var(--brand)]" />
+              <div>
+                <span className="font-semibold text-sm block">Digital I-Card</span>
+                <p className="text-[10px] text-[var(--text-muted)]">
+                  View QR and volunteer ID
+                </p>
+              </div>
+            </div>
+            <ChevronDown size={14} className="-rotate-90 text-slate-400" />
+          </Link>
+
+          {(profile.role === "organiser" || profile.role === "admin") && (
+            <Link
+              href={profile.role === "admin" ? "/admin" : "/organiser"}
+              onClick={(e) =>
+                unsavedCtx?.guardNavigation(
+                  e,
+                  profile.role === "admin" ? "/admin" : "/organiser",
+                )
+              }
+              className="bg-emerald-600 rounded-xl border border-emerald-700 shadow-sm p-4 flex items-center justify-between text-white hover:bg-emerald-700 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <CalendarDays size={18} />
+                <div>
+                  <span className="font-semibold text-sm block">
+                    {profile.role === "admin" ? "Admin portal" : "Organize events"}
+                  </span>
+                  <p className="text-[10px] text-white/80">
+                    {profile.role === "admin"
+                      ? "Manage volunteers, events & awards"
+                      : "Create and manage your events"}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown size={14} className="-rotate-90 text-white/80" />
+            </Link>
+          )}
+        </div>
+
         <div
           id="awards"
           className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-5 space-y-3"
@@ -582,54 +630,18 @@ function ProfilePageContent() {
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-[var(--brand)] to-emerald-700 rounded-xl p-5 text-white shadow-md relative overflow-hidden">
-          <Award
-            className="absolute -right-4 -bottom-4 text-white/10"
-            size={100}
-          />
-          <div className="relative z-10 space-y-2">
-            <h4 className="font-bold text-sm">
-              Review us on Google with a Selfie!
-            </h4>
-            <p className="text-xs text-white/90 leading-relaxed font-medium">
-              Upload your verification selfie on our official Google Business
-              Page reviews to support our outreach.
-            </p>
-            <a
-              href={GOOGLE_REVIEW_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block bg-white text-emerald-800 font-bold py-1.5 px-4 rounded-full text-xs shadow hover:bg-slate-50 transition-colors"
-            >
-              Rate us on Google
-            </a>
-          </div>
-        </div>
-
-        <Link
-          href="/settings"
-          onClick={(e) => unsavedCtx?.guardNavigation(e, "/settings")}
-          className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Settings size={16} className="text-[var(--brand)]" />
-            <div>
-              <span className="font-semibold text-sm block">App settings</span>
-              <p className="text-[10px] text-[var(--text-muted)]">
-                Theme, text size, cache, alerts & version
-              </p>
-            </div>
-          </div>
-          <ChevronDown size={14} className="-rotate-90 text-slate-400" />
-        </Link>
-
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
-          <div className="p-4 px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield size={16} className="text-slate-400" />
-              <span className="font-semibold text-sm">Public Profile</span>
+          <div className="p-4 px-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Shield size={16} className="text-slate-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="font-semibold text-sm block">Public profile</span>
+                <p className="text-[10px] text-[var(--text-muted)] leading-snug">
+                  Let other volunteers see your name and skills
+                </p>
+              </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
               <input
                 type="checkbox"
                 className="sr-only peer"

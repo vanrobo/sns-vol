@@ -35,6 +35,7 @@ function countRecipients(
 export default function NotificationBroadcastPanel({ users, batches }: Props) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [link, setLink] = useState("");
   const [target, setTarget] = useState<"all" | "batch" | "center">("all");
   const [batch, setBatch] = useState("");
   const [center, setCenter] = useState("");
@@ -71,6 +72,7 @@ export default function NotificationBroadcastPanel({ users, batches }: Props) {
       const count = await broadcastNotification({
         title: title.trim(),
         body: body.trim(),
+        link: link.trim() || undefined,
         all: target === "all",
         batch: target === "batch" ? batch : undefined,
         center: target === "center" ? center : undefined,
@@ -78,6 +80,7 @@ export default function NotificationBroadcastPanel({ users, batches }: Props) {
       toast.success(`In-app alert sent to ${count} active volunteer(s).`);
       setTitle("");
       setBody("");
+      setLink("");
     } catch {
       toast.error("Broadcast failed.");
     } finally {
@@ -166,6 +169,13 @@ export default function NotificationBroadcastPanel({ users, batches }: Props) {
         placeholder="Message body"
         rows={3}
         className="w-full p-2.5 rounded-lg border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] text-sm resize-none"
+      />
+      <input
+        value={link}
+        onChange={(e) => setLink(e.target.value)}
+        placeholder="Optional link (https://…)"
+        type="url"
+        className="w-full p-2.5 rounded-lg border border-[var(--border)] bg-slate-50 dark:bg-[#18181B] text-sm"
       />
       <button
         type="submit"

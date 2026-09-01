@@ -135,7 +135,7 @@ export default function EventFormModal({
             </div>
             <div>
               <label className="block text-sm font-bold mb-2">
-                Coordinator Phone
+                Organizer phone (shown on event)
               </label>
               <input
                 type="tel"

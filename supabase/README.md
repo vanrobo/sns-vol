@@ -18,9 +18,9 @@
 | `011_event_reminders.sql` | Event reminder cron support |
 | `012_award_staff_revoke.sql` | Organiser award withdraw |
 | `013_staff_notifications_insert.sql` | Staff in-app notification inserts |
-| `014_staff_set_volunteer_batch.sql` | Organiser batch RPC |
+| `015_event_created_by.sql` | Organiser-scoped event ownership |
 
-**Production checklist:** After creating a new project, run 001–014 in sequence. Skipping 002, 012–014 breaks organiser flows (events, awards, notifications, batch updates).
+**Production checklist:** After creating a new project, run 001–015 in sequence. Skipping 002, 012–015 breaks organiser flows (events, awards, notifications, batch updates, event ownership).
 
 3. Copy **Project URL** and **publishable key** from **Project Settings → API** into `.env.local` (and Vercel env vars):
 

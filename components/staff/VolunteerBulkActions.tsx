@@ -55,7 +55,7 @@ export default function VolunteerBulkActions({
               onClick={onClear}
               className="text-xs font-bold text-red-500 px-2 py-1"
             >
-              Clear
+              Close
             </button>
           </div>
           <div className="grid grid-cols-3 gap-2">

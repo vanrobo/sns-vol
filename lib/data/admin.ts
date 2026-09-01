@@ -121,7 +121,7 @@ function eventPayload(input: EventInput) {
 }
 
 export async function createEvent(input: EventInput) {
-  await requireStaff();
+  const staff = await requireStaff();
   const supabase = await createClient();
   const slug = await resolveUniqueEventSlug(supabase, input.title);
   const { data, error } = await supabase
@@ -130,6 +130,7 @@ export async function createEvent(input: EventInput) {
       slug,
       ...eventPayload(input),
       status: "active",
+      created_by: staff.id,
     })
     .select()
     .single();
@@ -244,6 +245,7 @@ export async function completeAccountDeletion(userId: string) {
 export async function broadcastNotification(input: {
   title: string;
   body: string;
+  link?: string;
   userIds?: string[];
   all?: boolean;
   batch?: string;
@@ -287,10 +289,15 @@ export async function broadcastNotification(input: {
 
   if (!userIds.length) return 0;
 
+  const link = input.link?.trim();
+  const body = link
+    ? `${input.body.trim()}\n\nOpen: ${link}`
+    : input.body.trim();
+
   const rows = userIds.map((user_id) => ({
     user_id,
     title: input.title,
-    body: input.body,
+    body,
     type: "event" as const,
   }));
 

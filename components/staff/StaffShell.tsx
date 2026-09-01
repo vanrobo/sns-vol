@@ -68,7 +68,7 @@ export default function StaffShell({
           <Link
             href="/"
             className="p-2 text-[var(--text-muted)] hover:text-[var(--brand)]"
-            title="Volunteer home"
+            title="Volunteer portal"
           >
             <Home size={20} />
           </Link>

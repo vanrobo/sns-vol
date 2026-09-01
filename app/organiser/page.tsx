@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, startTransition } from "react";
 import toast from "react-hot-toast";
-import { Plus, Calendar, Award, Trophy, Users } from "lucide-react";
+import { Plus, Calendar, Award, Trophy } from "lucide-react";
 import type { ApplicationStatus, Event } from "@/types";
 import {
   createEvent,
@@ -19,7 +19,6 @@ import { getOrganiserData } from "@/lib/data/organiser";
 import { signOutAction } from "@/lib/actions/auth";
 import StaffShell from "@/components/staff/StaffShell";
 import StaffWelcome from "@/components/staff/StaffWelcome";
-import { APP_NAME } from "@/lib/brand";
 import { getMyRole } from "@/lib/data/profiles";
 import { readOrganiserCache, writeOrganiserCache } from "@/lib/organiser-cache";
 import { haptic } from "@/lib/haptics";
@@ -33,8 +32,7 @@ import EventAttendanceModal from "@/components/staff/EventAttendanceModal";
 import CancelOccurrenceModal from "@/components/staff/CancelOccurrenceModal";
 import ApplicationsTable from "@/components/staff/ApplicationsTable";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import AwardsPanel from "@/components/staff/AwardsPanel";
-import OrganiserVolunteersPanel from "@/components/staff/OrganiserVolunteersPanel";
+import AwardRecommendationPanel from "@/components/staff/AwardRecommendationPanel";
 import type { OrganiserData } from "@/lib/data/organiser";
 
 export default function OrganiserDashboard() {
@@ -198,20 +196,19 @@ export default function OrganiserDashboard() {
     try {
       await updateApplicationStatus(userId, eventId, status);
       haptic(status === "approved" ? "success" : "warning");
-      toast.success(`Application marked as ${status}`);
+      toast.success(`Request marked as ${status}`);
       fetchData();
     } catch {
-      toast.error("Failed to update application.");
+      toast.error("Failed to update request.");
     } finally {
       setActioningId(null);
     }
   };
 
   const tabs = [
-    { key: "events", label: "Event organize", icon: Calendar },
-    { key: "applications", label: "Approval", icon: Award },
-    { key: "volunteers", label: "Volunteers", icon: Users },
-    { key: "awards", label: "Awards", icon: Trophy },
+    { key: "events", label: "Events", icon: Calendar },
+    { key: "applications", label: "Request", icon: Award },
+    { key: "recommend", label: "Recommend", icon: Trophy },
   ];
 
   if (loading) {
@@ -237,30 +234,12 @@ export default function OrganiserDashboard() {
       >
         {activeTab === "events" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
-                <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
-                  Active
-                </p>
-                <p className="text-2xl font-black text-emerald-600">
-                  {data.events.filter((e) => e.status === "active").length}
-                </p>
-              </div>
-              <div className="bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] text-center">
-                <p className="text-[9px] font-bold uppercase text-[var(--text-muted)] mb-1">
-                  Pending apps
-                </p>
-                <p className="text-2xl font-black text-amber-500">
-                  {data.applications.filter((a) => a.status === "pending").length}
-                </p>
-              </div>
-            </div>
             <StaffWelcome
               name={staffName}
-              subtitle="Add, edit, or delete events and manage your schedule."
+              subtitle="Create and manage your events. You only see events you published."
             />
             <div className="flex justify-between items-center gap-3">
-              <h2 className="text-lg font-bold">Event organize</h2>
+              <h2 className="text-lg font-bold">Your events</h2>
               <button
                 type="button"
                 onClick={openCreateModal}
@@ -287,7 +266,7 @@ export default function OrganiserDashboard() {
 
         {activeTab === "applications" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold">Approval</h2>
+            <h2 className="text-lg font-bold">Requests</h2>
             <ApplicationsTable
               applications={data.applications}
               page={appsPage}
@@ -298,29 +277,10 @@ export default function OrganiserDashboard() {
           </div>
         )}
 
-        {activeTab === "volunteers" && (
+        {activeTab === "recommend" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold">Volunteers</h2>
-            <OrganiserVolunteersPanel
-              volunteers={data.users}
-              actioningId={actioningId}
-              onActioningChange={setActioningId}
-              onUpdated={(userId, batch) =>
-                setData((prev) => ({
-                  ...prev,
-                  users: prev.users.map((u) =>
-                    u.id === userId ? { ...u, batch } : u,
-                  ),
-                }))
-              }
-            />
-          </div>
-        )}
-
-        {activeTab === "awards" && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold">Awards</h2>
-            <AwardsPanel volunteers={data.users} events={data.events} />
+            <h2 className="text-lg font-bold">Award recommendation</h2>
+            <AwardRecommendationPanel />
           </div>
         )}
       </StaffShell>

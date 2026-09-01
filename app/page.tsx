@@ -30,7 +30,6 @@ import {
   Share2,
   HeartOff,
   BookmarkPlus,
-  CalendarDays,
   Clock,
   Search,
   RefreshCw,
@@ -38,8 +37,8 @@ import {
 import { EventListSkeleton } from "@/components/ui/Skeleton";
 import Pagination, { paginate } from "@/components/staff/Pagination";
 import SkillChips from "@/components/ui/SkillChips";
-import StaffHomeBanner from "@/components/StaffHomeBanner";
 import QuickAccessGrid from "@/components/home/QuickAccessGrid";
+import QuickLinksNav from "@/components/home/QuickLinksNav";
 import UpcomingEvents from "@/components/home/UpcomingEvents";
 import AwardsCarousel from "@/components/home/AwardsCarousel";
 import EventCalendarView from "@/components/events/EventCalendarView";
@@ -86,11 +85,10 @@ export default function VolunteeringDashboard() {
     return !readEventsCache(uid, eventsCacheKey("Active", "", "all"));
   });
   const [tab, setTab] = useState<Tab>("Active");
-  const [dateFilter, setDateFilter] = useState("");
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState("");
   const [calendarMonth, setCalendarMonth] = useState(firstOfMonthIso);
   const [regionFilter, setRegionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [calendarView, setCalendarView] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [applying, setApplying] = useState(false);
   const [rating, setRating] = useState(0);
@@ -190,7 +188,7 @@ export default function VolunteeringDashboard() {
   }, [selectedEvent]);
 
   const loadEvents = useCallback(async (opts?: { silent?: boolean }) => {
-    const cacheKey = eventsCacheKey(tab, dateFilter, regionFilter);
+    const cacheKey = eventsCacheKey(tab, "", regionFilter);
     const cached = userId ? readEventsCache(userId, cacheKey) : null;
 
     if (!opts?.silent && !cached) {
@@ -209,11 +207,6 @@ export default function VolunteeringDashboard() {
         tab === "Attended" ? "attended" : tab === "Active" ? "active" : "closed";
       let fetched = await getEvents(status);
 
-      if (dateFilter) {
-        fetched = fetched.filter((e) =>
-          expandEventDates(e).includes(dateFilter),
-        );
-      }
       if (regionFilter !== "all") {
         fetched = fetched.filter((e) => matchesCenter(e.region, regionFilter));
       }
@@ -239,7 +232,7 @@ export default function VolunteeringDashboard() {
       setLoading(false);
       setEventsRefreshing(false);
     }
-  }, [tab, dateFilter, regionFilter, userId]);
+  }, [tab, regionFilter, userId]);
 
   const refreshHome = useCallback(async () => {
     haptic("light");
@@ -276,7 +269,7 @@ export default function VolunteeringDashboard() {
 
   useEffect(() => {
     if (!userId) return;
-    const cacheKey = eventsCacheKey(tab, dateFilter, regionFilter);
+    const cacheKey = eventsCacheKey(tab, "", regionFilter);
     const cached = readEventsCache(userId, cacheKey);
     if (cached) {
       setEvents(cached.events);
@@ -289,7 +282,7 @@ export default function VolunteeringDashboard() {
       loadEvents();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, dateFilter, regionFilter, userId]);
+  }, [tab, regionFilter, userId]);
 
   const handleAction = async (overrideAction?: string) => {
     if (!selectedEvent) return;
@@ -401,7 +394,7 @@ export default function VolunteeringDashboard() {
 
   useEffect(() => {
     setEventsPage(1);
-  }, [tab, dateFilter, regionFilter, searchQuery]);
+  }, [tab, regionFilter, searchQuery]);
 
   const displayedEvents = events.filter((evt) => {
     const q = searchQuery.trim().toLowerCase();
@@ -417,13 +410,14 @@ export default function VolunteeringDashboard() {
 
   const pagedEvents = paginate(displayedEvents, eventsPage, EVENTS_PAGE_SIZE);
 
+  const activenessPercent =
+    stats && stats.totalActive > 0
+      ? Math.min(100, Math.round((stats.attended / stats.totalActive) * 100))
+      : null;
+
   return (
     <MobileLayout onRefresh={refreshHome}>
       <div className="p-5 space-y-6 pb-28">
-        {session && (session.role === "admin" || session.role === "organiser") && (
-          <StaffHomeBanner role={session.role} name={session.name} />
-        )}
-
         {session && session.role === "volunteer" && (
           <div className="space-y-4">
             <div>
@@ -432,14 +426,14 @@ export default function VolunteeringDashboard() {
               </h1>
               {stats && (
                 <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
-                  {stats.attended} events attended · {stats.totalActive} active
-                  now
+                  {stats.attended} events attended · {activenessPercent ?? 0}%
+                  activeness
                 </p>
               )}
             </div>
             <QuickAccessGrid
               awardCount={myAwards.length}
-              onEventsClick={() => setCalendarView(true)}
+              activenessPercent={activenessPercent}
             />
             <UpcomingEvents
               events={upcomingEvents}
@@ -447,10 +441,26 @@ export default function VolunteeringDashboard() {
               onSelect={setSelectedEvent}
             />
             <AwardsCarousel awards={myAwards} />
+            <QuickLinksNav />
           </div>
         )}
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-[var(--border)] bg-[var(--surface)]">
+            <EventCalendarView
+              embedded
+              events={allEventsForCalendar}
+              monthAnchor={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              selectedDate={calendarSelectedDate}
+              onSelectDate={setCalendarSelectedDate}
+              onDayOpen={(date, dayEvents) => {
+                setCalendarSelectedDate(date);
+                setCalendarDayPopup({ date, events: dayEvents });
+              }}
+            />
+          </div>
+
           <div className="p-4 space-y-3 border-b border-[var(--border)] bg-[var(--surface)]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -472,12 +482,9 @@ export default function VolunteeringDashboard() {
                     className={loading || eventsRefreshing ? "animate-spin" : ""}
                   />
                 </button>
-                {(dateFilter || regionFilter !== "all") && (
+                {regionFilter !== "all" && (
                   <button
-                    onClick={() => {
-                      setDateFilter("");
-                      setRegionFilter("all");
-                    }}
+                    onClick={() => setRegionFilter("all")}
                     className="text-[11px] font-bold text-red-500 hover:underline"
                   >
                     Clear
@@ -492,16 +499,16 @@ export default function VolunteeringDashboard() {
               />
               <input
                 type="search"
-                placeholder="Search events by title, center, venue..."
+                placeholder="Search events..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 p-3 bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg text-sm font-medium outline-[var(--brand)]"
+                className="w-full pl-9 p-2.5 bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg text-sm font-medium outline-[var(--brand)]"
               />
             </div>
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-3 text-sm font-bold outline-[var(--brand)]"
+              className="w-full bg-slate-50 dark:bg-[#18181B] border border-[var(--border)] rounded-lg p-2.5 text-sm font-bold outline-[var(--brand)]"
             >
               {centers.map((r) => (
                 <option key={r} value={r}>
@@ -509,31 +516,6 @@ export default function VolunteeringDashboard() {
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={() => setCalendarView((v) => !v)}
-              className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                calendarView
-                  ? "bg-[var(--brand)] text-white"
-                  : "text-[var(--brand)] bg-[var(--brand)]/10 hover:bg-[var(--brand)]/15"
-              }`}
-            >
-              <CalendarDays size={14} />
-              {calendarView ? "Hide Calendar" : "Calendar View"}
-            </button>
-            {calendarView && (
-              <EventCalendarView
-                embedded
-                events={allEventsForCalendar}
-                monthAnchor={calendarMonth}
-                onMonthChange={setCalendarMonth}
-                selectedDate={dateFilter}
-                onSelectDate={(d) => setDateFilter(d)}
-                onDayOpen={(date, dayEvents) =>
-                  setCalendarDayPopup({ date, events: dayEvents })
-                }
-              />
-            )}
           </div>
 
           <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)]">
@@ -543,7 +525,7 @@ export default function VolunteeringDashboard() {
                   key={t}
                   onClick={() => {
                     haptic("selection");
-                    const cacheKey = eventsCacheKey(t, dateFilter, regionFilter);
+                    const cacheKey = eventsCacheKey(t, "", regionFilter);
                     const cached = userId ? readEventsCache(userId, cacheKey) : null;
                     if (cached) {
                       setEvents(cached.events);
@@ -570,26 +552,20 @@ export default function VolunteeringDashboard() {
               <>
                 {pagedEvents.map((evt) => {
                 const matchPercentage = computeSkillMatch(mySkills, evt.required_skills);
-                const isHighMatch = matchPercentage !== null && matchPercentage >= 75;
                 return (
                   <div
                     key={evt.id}
                     onClick={() => setSelectedEvent(evt)}
-                    className={`rounded-xl p-5 border cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center shadow-sm group ${getCardColor(evt.category)}`}
+                    className={`rounded-lg px-3 py-2.5 border cursor-pointer active:scale-[0.98] transition-all flex justify-between items-center gap-2 shadow-sm group ${getCardColor(evt.category)}`}
                   >
-                    <div className="flex-1 pr-4">
-                      <div className="flex gap-2 mb-2 flex-wrap items-center">
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex gap-1.5 mb-1 flex-wrap items-center">
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40">
                           {evt.category || "Community"}
                         </span>
-                        {evt.region && (
-                          <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300">
-                            {evt.region}
-                          </span>
-                        )}
                         {tab === "Active" && evt.has_applied && evt.application_status && (
                           <span
-                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border flex items-center gap-1 ${applicationStatusClass(evt.application_status)}`}
+                            className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${applicationStatusClass(evt.application_status)}`}
                           >
                             {titleCaseStatus(evt.application_status)}
                           </span>
@@ -597,33 +573,35 @@ export default function VolunteeringDashboard() {
                         {tab === "Active" &&
                           !evt.has_applied &&
                           matchPercentage !== null && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-[var(--brand)]/20 bg-[var(--brand)]/10 text-[var(--brand)] flex items-center gap-1.5">
-                            {isHighMatch && (
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--brand)]" />
-                              </span>
-                            )}
-                            <Target size={10} /> {matchPercentage}% Match
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-[var(--brand)]/20 bg-[var(--brand)]/10 text-[var(--brand)] flex items-center gap-1">
+                            <Target size={9} /> {matchPercentage}%
                           </span>
                         )}
                         {(tab === "Closed" || tab === "Attended") &&
                           evt.has_attended && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-[var(--brand)] flex items-center gap-1">
-                              <CheckCircle2 size={10} /> Attended
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-[var(--brand)]">
+                              Attended
                             </span>
                           )}
                       </div>
-                      <h3 className="font-bold text-[18px] tracking-tight leading-tight">
+                      <h3 className="font-bold text-sm tracking-tight leading-snug truncate">
                         {evt.title}
                       </h3>
-                      <p className="text-[13px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-medium mt-1">
-                        <Calendar size={12} className="text-[var(--brand)]" />{" "}
-                        {evt.date}
-                      </p>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 inline-flex items-center gap-1 font-medium px-1.5 py-0.5 rounded bg-white/50 dark:bg-black/20">
+                          <Calendar size={10} className="text-[var(--brand)] shrink-0" />
+                          {evt.date}
+                        </span>
+                        {(evt.region || evt.venue) && (
+                          <span className="text-[10px] text-slate-600 dark:text-slate-400 inline-flex items-center gap-1 font-medium px-1.5 py-0.5 rounded bg-white/50 dark:bg-black/20 truncate max-w-[160px]">
+                            <MapPin size={10} className="text-[var(--brand)] shrink-0" />
+                            {evt.region || evt.venue}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-slate-400 group-hover:text-black dark:group-hover:text-white transition-colors bg-white/50 dark:bg-black/10 p-2 rounded-full">
-                      <ChevronRight size={18} />
+                    <div className="text-slate-400 group-hover:text-black dark:group-hover:text-white transition-colors shrink-0">
+                      <ChevronRight size={16} />
                     </div>
                   </div>
                 );

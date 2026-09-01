@@ -27,6 +27,10 @@ import {
   setFontScale as applyStoredFontScale,
 } from "@/lib/font-scale";
 import { haptic } from "@/lib/haptics";
+import {
+  showBrowserNotification,
+} from "@/lib/push/browser-notifications";
+import { showNotificationAlertToast } from "@/components/NotificationAlertToast";
 
 export default function SettingsPage() {
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -212,6 +216,40 @@ export default function SettingsPage() {
             <span className="font-semibold text-sm">In-app alert history</span>
             <ChevronDown size={14} className="-rotate-90 text-slate-400" />
           </Link>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!canUseBrowserNotifications()) {
+                toast.error("Browser alerts not supported here.");
+                return;
+              }
+              const perm = await requestBrowserNotificationPermission();
+              if (perm !== "granted") {
+                toast.error("Allow notifications in browser settings first.");
+                return;
+              }
+              showNotificationAlertToast({
+                id: "test-alert",
+                user_id: "",
+                title: "Test alert",
+                body: "Web alerts are working. You will see compact toasts like this for broadcasts.",
+                type: "event",
+                read_at: null,
+                created_at: new Date().toISOString(),
+              });
+              showBrowserNotification(
+                "Test alert",
+                "Browser notification test from SNS Family settings.",
+                "/notifications",
+                "test-alert",
+              );
+              toast.success("Test alert sent");
+            }}
+            className="w-full p-4 px-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-gray-900 transition-colors text-left"
+          >
+            <span className="font-semibold text-sm">Send test alert</span>
+            <ChevronDown size={14} className="-rotate-90 text-slate-400" />
+          </button>
         </div>
 
         <p className="text-center text-xs text-[var(--text-muted)]">

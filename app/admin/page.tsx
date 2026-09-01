@@ -443,11 +443,10 @@ export default function AdminDashboard() {
   };
 
   const tabs = [
-    { key: "overview", label: "Home", icon: LayoutDashboard },
+    { key: "overview", label: "Dashboard", icon: LayoutDashboard },
     { key: "events", label: "Events", icon: Calendar },
     { key: "volunteers", label: "People", icon: Users },
-    { key: "grievances", label: "Cases", icon: AlertCircle },
-    { key: "applications", label: "Apps", icon: Award },
+    { key: "applications", label: "Request", icon: Award },
     { key: "awards", label: "Awards", icon: Trophy },
   ];
 
@@ -481,6 +480,71 @@ export default function AdminDashboard() {
               users={data.users}
               batches={uniqueBatches}
             />
+
+            <div className="space-y-3">
+              <h2 className="text-lg font-bold">Grievances</h2>
+              {pagedGrievances.length === 0 ? (
+                <p className="text-gray-500 italic text-sm">No grievances logged.</p>
+              ) : (
+                pagedGrievances.slice(0, 5).map((g) => (
+                  <div
+                    key={g.id}
+                    className="border border-[var(--border)] p-4 rounded-xl space-y-3 bg-[var(--surface)]"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="min-w-0">
+                        <span className="text-xs bg-red-100 text-red-800 font-extrabold px-2 py-0.5 rounded uppercase">
+                          {g.category}
+                        </span>
+                        <p className="text-sm font-medium mt-2">{g.description}</p>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-extrabold shrink-0 ${g.status === "resolved" ? "bg-emerald-100 text-emerald-800" : "bg-yellow-100 text-yellow-800"}`}
+                      >
+                        {titleCaseStatus(g.status)}
+                      </span>
+                    </div>
+                    {g.status === "open" && selectedGrievanceId !== g.id && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGrievanceId(g.id)}
+                        className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+                      >
+                        Address ticket
+                      </button>
+                    )}
+                    {selectedGrievanceId === g.id && (
+                      <div className="space-y-2">
+                        <textarea
+                          value={grievanceNotes}
+                          onChange={(e) => setGrievanceNotes(e.target.value)}
+                          placeholder="Resolution notes..."
+                          className="w-full border p-2 text-xs rounded-lg dark:bg-gray-800 outline-emerald-600"
+                          rows={2}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedGrievanceId(null)}
+                            className="text-xs text-gray-500 px-2"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            disabled={actioningId === g.id}
+                            onClick={() => handleResolveGrievance(g.id)}
+                            className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-md"
+                          >
+                            Send resolution
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
 
@@ -578,7 +642,7 @@ export default function AdminDashboard() {
                   {(
                     [
                       ["all", "All", data.users.length] as const,
-                      ["pending", "Pending", pendingVolunteerCount] as const,
+                      ["pending", "Pending request", pendingVolunteerCount] as const,
                       ["active", "Active", activeVolunteerCount] as const,
                     ] as const
                   ).map(([key, label, count]) => (
@@ -757,93 +821,9 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === "grievances" && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold">Grievances</h2>
-            <div className="grid grid-cols-1 gap-4">
-              {pagedGrievances.length === 0 && (
-                <p className="text-gray-500 italic text-sm">No grievances logged.</p>
-              )}
-              {pagedGrievances.map((g) => (
-                <div
-                  key={g.id}
-                  className="border border-[var(--border)] p-5 rounded-2xl space-y-4"
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex gap-2 items-center flex-wrap">
-                        <span className="text-xs bg-red-100 text-red-800 font-extrabold px-2.5 py-1 rounded-md uppercase">
-                          {g.category}
-                        </span>
-                        {g.user_name && (
-                          <span className="text-xs text-gray-500 font-semibold">
-                            {g.user_name}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm font-medium">{g.description}</p>
-                      {g.admin_notes && (
-                        <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-xl text-xs">
-                          <span className="font-bold text-emerald-600">Response:</span>{" "}
-                          {g.admin_notes}
-                        </div>
-                      )}
-                    </div>
-                    <span
-                      className={`px-2.5 py-1 rounded text-xs font-extrabold ${g.status === "resolved" ? "bg-emerald-100 text-emerald-800" : "bg-yellow-100 text-yellow-800"}`}
-                    >
-                      {titleCaseStatus(g.status)}
-                    </span>
-                  </div>
-                  {g.status === "open" && selectedGrievanceId !== g.id && (
-                    <button
-                      onClick={() => setSelectedGrievanceId(g.id)}
-                      className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"
-                    >
-                      Address Ticket
-                    </button>
-                  )}
-                  {selectedGrievanceId === g.id && (
-                    <div className="space-y-2 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
-                      <textarea
-                        value={grievanceNotes}
-                        onChange={(e) => setGrievanceNotes(e.target.value)}
-                        placeholder="Resolution notes..."
-                        className="w-full border p-2 text-xs rounded-lg dark:bg-gray-800 outline-emerald-600"
-                        rows={2}
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => setSelectedGrievanceId(null)}
-                          className="text-xs text-gray-500 px-2"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          disabled={actioningId === g.id}
-                          onClick={() => handleResolveGrievance(g.id)}
-                          className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-md"
-                        >
-                          Send Resolution
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <Pagination
-              total={data.grievances.length}
-              pageSize={GRIEV_PAGE_SIZE}
-              page={grievPage}
-              onPageChange={setGrievPage}
-            />
-          </div>
-        )}
-
         {activeTab === "applications" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold">Applications</h2>
+            <h2 className="text-lg font-bold">Requests</h2>
             <ApplicationsTable
               applications={data.applications}
               page={appsPage}
@@ -857,6 +837,11 @@ export default function AdminDashboard() {
         {activeTab === "awards" && (
           <div className="space-y-4">
             <h2 className="text-lg font-bold">Awards</h2>
+            <p className="text-sm text-[var(--text-muted)] leading-relaxed -mt-2">
+              Tap <strong>New</strong> to create an award type, then use{" "}
+              <strong>Grant to Volunteer</strong> to assign it. Organizer phone
+              on new events is prefilled from your profile — edit in Event form.
+            </p>
             <AwardsPanel
               volunteers={data.users}
               events={data.events}

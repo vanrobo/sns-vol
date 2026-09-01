@@ -11,15 +11,20 @@ export type OrganiserData = {
 };
 
 export async function getOrganiserData(): Promise<OrganiserData> {
-  await requireStaff();
+  const staff = await requireStaff();
   const supabase = await createClient();
+
+  let eventsQuery = supabase.from("events").select("*").order("date", { ascending: false });
+  if (staff.role === "organiser") {
+    eventsQuery = eventsQuery.eq("created_by", staff.id);
+  }
 
   const [
     { data: events, error: e1 },
     { data: apps, error: e2 },
     { data: users, error: e3 },
   ] = await Promise.all([
-    supabase.from("events").select("*").order("date", { ascending: false }),
+    eventsQuery,
     supabase
       .from("applications")
       .select("*, profiles(name, skills), events(title)")
@@ -35,7 +40,16 @@ export async function getOrganiserData(): Promise<OrganiserData> {
   if (e2) throw e2;
   if (e3) throw e3;
 
-  const applications: Application[] = (apps ?? []).map((a) => {
+  const eventList = (events ?? []).map((e) => ({
+    ...e,
+    required_skills: e.required_skills ?? [],
+  })) as Event[];
+
+  const eventIds = new Set(eventList.map((e) => e.id));
+
+  const applications: Application[] = (apps ?? [])
+    .filter((a) => eventIds.has(a.event_id))
+    .map((a) => {
     const row = a as {
       id: string;
       user_id: string;
@@ -56,10 +70,7 @@ export async function getOrganiserData(): Promise<OrganiserData> {
   });
 
   return {
-    events: (events ?? []).map((e) => ({
-      ...e,
-      required_skills: e.required_skills ?? [],
-    })) as Event[],
+    events: eventList,
     applications,
     users: (users ?? []) as Profile[],
   };

@@ -496,9 +496,9 @@ export default function VolunteeringDashboard() {
 
   return (
     <MobileLayout onRefresh={refreshHome}>
-      <div className="p-5 space-y-6 pb-28">
+      <div className="p-5 space-y-6 pb-28 min-w-0 max-w-full overflow-x-hidden">
         {session && (session.role === "admin" || session.role === "organiser") && (
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0 w-full overflow-hidden">
             <h1 className="text-2xl font-black tracking-tight">
               Hi, {session.name.split(" ")[0]}
             </h1>
@@ -515,7 +515,7 @@ export default function VolunteeringDashboard() {
         )}
 
         {session && session.role === "volunteer" && (
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0 w-full overflow-hidden">
             <div>
               <h1 className="text-2xl font-black tracking-tight">
                 Welcome, {session.name.split(" ")[0]}

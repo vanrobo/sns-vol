@@ -30,21 +30,51 @@ function isSunday(iso: string) {
   return new Date(`${iso}T12:00:00`).getDay() === 0;
 }
 
-/** Up to two dots: gray = regular class, green = one-off event, red = class off (Sunday/canceled). */
-function getDayDots(iso: string, dayEvents: Event[]): { color: string; key: string }[] {
-  if (dayEvents.length === 0) return [];
+/** True for organiser-entered class-off entries (red calendar dot). */
+export function isClassCancelCategory(category?: string | null) {
+  return /^class\s*canc?el$/i.test((category ?? "").trim());
+}
 
-  const recurring = dayEvents.filter((e) => e.is_recurring);
-  const oneOff = dayEvents.filter((e) => !e.is_recurring);
-  const classCanceled = recurring.some((e) => (e.cancelled_dates ?? []).includes(iso));
+/**
+ * Up to two dots:
+ * gray = regular class, green = one-off event,
+ * red = class off (Sunday / cancelled occurrence / "Class cancel" category).
+ * A class-off entry on a specific date overrides gray for that day only.
+ */
+function getDayDots(
+  iso: string,
+  dayEvents: Event[],
+  allEvents: Event[],
+): { color: string; key: string }[] {
+  const classCancelOnDay = dayEvents.some((e) =>
+    isClassCancelCategory(e.category),
+  );
+  const cancelledOccurrence = allEvents.some((e) =>
+    (e.cancelled_dates ?? []).includes(iso),
+  );
+  const recurring = dayEvents.filter(
+    (e) => e.is_recurring && !isClassCancelCategory(e.category),
+  );
+  const oneOff = dayEvents.filter(
+    (e) => !e.is_recurring && !isClassCancelCategory(e.category),
+  );
+
   const sundayNoClass = isSunday(iso) && recurring.length > 0;
-  const hasActiveClass =
-    recurring.length > 0 && !isSunday(iso) && !classCanceled;
+  const classOff = classCancelOnDay || cancelledOccurrence || sundayNoClass;
+  const hasActiveClass = recurring.length > 0 && !classOff;
   const hasEvent = oneOff.length > 0;
+
+  if (
+    dayEvents.length === 0 &&
+    !cancelledOccurrence &&
+    !classCancelOnDay
+  ) {
+    return [];
+  }
 
   const dots: { color: string; key: string }[] = [];
 
-  if (sundayNoClass || classCanceled) {
+  if (classOff) {
     dots.push({ key: "off", color: "#ef4444" });
   } else if (hasActiveClass) {
     dots.push({ key: "class", color: "#94a3b8" });
@@ -76,6 +106,12 @@ export default function EventCalendarView({
   const byDate = new Map<string, Event[]>();
   for (const evt of events) {
     for (const d of expandEventDates(evt)) {
+      const list = byDate.get(d) ?? [];
+      if (!list.some((e) => e.id === evt.id)) list.push(evt);
+      byDate.set(d, list);
+    }
+    // Keep cancelled occurrences visible so the calendar can show a red "off" dot
+    for (const d of evt.cancelled_dates ?? []) {
       const list = byDate.get(d) ?? [];
       if (!list.some((e) => e.id === evt.id)) list.push(evt);
       byDate.set(d, list);
@@ -142,7 +178,7 @@ export default function EventCalendarView({
           const iso = toIso(year, month, day);
           const dayEvents = byDate.get(iso) ?? [];
           const isSelected = selectedDate === iso;
-          const dots = getDayDots(iso, dayEvents);
+          const dots = getDayDots(iso, dayEvents, events);
 
           return (
             <button
@@ -195,7 +231,7 @@ export default function EventCalendarView({
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
-              <span>Off</span>
+              <span>Class cancel / Off</span>
             </span>
           </div>
           {locationGroups.length > 0 && (

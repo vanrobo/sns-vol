@@ -38,8 +38,8 @@ export default function CancelOccurrenceModal({
           <div>
             <h3 className="font-bold">Cancel one occurrence</h3>
             <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
-              Pick a date to hide from the calendar for &ldquo;{event.title}&rdquo;.
-              The event series stays active.
+              Pick a date to mark as class off (red) on the calendar for
+              &ldquo;{event.title}&rdquo;. The event series stays active.
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close">

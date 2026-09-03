@@ -21,7 +21,6 @@ import {
 import type { Profile, UserAward } from "@/types";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
 import { getMyAwards } from "@/lib/data/awards";
-import AwardBadge from "@/components/awards/AwardBadge";
 import {
   User,
   Loader2,
@@ -631,24 +630,19 @@ function ProfilePageContent() {
               you here.
             </p>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2">
               {myAwards.map((a) => (
                 <div
                   key={a.id}
-                  className="flex flex-col items-center rounded-xl border border-[var(--border)] bg-slate-50/50 dark:bg-[#18181B]/40 p-4"
+                  className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40"
                 >
-                  <AwardBadge
-                    award={a}
-                    volunteerName={profile.name}
-                    size={220}
-                    showVolunteerName
-                    showActions
-                  />
+                  <p className="font-bold text-sm">{a.title}</p>
                   {a.description && (
-                    <p className="text-xs text-[var(--text-muted)] text-center mt-3 leading-relaxed">
-                      {a.description}
-                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{a.description}</p>
                   )}
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    {new Date(a.awarded_at).toLocaleDateString()}
+                  </p>
                 </div>
               ))}
             </div>

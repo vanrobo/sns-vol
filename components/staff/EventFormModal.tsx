@@ -148,7 +148,14 @@ export default function EventFormModal({
                 <option>STEM</option>
                 <option>Education</option>
                 <option>Environment</option>
+                <option>Class cancel</option>
               </select>
+              {form.category === "Class cancel" && (
+                <p className="text-[11px] text-red-600 dark:text-red-400 mt-1.5 leading-relaxed">
+                  Marks that date as class off (red) on the calendar, even when a
+                  recurring class covers the same day.
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-bold mb-2">

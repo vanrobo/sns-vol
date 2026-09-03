@@ -199,22 +199,17 @@ export default function VolunteeringDashboard() {
 
   useEffect(() => {
     if (!userId) return;
-    (async () => {
-      for (const t of ["Active", "Closed", "Attended"] as Tab[]) {
-        const key = eventsCacheKey(t, "", "all");
-        if (readEventsCache(userId, key)) continue;
-        try {
-          const status =
-            t === "Attended" ? "attended" : t === "Active" ? "active" : "closed";
-          let fetched = await getEvents(status);
-          const calendarEvents =
-            t === "Active" ? await getEvents("active") : [];
-          writeEventsCache(userId, key, fetched, calendarEvents);
-        } catch {
-          /* ignore prefetch errors */
-        }
-      }
-    })();
+    // Warm Active-tab cache only. Prefetching Closed/Attended burned 4+ server
+    // actions on every home visit during testing.
+    const key = eventsCacheKey("Active", "", "all");
+    if (readEventsCache(userId, key)) return;
+    void getEvents("active")
+      .then((fetched) => {
+        writeEventsCache(userId, key, fetched, fetched);
+      })
+      .catch(() => {
+        /* ignore prefetch errors */
+      });
   }, [userId]);
 
   useEffect(() => {
@@ -258,7 +253,8 @@ export default function VolunteeringDashboard() {
       );
       setEvents(fetched);
 
-      const calendarEvents = await getEvents("active");
+      const calendarEvents =
+        status === "active" ? fetched : await getEvents("active");
       setAllEventsForCalendar(calendarEvents);
 
       if (userId) {

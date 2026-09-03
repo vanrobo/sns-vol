@@ -18,7 +18,8 @@ export async function GET(_request: Request, context: RouteContext) {
         Accept: "application/pdf,*/*",
         "User-Agent": "SNS-Family-Library/1.0",
       },
-      cache: "no-store",
+      // Cache PDFs at the edge so reopening a magazine isn't a fresh origin fetch.
+      next: { revalidate: 1800 },
     });
   } catch {
     return NextResponse.json({ error: "Failed to reach PDF host" }, { status: 502 });

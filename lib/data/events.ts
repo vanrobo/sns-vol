@@ -186,7 +186,10 @@ export async function getPublicEvents(): Promise<Event[]> {
     .eq("status", "active")
     .order("date", { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.error("getPublicEvents", error.message);
+    return [];
+  }
 
   return (data ?? []).map((e) => ({
     ...e,

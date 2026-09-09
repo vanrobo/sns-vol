@@ -32,7 +32,20 @@ function formatWhen(event: Event) {
 }
 
 export default async function PublicEventsPage() {
-  const [events, session] = await Promise.all([getPublicEvents(), getMyRole()]);
+  let events: Event[] = [];
+  let session: Awaited<ReturnType<typeof getMyRole>> = null;
+
+  try {
+    events = await getPublicEvents();
+  } catch (err) {
+    console.error("getPublicEvents failed", err);
+  }
+
+  try {
+    session = await getMyRole();
+  } catch {
+    /* public visitors may have no session */
+  }
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] tracking-tight">

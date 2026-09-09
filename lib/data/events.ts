@@ -175,6 +175,25 @@ export async function getUpcomingEvents(): Promise<Event[]> {
   })) as Event[];
 }
 
+/** Public active events list — no login required. */
+export async function getPublicEvents(): Promise<Event[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      "id, slug, title, date, venue, description, status, category, region, time_start, time_end, is_recurring, end_date, required_skills, criteria",
+    )
+    .eq("status", "active")
+    .order("date", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((e) => ({
+    ...e,
+    required_skills: e.required_skills ?? [],
+  })) as Event[];
+}
+
 /** Public event view by slug — no login required. */
 export async function getPublicEventBySlug(slug: string): Promise<Event | null> {
   const supabase = await createClient();

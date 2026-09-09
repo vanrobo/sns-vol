@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Calendar, MapPin, Pencil, Lock, Link2, Share2, Unlock, Copy, Users, CalendarOff, Trash2, Search } from "lucide-react";
 import type { Event } from "@/types";
 import { titleCaseStatus } from "@/types";
-import { getEventPublicUrl } from "@/lib/events/share";
+import { getEventPublicUrl, getEventsListPublicUrl } from "@/lib/events/share";
 import Pagination, { paginate } from "@/components/staff/Pagination";
 import toast from "react-hot-toast";
 
@@ -62,8 +62,35 @@ export default function EventsTable({
     );
   };
 
+  const copyAllEventsLink = () => {
+    const url = getEventsListPublicUrl();
+    navigator.clipboard.writeText(url).then(
+      () => toast.success("All-events public link copied!"),
+      () => toast.error("Could not copy link"),
+    );
+  };
+
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={copyAllEventsLink}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-[var(--brand)] text-xs font-bold border border-[var(--brand)]/20"
+        >
+          <Link2 size={14} />
+          Copy all-events public link
+        </button>
+        <a
+          href={getEventsListPublicUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-[#18181B] text-xs font-bold"
+        >
+          <Share2 size={14} />
+          Open public board
+        </a>
+      </div>
       <div className="relative">
         <Search
           size={14}

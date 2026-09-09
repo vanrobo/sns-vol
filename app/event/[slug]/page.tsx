@@ -54,7 +54,10 @@ export default async function PublicEventPage({ params }: Props) {
           <p className="text-sm text-[var(--text-muted)]">
             This link may be invalid or the event was removed.
           </p>
-          <Link href={session ? appHomeForUser(session.role, session.status) : "/login"} className="text-[var(--brand)] font-bold text-sm">
+          <Link href="/events" className="text-[var(--brand)] font-bold text-sm">
+            Browse all events
+          </Link>
+          <Link href={session ? appHomeForUser(session.role, session.status) : "/login"} className="text-[var(--text-muted)] font-bold text-sm block">
             {session ? `Back to ${APP_NAME}` : `Sign in to ${APP_NAME}`}
           </Link>
         </div>
@@ -65,10 +68,20 @@ export default async function PublicEventPage({ params }: Props) {
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] tracking-tight">
       <header className="sticky top-0 z-50 px-5 py-4 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
-        <p className="text-sm font-bold text-[var(--brand)]">{APP_NAME}</p>
-        <p className="text-xs text-[var(--text-muted)]">
-          {session ? `Signed in as ${session.name}` : "Public event preview"}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-[var(--brand)]">{APP_NAME}</p>
+            <p className="text-xs text-[var(--text-muted)]">
+              {session ? `Signed in as ${session.name}` : "Public event preview"}
+            </p>
+          </div>
+          <Link
+            href="/events"
+            className="shrink-0 text-xs font-bold text-[var(--brand)] pt-1"
+          >
+            All events
+          </Link>
+        </div>
       </header>
 
       <div className="p-5 space-y-5 pb-10">

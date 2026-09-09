@@ -9,12 +9,21 @@ export function slugifyEventTitle(title: string): string {
     .slice(0, 80) || "event";
 }
 
-export function getEventPublicUrl(slug: string): string {
-  const base =
+function getPublicAppBase() {
+  return (
     (typeof window !== "undefined" ? window.location.origin : undefined) ||
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     (process.env.VERCEL_URL?.trim()
       ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000");
-  return `${base.replace(/\/$/, "")}/event/${slug}`;
+      : "http://localhost:3000")
+  );
+}
+
+export function getEventPublicUrl(slug: string): string {
+  return `${getPublicAppBase().replace(/\/$/, "")}/event/${slug}`;
+}
+
+/** Shareable board of all active events — no login required. */
+export function getEventsListPublicUrl(): string {
+  return `${getPublicAppBase().replace(/\/$/, "")}/events`;
 }

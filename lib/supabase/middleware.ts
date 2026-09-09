@@ -29,12 +29,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   const isEventPage = path === "/event" || path.startsWith("/event/");
+  const isEventsListPage = path === "/events" || path.startsWith("/events/");
   const isLibraryPage = path === "/library" || path.startsWith("/library/");
   const isLibraryApi = path.startsWith("/api/library");
   const isAuthPage = path === "/login" || path === "/signup";
   const isCronRoute = path.startsWith("/api/cron");
   const isPublicPage =
     isEventPage ||
+    isEventsListPage ||
     isLibraryPage ||
     isLibraryApi ||
     path.startsWith("/verify/") ||
@@ -42,7 +44,14 @@ export async function updateSession(request: NextRequest) {
     path.includes(".");
 
   if (!url || !key || url.includes("YOUR_PROJECT")) {
-    if (!isAuthPage && path !== "/" && !isEventPage && !isLibraryPage && !isPublicPage) {
+    if (
+      !isAuthPage &&
+      path !== "/" &&
+      !isEventPage &&
+      !isEventsListPage &&
+      !isLibraryPage &&
+      !isPublicPage
+    ) {
       return redirectTo(request, "/login");
     }
     return NextResponse.next({ request });
@@ -155,7 +164,7 @@ export async function updateSession(request: NextRequest) {
     if (hasSessionCookie && !isAuthPage) {
       return NextResponse.next({ request });
     }
-    if (!isAuthPage && path !== "/" && !isEventPage) {
+    if (!isAuthPage && path !== "/" && !isEventPage && !isEventsListPage) {
       return redirectTo(request, "/login");
     }
     return NextResponse.next({ request });

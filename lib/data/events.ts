@@ -181,7 +181,7 @@ export async function getPublicEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, slug, title, date, venue, description, status, category, region, time_start, time_end, is_recurring, end_date, required_skills, criteria",
+      "id, slug, title, date, venue, description, status, category, region, time_start, time_end, is_recurring, end_date, cancelled_dates, required_skills, criteria",
     )
     .eq("status", "active")
     .order("date", { ascending: true });
@@ -194,6 +194,7 @@ export async function getPublicEvents(): Promise<Event[]> {
   return (data ?? []).map((e) => ({
     ...e,
     required_skills: e.required_skills ?? [],
+    cancelled_dates: e.cancelled_dates ?? [],
   })) as Event[];
 }
 

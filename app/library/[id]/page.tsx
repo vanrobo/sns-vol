@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getPublicationById } from "@/lib/data/publications";
 import PdfReader from "@/components/library/PdfReader";
@@ -12,14 +12,14 @@ export default async function LibraryReaderPage({ params }: Props) {
   if (!publication) notFound();
 
   return (
-    <div className="h-[100dvh] flex flex-col w-full max-w-md mx-auto landscape:max-w-none landscape:mx-0 bg-[var(--surface-muted)] overflow-hidden">
-      <div className="shrink-0 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)] px-3 py-2">
+    <div className="h-[100dvh] flex flex-col w-full max-w-md mx-auto landscape:max-w-none landscape:mx-0 bg-[var(--surface-muted)] overflow-hidden group/reader">
+      <div className="shrink-0 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)] px-3 py-2 library-reader-chrome">
         <Link
           href="/library"
           className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--brand)] py-2"
         >
           <ArrowLeft size={16} />
-          Back to library
+          Library
         </Link>
       </div>
       <div className="flex-1 min-h-0">

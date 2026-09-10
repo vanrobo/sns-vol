@@ -10,6 +10,8 @@ import {
   Loader2,
   BookOpen,
   ExternalLink,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -27,26 +29,28 @@ type Layout = {
   pageWidth: number;
 };
 
-function measureLayout(width: number, height: number): Layout {
+function measureLayout(width: number, height: number, fullscreen: boolean): Layout {
   const landscape = width > height;
   const spread = landscape && width >= 520;
-  const gutter = spread ? 12 : 16;
+  const gutter = spread ? 8 : fullscreen ? 8 : 16;
 
   const pageWidth = spread
     ? Math.floor((width - gutter) / 2)
-    : Math.min(Math.floor(width - gutter), 520);
+    : Math.min(Math.floor(width - gutter), fullscreen ? Math.floor(width - gutter) : 520);
 
   return { spread, pageWidth: Math.max(pageWidth, 160) };
 }
 
 export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<Layout>({ spread: false, pageWidth: 300 });
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [scale, setScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const fileUrl = useMemo(
     () => `/api/library/pdf/${publicationId}`,
@@ -59,7 +63,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
 
     const update = () => {
       const rect = el.getBoundingClientRect();
-      setLayout(measureLayout(rect.width, rect.height));
+      setLayout(measureLayout(rect.width, rect.height, fullscreen));
     };
 
     update();
@@ -73,7 +77,7 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
       window.removeEventListener("orientationchange", update);
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [fullscreen]);
 
   useEffect(() => {
     setLoading(true);
@@ -81,6 +85,20 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
     setNumPages(0);
     setPage(1);
   }, [publicationId]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [fullscreen]);
 
   const onLoadSuccess = useCallback(({ numPages: total }: { numPages: number }) => {
     setNumPages(total);
@@ -128,46 +146,76 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
 
   const pageLabel = rightPage ? `${page}–${rightPage}` : String(page);
 
+  const chrome = !fullscreen;
+
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[var(--surface-muted)]">
-      <div className="shrink-0 px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3">
-        <div className="min-w-0 flex items-center gap-2">
-          <BookOpen size={18} className="text-[var(--brand)] shrink-0" />
-          <div className="min-w-0">
-            <p className="font-bold text-sm truncate">{title}</p>
-            <p className="text-[10px] text-[var(--text-muted)]">
-              {spread ? "Landscape · 2-page spread" : "Portrait · single page"}
-            </p>
+    <div
+      ref={rootRef}
+      className={`flex min-h-0 flex-col bg-[var(--surface-muted)] ${
+        fullscreen
+          ? "fixed inset-0 z-[10000] h-[100dvh] w-screen max-w-none"
+          : "h-full"
+      }`}
+    >
+      {chrome && (
+        <div className="shrink-0 px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3">
+          <div className="min-w-0 flex items-center gap-2">
+            <BookOpen size={18} className="text-[var(--brand)] shrink-0" />
+            <div className="min-w-0">
+              <p className="font-bold text-sm truncate">{title}</p>
+              <p className="text-[10px] text-[var(--text-muted)]">
+                {spread ? "Landscape · 2-page spread" : "Portrait · single page"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={zoomOut}
+              disabled={!!error}
+              className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
+              aria-label="Zoom out"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <span className="text-[11px] font-bold w-10 text-center">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={zoomIn}
+              disabled={!!error}
+              className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
+              aria-label="Zoom in"
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setFullscreen(true)}
+              disabled={!!error}
+              className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
+              aria-label="Full screen"
+              title="Full screen"
+            >
+              <Maximize2 size={16} />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={zoomOut}
-            disabled={!!error}
-            className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
-            aria-label="Zoom out"
-          >
-            <ZoomOut size={16} />
-          </button>
-          <span className="text-[11px] font-bold w-10 text-center">
-            {Math.round(scale * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={zoomIn}
-            disabled={!!error}
-            className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
-            aria-label="Zoom in"
-          >
-            <ZoomIn size={16} />
-          </button>
-        </div>
-      </div>
+      )}
 
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 overflow-auto flex justify-center items-start p-3 sm:p-4"
+        className={`flex-1 min-h-0 overflow-auto flex justify-center ${
+          fullscreen ? "items-center p-1 bg-black" : "items-start p-3 sm:p-4"
+        }`}
+        onClick={(e) => {
+          if (!fullscreen || error) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          if (x < rect.width * 0.35) prev();
+          else if (x > rect.width * 0.65) next();
+        }}
       >
         {error ? (
           <div className="flex flex-col items-center justify-center text-center px-4 py-8 gap-3 m-auto">
@@ -196,9 +244,9 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
               onLoadSuccess={onLoadSuccess}
               onLoadError={onLoadError}
               loading=""
-              className={`bg-white shadow-xl rounded-lg overflow-hidden ${
-                spread ? "inline-flex flex-row gap-1.5 shrink-0" : ""
-              }`}
+              className={`bg-white shadow-xl overflow-hidden ${
+                fullscreen ? "rounded-none" : "rounded-lg"
+              } ${spread ? "inline-flex flex-row gap-1 shrink-0" : ""}`}
             >
               <Page
                 pageNumber={page}
@@ -223,29 +271,45 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
         )}
       </div>
 
-      <div className="shrink-0 mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <button
-          type="button"
-          onClick={prev}
-          disabled={page <= 1 || !!error}
-          className="flex items-center gap-1 px-3 py-2 rounded-xl border border-[var(--border)] font-bold text-sm disabled:opacity-40"
-        >
-          <ChevronLeft size={16} />
-          Prev
-        </button>
-        <p className="text-xs font-bold text-[var(--text-muted)] text-center">
-          Page {pageLabel} of {numPages || "—"}
-        </p>
-        <button
-          type="button"
-          onClick={next}
-          disabled={page >= numPages || !!error}
-          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--brand)] text-white font-bold text-sm disabled:opacity-40"
-        >
-          Next
-          <ChevronRight size={16} />
-        </button>
-      </div>
+      {chrome ? (
+        <div className="shrink-0 mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={prev}
+            disabled={page <= 1 || !!error}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl border border-[var(--border)] font-bold text-sm disabled:opacity-40"
+          >
+            <ChevronLeft size={16} />
+            Prev
+          </button>
+          <p className="text-xs font-bold text-[var(--text-muted)] text-center">
+            Page {pageLabel} of {numPages || "—"}
+          </p>
+          <button
+            type="button"
+            onClick={next}
+            disabled={page >= numPages || !!error}
+            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--brand)] text-white font-bold text-sm disabled:opacity-40"
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      ) : (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+          <p className="text-[11px] font-bold text-white/90 bg-black/50 px-2 py-1 rounded-lg">
+            {pageLabel}/{numPages || "—"}
+          </p>
+          <button
+            type="button"
+            onClick={() => setFullscreen(false)}
+            className="p-2 rounded-lg bg-black/60 text-white border border-white/20"
+            aria-label="Exit full screen"
+          >
+            <Minimize2 size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

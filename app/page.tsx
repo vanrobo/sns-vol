@@ -52,6 +52,7 @@ import { groupEventsByLocation } from "@/lib/events/locations";
 import { getMyRole, getVolunteerStats } from "@/lib/data/profiles";
 import { getMyAwards } from "@/lib/data/awards";
 import { getEventPublicUrl } from "@/lib/events/share";
+import { getEventCardColor } from "@/lib/events/card-colors";
 import { APP_NAME } from "@/lib/brand";
 import { readHomeCache, writeHomeCache } from "@/lib/home-cache";
 import { readProfileCache } from "@/lib/profile-cache";
@@ -425,18 +426,7 @@ export default function VolunteeringDashboard() {
     }
   };
 
-  const getCardColor = (category?: string) => {
-    switch (category?.toLowerCase()) {
-      case "stem":
-        return "bg-blue-50/50 dark:bg-blue-950/10 border-blue-200 dark:border-blue-900";
-      case "education":
-        return "bg-purple-50/50 dark:bg-purple-950/10 border-purple-200 dark:border-purple-900";
-      case "environment":
-        return "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900";
-      default:
-        return "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200 dark:border-amber-900";
-    }
-  };
+  const getCardColor = (category?: string) => getEventCardColor(category);
 
   const shareEvent = async (event: Event) => {
     const url = getEventPublicUrl(event.slug);

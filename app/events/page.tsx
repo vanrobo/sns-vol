@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getPublicEvents } from "@/lib/data/events";
 import { getMyRole } from "@/lib/data/profiles";
-import { APP_NAME } from "@/lib/brand";
-import PublicEventsBoard from "@/components/events/PublicEventsBoard";
+import { APP_NAME, APP_NAME_ACCENT, DONATE_URL } from "@/lib/brand";
+import PublicEventsClient from "@/components/events/PublicEventsClient";
 
 export const metadata = {
   title: `Events · ${APP_NAME}`,
@@ -25,59 +25,53 @@ export default async function PublicEventsPage() {
     /* public visitors may have no session */
   }
 
+  const appHref =
+    session?.role === "admin"
+      ? "/admin"
+      : session?.role === "organiser"
+        ? "/organiser"
+        : session
+          ? "/"
+          : "/login";
+
   return (
     <div className="max-w-md mx-auto min-h-screen bg-[var(--surface-muted)] tracking-tight">
-      <header className="sticky top-0 z-50 px-5 py-4 bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-[var(--border)]">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-[var(--brand)]">{APP_NAME}</p>
-            <h1 className="text-xl font-black tracking-tight mt-0.5">Events</h1>
-            <p className="text-xs text-[var(--text-muted)] mt-1">
-              {session
-                ? `Signed in as ${session.name}`
-                : "Public list — no login needed"}
-            </p>
-          </div>
-          {session ? (
-            <Link
-              href={session.role === "admin" ? "/admin" : "/"}
-              className="shrink-0 text-xs font-bold text-[var(--brand)] pt-1"
-            >
-              Open app
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="shrink-0 text-xs font-bold text-[var(--brand)] pt-1"
-            >
-              Log in
-            </Link>
-          )}
+      <header className="sticky top-0 z-50 px-5 py-4 flex justify-between items-center bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-[var(--border)]">
+        <div className="min-w-0">
+          <h1 className="text-lg font-black tracking-tight text-[var(--text)]">
+            SNS <span className="text-[var(--brand)]">{APP_NAME_ACCENT}</span>
+          </h1>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+            {session ? `Hi, ${session.name.split(" ")[0]}` : "Public events"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <a
+            href={DONATE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-bold text-[var(--brand)] px-2 py-1.5 rounded-lg border border-[var(--brand)]/20 hidden sm:inline"
+          >
+            Donate
+          </a>
+          <Link
+            href={appHref}
+            className="text-xs font-bold text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] px-3 py-2 rounded-lg"
+          >
+            {session ? "Open app" : "Log in"}
+          </Link>
         </div>
       </header>
 
-      <main className="p-5 space-y-6 pb-12">
-        <PublicEventsBoard events={events} />
-
-        {!session && (
-          <div className="pt-2 space-y-3 border-t border-[var(--border)]">
-            <p className="text-sm text-[var(--text-muted)] leading-relaxed text-center">
-              Want awards, attendance, and your I-Card? Use the full app.
-            </p>
-            <Link
-              href="/signup"
-              className="block w-full text-center bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3.5 rounded-xl shadow-lg"
-            >
-              Sign up to volunteer
-            </Link>
-            <Link
-              href="/login"
-              className="block w-full text-center bg-[var(--surface)] border border-[var(--border)] font-bold py-3.5 rounded-xl text-sm"
-            >
-              Already have an account? Log in
-            </Link>
-          </div>
-        )}
+      <main className="p-5 space-y-6 pb-28">
+        <PublicEventsClient
+          events={events}
+          session={
+            session
+              ? { name: session.name, role: session.role }
+              : null
+          }
+        />
       </main>
     </div>
   );

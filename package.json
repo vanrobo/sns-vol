@@ -23,6 +23,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hot-toast": "^2.6.0",
+    "react-pageflip": "^2.0.3",
     "react-pdf": "^10.5.0"
   },
   "devDependencies": {

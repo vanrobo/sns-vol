@@ -9,12 +9,13 @@ import {
   useState,
 } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { pdfjs } from "react-pdf";
 import {
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  BookOpen,
   ExternalLink,
   Maximize2,
   Minimize2,
@@ -55,110 +56,171 @@ const FlipPage = forwardRef<
   );
 });
 
+function fitPageSize(
+  containerW: number,
+  containerH: number,
+  aspect: number,
+  spread: boolean,
+) {
+  const pad = 8;
+  const availW = Math.max(120, containerW - pad);
+  const availH = Math.max(160, containerH - pad);
+
+  // aspect = pageHeight / pageWidth
+  let pageW: number;
+  if (spread) {
+    // two pages side by side
+    pageW = Math.min(availW / 2, availH / aspect);
+  } else {
+    pageW = Math.min(availW, availH / aspect);
+  }
+  pageW = Math.floor(Math.max(140, pageW));
+  const pageH = Math.floor(pageW * aspect);
+  return { pageW, pageH };
+}
+
 async function renderPdfPages(
   url: string,
-  targetWidth: number,
+  displayWidth: number,
   onProgress?: (done: number, total: number) => void,
-): Promise<{ images: string[]; pageWidth: number; pageHeight: number }> {
+): Promise<{
+  images: string[];
+  pageWidth: number;
+  pageHeight: number;
+  aspect: number;
+}> {
   const pdf = await pdfjs.getDocument({ url }).promise;
   const total = pdf.numPages;
   const images: string[] = [];
-  let pageWidth = targetWidth;
-  let pageHeight = Math.round(targetWidth * 1.414);
+
+  const first = await pdf.getPage(1);
+  const base0 = first.getViewport({ scale: 1 });
+  const aspect = base0.height / base0.width;
+
+  // Render a bit sharper than display size for crisp text
+  const renderWidth = Math.min(1200, Math.floor(displayWidth * 1.5));
+
+  let pageWidth = displayWidth;
+  let pageHeight = Math.round(displayWidth * aspect);
 
   for (let i = 1; i <= total; i++) {
     const page = await pdf.getPage(i);
     const base = page.getViewport({ scale: 1 });
-    const scale = targetWidth / base.width;
+    const scale = renderWidth / base.width;
     const viewport = page.getViewport({ scale });
-    pageWidth = Math.floor(viewport.width);
-    pageHeight = Math.floor(viewport.height);
 
     const canvas = document.createElement("canvas");
-    canvas.width = pageWidth;
-    canvas.height = pageHeight;
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas unavailable");
 
     await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-    images.push(canvas.toDataURL("image/jpeg", 0.88));
+    images.push(canvas.toDataURL("image/jpeg", 0.9));
     onProgress?.(i, total);
   }
 
-  return { images, pageWidth, pageHeight };
+  pageWidth = displayWidth;
+  pageHeight = Math.floor(displayWidth * aspect);
+
+  return { images, pageWidth, pageHeight, aspect };
 }
 
 export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<FlipApi | null>(null);
   const [images, setImages] = useState<string[]>([]);
-  const [pageSize, setPageSize] = useState({ width: 320, height: 452 });
+  const [pageSize, setPageSize] = useState({ width: 280, height: 396 });
+  const [aspect, setAspect] = useState(1.414);
   const [pageIndex, setPageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
-  const [fullscreen, setFullscreen] = useState(false);
+  const [immersive, setImmersive] = useState(true);
   const [bookKey, setBookKey] = useState(0);
+  const [spread, setSpread] = useState(false);
 
   const fileUrl = useMemo(
     () => `/api/library/pdf/${publicationId}`,
     [publicationId],
   );
 
-  const measureTargetWidth = useCallback((fullscreenMode: boolean) => {
-    const el = containerRef.current;
-    if (!el) return fullscreenMode ? 420 : 320;
-    const rect = el.getBoundingClientRect();
-    const landscape = rect.width > rect.height;
-    if (landscape) {
-      return Math.max(180, Math.floor((rect.width - 24) / 2));
-    }
-    return Math.max(200, Math.floor(rect.width - (fullscreenMode ? 8 : 24)));
-  }, []);
-
-  const loadBook = useCallback(
-    async (fullscreenMode: boolean) => {
-      setLoading(true);
-      setError(null);
-      setImages([]);
-      setPageIndex(0);
-      setProgress({ done: 0, total: 0 });
-      try {
-        const targetWidth = measureTargetWidth(fullscreenMode);
-        const result = await renderPdfPages(fileUrl, targetWidth, (done, total) =>
-          setProgress({ done, total }),
-        );
-        setImages(result.images);
-        setPageSize({ width: result.pageWidth, height: result.pageHeight });
-        setBookKey((k) => k + 1);
-      } catch {
-        setError("Could not load this PDF. Check the link or try again later.");
-      } finally {
-        setLoading(false);
-      }
+  const remeasureDisplay = useCallback(
+    (pageAspect: number) => {
+      const el = containerRef.current;
+      if (!el) return { width: 280, height: 396, spread: false };
+      const rect = el.getBoundingClientRect();
+      const isSpread = rect.width > rect.height && rect.width >= 560;
+      const { pageW, pageH } = fitPageSize(
+        rect.width,
+        rect.height,
+        pageAspect,
+        isSpread,
+      );
+      return { width: pageW, height: pageH, spread: isSpread };
     },
-    [fileUrl, measureTargetWidth],
+    [],
   );
 
-  useEffect(() => {
-    void loadBook(fullscreen);
-  }, [loadBook, fullscreen, publicationId]);
+  const loadBook = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setImages([]);
+    setPageIndex(0);
+    setProgress({ done: 0, total: 0 });
+
+    // Wait a frame so container has real size (especially immersive)
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+
+    try {
+      const probe = remeasureDisplay(1.414);
+      const result = await renderPdfPages(fileUrl, probe.width, (done, total) =>
+        setProgress({ done, total }),
+      );
+      setAspect(result.aspect);
+      const fitted = remeasureDisplay(result.aspect);
+      setPageSize({ width: fitted.width, height: fitted.height });
+      setSpread(fitted.spread);
+      setImages(result.images);
+      setBookKey((k) => k + 1);
+    } catch {
+      setError("Could not load this PDF. Check the link or try again later.");
+    } finally {
+      setLoading(false);
+    }
+  }, [fileUrl, remeasureDisplay]);
 
   useEffect(() => {
-    if (!fullscreen) return;
+    void loadBook();
+  }, [loadBook, publicationId]);
+
+  // Refit when rotating / resizing without full re-render of images
+  useEffect(() => {
+    if (!images.length) return;
+    const onResize = () => {
+      const fitted = remeasureDisplay(aspect);
+      setPageSize({ width: fitted.width, height: fitted.height });
+      setSpread(fitted.spread);
+      setBookKey((k) => k + 1);
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+  }, [images.length, aspect, remeasureDisplay]);
+
+  useEffect(() => {
+    if (!immersive) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFullscreen(false);
+      if (e.key === "Escape") setImmersive(false);
       if (e.key === "ArrowRight") bookRef.current?.pageFlip().flipNext();
       if (e.key === "ArrowLeft") bookRef.current?.pageFlip().flipPrev();
     };
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [fullscreen]);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [immersive]);
 
   const onFlip = useCallback((e: { data: number }) => {
     setPageIndex(e.data);
@@ -167,54 +229,74 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
   const flipPrev = () => bookRef.current?.pageFlip().flipPrev();
   const flipNext = () => bookRef.current?.pageFlip().flipNext();
 
-  const pageLabel = `${pageIndex + 1}`;
-  const chrome = !fullscreen;
-  const usePortrait =
-    typeof window === "undefined"
-      ? true
-      : window.innerWidth < window.innerHeight || window.innerWidth < 700;
-
   return (
     <div
-      className={`flex min-h-0 flex-col bg-[var(--surface-muted)] ${
-        fullscreen
-          ? "fixed inset-0 z-[10000] h-[100dvh] w-screen max-w-none"
-          : "h-full"
+      className={`flex min-h-0 flex-col ${
+        immersive
+          ? "fixed inset-0 z-[10000] h-[100dvh] w-screen max-w-none bg-neutral-950"
+          : "h-full bg-[var(--surface-muted)]"
       }`}
     >
-      {chrome && (
-        <div className="shrink-0 px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3">
-          <div className="min-w-0 flex items-center gap-2">
-            <BookOpen size={18} className="text-[var(--brand)] shrink-0" />
-            <div className="min-w-0">
-              <p className="font-bold text-sm truncate">{title}</p>
-              <p className="text-[10px] text-[var(--text-muted)]">
-                Flipbook · drag or tap page corners
-              </p>
-            </div>
-          </div>
+      {/* Floating chrome — does not steal layout height from the book */}
+      <div className="absolute top-0 inset-x-0 z-20 flex items-start justify-between gap-2 p-2 pointer-events-none">
+        <div className="flex items-center gap-1.5 pointer-events-auto">
+          <Link
+            href="/library"
+            className="inline-flex items-center gap-1 rounded-lg bg-black/55 text-white text-xs font-bold px-2.5 py-2 border border-white/15 backdrop-blur-sm"
+          >
+            <ArrowLeft size={14} />
+            Library
+          </Link>
+          {!immersive && (
+            <span className="hidden sm:inline max-w-[40vw] truncate rounded-lg bg-black/45 text-white text-[11px] font-semibold px-2 py-2 border border-white/10">
+              {title}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 pointer-events-auto">
+          <span className="rounded-lg bg-black/55 text-white text-[11px] font-bold px-2 py-2 border border-white/15 tabular-nums">
+            {images.length
+              ? `${pageIndex + 1}/${images.length}`
+              : "—"}
+          </span>
           <button
             type="button"
-            onClick={() => setFullscreen(true)}
-            disabled={!!error || loading}
-            className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-40"
-            aria-label="Full screen"
-            title="Full screen"
+            onClick={flipPrev}
+            disabled={loading || pageIndex <= 0 || !!error}
+            className="p-2 rounded-lg bg-black/55 text-white border border-white/15 disabled:opacity-35"
+            aria-label="Previous page"
           >
-            <Maximize2 size={16} />
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={flipNext}
+            disabled={loading || pageIndex >= images.length - 1 || !!error}
+            className="p-2 rounded-lg bg-black/55 text-white border border-white/15 disabled:opacity-35"
+            aria-label="Next page"
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setImmersive((v) => !v)}
+            disabled={!!error || loading}
+            className="p-2 rounded-lg bg-black/55 text-white border border-white/15 disabled:opacity-35"
+            aria-label={immersive ? "Exit full screen" : "Full screen"}
+            title={immersive ? "Exit full screen" : "Full screen"}
+          >
+            {immersive ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
         </div>
-      )}
+      </div>
 
       <div
         ref={containerRef}
-        className={`flex-1 min-h-0 overflow-hidden flex justify-center items-center ${
-          fullscreen ? "p-1 bg-neutral-950" : "p-3 sm:p-4 bg-slate-200/60 dark:bg-[#0c0c0c]"
-        }`}
+        className="flex-1 min-h-0 w-full overflow-hidden flex justify-center items-center"
       >
         {error ? (
           <div className="flex flex-col items-center justify-center text-center px-4 py-8 gap-3">
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-red-500">{error}</p>
             {sourceUrl && (
               <a
                 href={sourceUrl}
@@ -230,44 +312,47 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
         ) : loading || images.length === 0 ? (
           <div className="flex flex-col items-center gap-3 text-center px-4">
             <Loader2 className="animate-spin text-[var(--brand)]" size={28} />
-            <p className="text-sm font-medium text-[var(--text-muted)]">
+            <p className="text-sm font-medium text-white/80">
               Preparing flipbook…
               {progress.total > 0
-                ? ` ${progress.done}/${progress.total} pages`
+                ? ` ${progress.done}/${progress.total}`
                 : ""}
             </p>
           </div>
         ) : (
-          // @ts-expect-error react-pageflip props are loosely typed for dynamic import
+          // @ts-expect-error react-pageflip dynamic import typing
           <HTMLFlipBook
             key={bookKey}
             ref={bookRef}
             width={pageSize.width}
             height={pageSize.height}
             size="fixed"
-            minWidth={180}
+            minWidth={120}
             maxWidth={pageSize.width}
-            minHeight={240}
+            minHeight={160}
             maxHeight={pageSize.height}
             drawShadow
-            flippingTime={900}
-            usePortrait={usePortrait}
+            flippingTime={850}
+            usePortrait={!spread}
             startZIndex={0}
-            autoSize
-            maxShadowOpacity={0.55}
+            autoSize={false}
+            maxShadowOpacity={0.5}
             showCover
             mobileScrollSupport
             clickEventForward={false}
             useMouseEvents
-            swipeDistance={25}
+            swipeDistance={22}
             showPageCorners
             disableFlipByClick={false}
-            className="sns-flipbook shadow-2xl"
+            className="sns-flipbook"
             style={{ margin: "0 auto" }}
             onFlip={onFlip}
           >
             {images.map((src, i) => (
-              <FlipPage key={`${bookKey}-${i}`} hard={i === 0 || i === images.length - 1}>
+              <FlipPage
+                key={`${bookKey}-${i}`}
+                hard={i === 0 || i === images.length - 1}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={src}
@@ -280,64 +365,6 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
           </HTMLFlipBook>
         )}
       </div>
-
-      {chrome ? (
-        <div className="shrink-0 mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <button
-            type="button"
-            onClick={flipPrev}
-            disabled={loading || pageIndex <= 0 || !!error}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl border border-[var(--border)] font-bold text-sm disabled:opacity-40"
-          >
-            <ChevronLeft size={16} />
-            Prev
-          </button>
-          <p className="text-xs font-bold text-[var(--text-muted)] text-center">
-            Page {pageLabel} of {images.length || "—"}
-          </p>
-          <button
-            type="button"
-            onClick={flipNext}
-            disabled={loading || pageIndex >= images.length - 1 || !!error}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--brand)] text-white font-bold text-sm disabled:opacity-40"
-          >
-            Next
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      ) : (
-        <div className="absolute top-3 inset-x-3 z-10 flex items-center justify-between gap-2 pointer-events-none">
-          <p className="text-[11px] font-bold text-white/90 bg-black/50 px-2 py-1 rounded-lg">
-            {pageLabel}/{images.length || "—"}
-          </p>
-          <div className="flex items-center gap-2 pointer-events-auto">
-            <button
-              type="button"
-              onClick={flipPrev}
-              className="p-2 rounded-lg bg-black/60 text-white border border-white/20"
-              aria-label="Previous page"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={flipNext}
-              className="p-2 rounded-lg bg-black/60 text-white border border-white/20"
-              aria-label="Next page"
-            >
-              <ChevronRight size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setFullscreen(false)}
-              className="p-2 rounded-lg bg-black/60 text-white border border-white/20"
-              aria-label="Exit full screen"
-            >
-              <Minimize2 size={16} />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

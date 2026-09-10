@@ -10,7 +10,7 @@ export default async function LibraryReaderPage({ params }: Props) {
   if (!publication) notFound();
 
   return (
-    <div className="h-[100dvh] w-full bg-slate-100 overflow-hidden">
+    <div className="h-[100dvh] w-full bg-slate-200 overflow-hidden">
       <PdfReader
         publicationId={publication.id}
         title={publication.title}

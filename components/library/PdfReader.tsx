@@ -235,38 +235,38 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
   const flipNext = () => bookRef.current?.pageFlip().flipNext();
 
   return (
-    <div className="fixed inset-0 z-[10000] flex flex-col h-[100dvh] w-screen max-w-none bg-slate-100 dark:bg-[#121212]">
-      {/* Tap empty area to briefly show controls — hidden by default on mobile */}
+    <div className="fixed inset-0 z-[10000] flex flex-col h-[100dvh] w-screen max-w-none bg-slate-200">
+      {/* Compact control strip — high contrast, no washed-out icons */}
       {showChrome && (
-        <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between gap-2 p-2 bg-gradient-to-b from-black/35 to-transparent">
+        <div className="absolute top-2 inset-x-2 z-30 flex items-center gap-2">
           <Link
             href="/library"
-            className="inline-flex items-center gap-1 rounded-full bg-white/95 text-[var(--text)] text-xs font-bold px-3 py-2 shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold px-3 py-2.5 shadow-md"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={15} strokeWidth={2.5} className="text-white" />
             Library
           </Link>
-          <div className="flex items-center gap-1">
-            <span className="rounded-full bg-white/95 text-[var(--text)] text-[11px] font-bold px-2.5 py-2 shadow-sm tabular-nums">
+          <div className="ml-auto flex items-center gap-1 rounded-xl bg-slate-900 text-white p-1 shadow-md">
+            <span className="px-2 text-[11px] font-bold tabular-nums text-white">
               {images.length ? `${pageIndex + 1}/${images.length}` : "—"}
             </span>
             <button
               type="button"
               onClick={flipPrev}
               disabled={loading || pageIndex <= 0 || !!error}
-              className="p-2 rounded-full bg-white/95 shadow-sm disabled:opacity-35"
+              className="p-2 rounded-lg text-white disabled:opacity-35 active:bg-white/15"
               aria-label="Previous page"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} strokeWidth={2.5} className="text-white" />
             </button>
             <button
               type="button"
               onClick={flipNext}
               disabled={loading || pageIndex >= images.length - 1 || !!error}
-              className="p-2 rounded-full bg-white/95 shadow-sm disabled:opacity-35"
+              className="p-2 rounded-lg text-white disabled:opacity-35 active:bg-white/15"
               aria-label="Next page"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} strokeWidth={2.5} className="text-white" />
             </button>
           </div>
         </div>
@@ -276,7 +276,6 @@ export default function PdfReader({ publicationId, title, sourceUrl }: Props) {
         ref={containerRef}
         className="flex-1 min-h-0 w-full overflow-hidden flex justify-center items-center"
         onClick={(e) => {
-          // Don't steal flips from the book — only empty margins toggle chrome
           if (e.target === e.currentTarget) bumpChrome();
         }}
       >

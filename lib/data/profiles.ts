@@ -68,7 +68,50 @@ export async function getProfile(userId?: string): Promise<Profile | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data as Profile | null;
+  if (data) {
+    const profile = data as Profile;
+    // Centre-synced accounts store assignment in `centre`; surface it as college for UI.
+    if (!profile.college?.trim() && profile.centre?.trim()) {
+      return { ...profile, college: profile.centre };
+    }
+    return profile;
+  }
+
+  const { data: mentor } = await supabase
+    .from("mentor_user_profiles")
+    .select("auth_user_id, app_role, display_name, center, email")
+    .eq("auth_user_id", id)
+    .maybeSingle();
+
+  if (!mentor?.auth_user_id) return null;
+
+  const role = String(mentor.app_role || "").toLowerCase();
+  const mappedRole =
+    role === "admin"
+      ? "admin"
+      : role === "coordinator" || role === "cordinator"
+        ? "coordinator"
+        : role === "mentor"
+          ? "mentor"
+          : "volunteer";
+
+  return {
+    id: mentor.auth_user_id,
+    name: mentor.display_name || mentor.email || "User",
+    college: mentor.center ?? "",
+    phone: "",
+    address: "",
+    skills: [],
+    role: mappedRole,
+    volunteer_id: null,
+    valid_until: null,
+    status: "active",
+    avatar_url: null,
+    email_notifs: false,
+    public_profile: false,
+    batch: null,
+    centre: mentor.center ?? null,
+  } as Profile;
 }
 
 export async function getMyRole(): Promise<{

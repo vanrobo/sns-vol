@@ -38,6 +38,8 @@ import {
   Award,
   BadgeCheck,
   CalendarDays,
+  Building2,
+  Shield,
 } from "lucide-react";
 
 import SkillPicker from "@/components/ui/SkillPicker";
@@ -412,8 +414,21 @@ function ProfilePageContent() {
           <h2 className="text-xl font-bold tracking-tight text-[var(--text)]">
             {profile.name}
           </h2>
-          <p className="text-[var(--text-muted)] text-sm font-semibold mt-1">
-            {profile.college}
+          <p className="text-[var(--text-muted)] text-sm font-semibold mt-1 capitalize">
+            {[
+              profile.role === "coordinator"
+                ? "Coordinator"
+                : profile.role === "mentor"
+                  ? "Mentor"
+                  : profile.role === "admin"
+                    ? "Admin"
+                    : profile.role === "organiser"
+                      ? "Organiser"
+                      : null,
+              profile.centre || profile.college || null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Volunteer"}
           </p>
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -458,12 +473,28 @@ function ProfilePageContent() {
             </div>
 
             <div className="flex items-center gap-4 py-1">
+              <Shield size={16} className="text-slate-400 shrink-0" />
+              <div className="flex-1 border-b border-[var(--border)] pb-2">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Role
+                </p>
+                <p className="text-[15px] font-semibold capitalize">
+                  {profile.role}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 py-1">
               <BookOpen size={16} className="text-slate-400 shrink-0" />
               <div className="flex-1 border-b border-[var(--border)] pb-2">
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Concern Center
+                  {profile.role === "coordinator" || profile.role === "mentor"
+                    ? "Centre"
+                    : "Concern Center"}
                 </p>
-                {isEditingInfo ? (
+                {isEditingInfo &&
+                profile.role !== "coordinator" &&
+                profile.role !== "mentor" ? (
                   <CenterPicker
                     variant="inline"
                     value={profile.college}
@@ -471,7 +502,7 @@ function ProfilePageContent() {
                   />
                 ) : (
                   <p className="text-[15px] font-semibold">
-                    {profile.college || "Not selected"}
+                    {profile.centre || profile.college || "Not assigned"}
                   </p>
                 )}
               </div>
@@ -571,22 +602,24 @@ function ProfilePageContent() {
         )}
 
         <div className="grid grid-cols-1 gap-2">
-          <Link
-            href="/i-card"
-            onClick={(e) => unsavedCtx?.guardNavigation(e, "/i-card")}
-            className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-xl border border-indigo-700/40 shadow-md p-4 flex items-center justify-between text-white hover:from-indigo-700 hover:to-violet-800 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <BadgeCheck size={18} />
-              <div>
-                <span className="font-semibold text-sm block">Digital I-Card</span>
-                <p className="text-[10px] text-white/80">
-                  View QR and volunteer ID
-                </p>
+          {profile.role === "volunteer" && (
+            <Link
+              href="/i-card"
+              onClick={(e) => unsavedCtx?.guardNavigation(e, "/i-card")}
+              className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-xl border border-indigo-700/40 shadow-md p-4 flex items-center justify-between text-white hover:from-indigo-700 hover:to-violet-800 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <BadgeCheck size={18} />
+                <div>
+                  <span className="font-semibold text-sm block">Digital I-Card</span>
+                  <p className="text-[10px] text-white/80">
+                    View QR and volunteer ID
+                  </p>
+                </div>
               </div>
-            </div>
-            <ChevronDown size={14} className="-rotate-90 text-white/80" />
-          </Link>
+              <ChevronDown size={14} className="-rotate-90 text-white/80" />
+            </Link>
+          )}
 
           {(profile.role === "organiser" || profile.role === "admin") && (
             <Link
@@ -615,8 +648,32 @@ function ProfilePageContent() {
               <ChevronDown size={14} className="-rotate-90 text-white/80" />
             </Link>
           )}
+
+          {(profile.role === "coordinator" || profile.role === "mentor") && (
+            <Link
+              href="/center"
+              onClick={(e) => unsavedCtx?.guardNavigation(e, "/center")}
+              className="bg-emerald-600 rounded-xl border border-emerald-700 shadow-sm p-4 flex items-center justify-between text-white hover:bg-emerald-700 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Building2 size={18} />
+                <div>
+                  <span className="font-semibold text-sm block">
+                    Centre Management
+                  </span>
+                  <p className="text-[10px] text-white/80">
+                    {profile.role === "coordinator"
+                      ? "Students, mentors, guests & documents"
+                      : "Your students, attendance, PiPo and leave"}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown size={14} className="-rotate-90 text-white/80" />
+            </Link>
+          )}
         </div>
 
+        {profile.role === "volunteer" && (
         <div
           id="awards"
           className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm p-5 space-y-3"
@@ -648,6 +705,7 @@ function ProfilePageContent() {
             </div>
           )}
         </div>
+        )}
 
         <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] shadow-sm divide-y divide-[var(--border)]">
           {profile.delete_requested_at && (

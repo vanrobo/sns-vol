@@ -74,7 +74,7 @@ async function main() {
         role,
         status: "active",
         centre: m.center || null,
-        college: "",
+        college: m.center || "",
         phone: "",
         skills: [],
       },

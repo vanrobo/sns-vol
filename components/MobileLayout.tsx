@@ -1,6 +1,6 @@
 // components/MobileLayout.tsx
 "use client";
-import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList, LayoutDashboard, Shield } from "lucide-react";
+import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList, LayoutDashboard, Shield, Building2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
@@ -81,7 +81,7 @@ export default function MobileLayout({
         if (session.role === "volunteer") {
           setVolunteerStatus(session.status);
           setStaffRole(null);
-        } else if (session.role === "admin" || session.role === "organiser") {
+        } else {
           setStaffRole(session.role);
           setVolunteerStatus(null);
         }
@@ -105,7 +105,7 @@ export default function MobileLayout({
     : staffRole === "admin"
       ? [
           { name: "Home", path: "/", icon: Home },
-          { name: "Profile", path: "/profile", icon: User },
+          { name: "Centre", path: "/center", icon: Building2 },
           { name: "Admin", path: "/admin", icon: Shield },
           { name: "Settings", path: "/settings", icon: Settings },
         ]
@@ -116,14 +116,25 @@ export default function MobileLayout({
             { name: "Organiser", path: "/organiser", icon: LayoutDashboard },
             { name: "Settings", path: "/settings", icon: Settings },
           ]
-        : [
-            { name: "Home", path: "/", icon: Home },
-            { name: "Profile", path: "/profile", icon: User },
-            { name: "Grievance", path: "/grievance", icon: AlertCircle },
-            { name: "Settings", path: "/settings", icon: Settings },
-          ];
+        : staffRole === "coordinator" || staffRole === "mentor"
+          ? [
+              { name: "Centre", path: "/center", icon: Building2 },
+              { name: "Modules", path: "/modules", icon: LayoutDashboard },
+              { name: "Profile", path: "/profile", icon: User },
+              { name: "Settings", path: "/settings", icon: Settings },
+            ]
+          : [
+              { name: "Home", path: "/", icon: Home },
+              { name: "Profile", path: "/profile", icon: User },
+              { name: "Grievance", path: "/grievance", icon: AlertCircle },
+              { name: "Settings", path: "/settings", icon: Settings },
+            ];
 
-  const brandHref = isPendingVolunteer ? "/pending" : "/";
+  const brandHref = isPendingVolunteer
+    ? "/pending"
+    : staffRole === "coordinator" || staffRole === "mentor"
+      ? "/center"
+      : "/";
 
   return (
     <div className="max-w-md mx-auto h-[100dvh] flex flex-col bg-[var(--surface-muted)] relative overflow-hidden tracking-tight selection:bg-[var(--brand)] selection:text-white transition-colors duration-200">

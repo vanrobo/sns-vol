@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, ChevronRight, Shield, Users } from "lucide-react";
+import { LayoutDashboard, ChevronRight, Shield, Users, Building2 } from "lucide-react";
 import type { UserRole } from "@/types";
 
 type StaffHomeBannerProps = {
@@ -9,14 +9,32 @@ type StaffHomeBannerProps = {
 };
 
 export default function StaffHomeBanner({ role }: StaffHomeBannerProps) {
-  if (role !== "admin" && role !== "organiser") return null;
+  if (
+    role !== "admin" &&
+    role !== "organiser" &&
+    role !== "coordinator" &&
+    role !== "mentor"
+  ) {
+    return null;
+  }
 
   const isAdmin = role === "admin";
-  const href = isAdmin ? "/admin" : "/organiser";
-  const title = isAdmin ? "Admin Portal" : "Organiser Portal";
+  const isOrganiser = role === "organiser";
+  const isCentre = role === "coordinator" || role === "mentor";
+
+  const href = isAdmin ? "/admin" : isOrganiser ? "/organiser" : "/center";
+  const title = isAdmin
+    ? "Admin Portal"
+    : isOrganiser
+      ? "Organiser Portal"
+      : "Centre Management";
   const subtitle = isAdmin
     ? "Manage events, volunteers, grievances, applications & awards"
-    : "Create and manage your events from the organiser portal";
+    : isOrganiser
+      ? "Create and manage your events from the organiser portal"
+      : role === "coordinator"
+        ? "Students, mentor attendance, guests, documents for your centre"
+        : "Your students, attendance, PiPo and leave";
 
   return (
     <Link
@@ -25,6 +43,11 @@ export default function StaffHomeBanner({ role }: StaffHomeBannerProps) {
     >
       {isAdmin ? (
         <Shield
+          className="absolute -right-3 -bottom-3 text-white/10"
+          size={80}
+        />
+      ) : isCentre ? (
+        <Building2
           className="absolute -right-3 -bottom-3 text-white/10"
           size={80}
         />
@@ -39,7 +62,7 @@ export default function StaffHomeBanner({ role }: StaffHomeBannerProps) {
           <div className="flex items-center gap-2">
             <LayoutDashboard size={18} className="text-emerald-200" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-200">
-              Staff Portal
+              {isCentre ? "Centre staff" : "Staff Portal"}
             </span>
           </div>
           <h2 className="text-lg font-black tracking-tight">{title}</h2>

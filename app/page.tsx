@@ -570,6 +570,16 @@ export default function VolunteeringDashboard() {
           </div>
         )}
 
+        {session &&
+          (session.role === "coordinator" || session.role === "mentor") && (
+          <div className="space-y-4 min-w-0 w-full overflow-hidden">
+            <h1 className="text-2xl font-black tracking-tight">
+              Hi, {session.name.split(" ")[0]}
+            </h1>
+            <StaffHomeBanner role={session.role} />
+          </div>
+        )}
+
         {session && session.role === "volunteer" && (
           <div className="space-y-4 min-w-0 w-full overflow-hidden">
             <div>

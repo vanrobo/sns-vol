@@ -84,10 +84,7 @@ export default function SignupPage() {
         router.refresh();
         return;
       }
-      toast("Account created. Sign in with your email and password.", {
-        icon: "ℹ️",
-      });
-      router.push("/login");
+      toast.error("Sign-up did not complete. Try again or contact an admin.");
     } catch {
       toast.error("Sign-up failed. Check your connection and try again.");
     } finally {

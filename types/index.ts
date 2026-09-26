@@ -1,4 +1,9 @@
-export type UserRole = "volunteer" | "organiser" | "admin";
+export type UserRole =
+  | "volunteer"
+  | "organiser"
+  | "admin"
+  | "coordinator"
+  | "mentor";
 export type ProfileStatus = "pending" | "active" | "inactive";
 export type EventStatus = "active" | "closed";
 export type ApplicationStatus = "pending" | "approved" | "declined";
@@ -20,10 +25,95 @@ export interface Profile {
   email_notifs: boolean;
   public_profile: boolean;
   batch: string | null;
+  /** Centre assignment for coordinator / mentor */
+  centre?: string | null;
   delete_requested_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
+
+/** Center Management domain types (sns-vol unified DB) */
+export type CenterStudent = {
+  id: string;
+  name: string;
+  class: string | null;
+  school: string | null;
+  center: string;
+  photo_link: string | null;
+  sex: string | null;
+  status: string;
+  guardian: string | null;
+  contact: string | null;
+  address: string | null;
+  observations: string | null;
+  created_at?: string;
+};
+
+export type CenterMentor = {
+  id: string;
+  profile_id: string | null;
+  name: string;
+  phone: string | null;
+  center: string;
+  email: string | null;
+  status: string;
+  paid: boolean;
+  notes: string | null;
+};
+
+export type CenterMentorPunch = {
+  id: string;
+  mentor_id: string;
+  on_date: string;
+  punch_in: string | null;
+  punch_out: string | null;
+  source: "coordinator" | "self";
+  approval_status: "pending" | "approved" | "rejected";
+  notes: string | null;
+};
+
+export type GuestVisit = {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  center: string;
+  guest_type: string;
+  visit_date: string;
+  visit_time: string | null;
+  comments: string | null;
+  photo_link: string | null;
+  qr_token: string | null;
+};
+
+export type CenterDocument = {
+  id: string;
+  title: string;
+  url: string;
+  center: string | null;
+  priority: string;
+  status: string;
+  archived: boolean;
+};
+
+export type CenterCourse = {
+  id: string;
+  title: string;
+  syllabus: string | null;
+  mentor_id: string | null;
+  center: string | null;
+  start_date: string | null;
+  end_date: string | null;
+};
+
+export type WordsmithEntry = {
+  id: string;
+  word: string;
+  meaning: string;
+  class_label: string | null;
+  center: string | null;
+  teach_by: string | null;
+  exam_by: string | null;
+};
 
 export interface Event {
   id: string;

@@ -1,6 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import {
+  canAccessPath,
+  getDefaultRoute,
+  normalizeRole,
+} from "@/lib/auth/access";
+import { resolveSessionFromUser } from "@/lib/auth/resolve-session";
+import type { UserRole } from "@/types";
 
 function redirectTo(request: NextRequest, pathname: string, keepSearch = false) {
   const url = request.nextUrl.clone();
@@ -17,7 +24,6 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const eventId = request.nextUrl.searchParams.get("id");
 
-  // Legacy share links: /login?id=uuid → public event page
   if (
     eventId &&
     EVENT_ID_RE.test(eventId) &&
@@ -94,33 +100,23 @@ export async function updateSession(request: NextRequest) {
 
     let profile: { role: string; status: string } | null = null;
     if (user) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("role, status")
-        .eq("id", user.id)
-        .single();
-      profile = data;
+      const session = await resolveSessionFromUser(supabase, user.id);
+      if (session) {
+        profile = { role: session.role, status: session.status };
+      }
     }
 
+    const role = normalizeRole(profile?.role) as UserRole;
+
     if (user && isAuthPage) {
-      if (profile?.role === "admin") return redirectTo(request, "/admin");
-      if (profile?.role === "organiser") return redirectTo(request, "/");
       if (profile?.role === "volunteer" && profile.status === "pending") {
         return redirectTo(request, "/pending");
       }
-      return redirectTo(request, "/");
+      return redirectTo(request, getDefaultRoute(role));
     }
 
-    if (user && path.startsWith("/admin")) {
-      if (profile?.role !== "admin") {
-        return redirectTo(request, "/");
-      }
-    }
-
-    if (user && path.startsWith("/organiser")) {
-      if (profile?.role !== "admin" && profile?.role !== "organiser") {
-        return redirectTo(request, "/");
-      }
+    if (user && profile && !canAccessPath(role, path)) {
+      return redirectTo(request, getDefaultRoute(role));
     }
 
     const pendingAllowed =
@@ -143,11 +139,7 @@ export async function updateSession(request: NextRequest) {
       return redirectTo(request, "/pending");
     }
 
-    if (
-      user &&
-      profile?.status === "active" &&
-      path === "/pending"
-    ) {
+    if (user && profile?.status === "active" && path === "/pending") {
       return redirectTo(request, "/");
     }
 

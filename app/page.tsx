@@ -1,11 +1,10 @@
 // app/page.tsx
 "use client";
 import MobileLayout from "@/components/MobileLayout";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   getEvents,
-  getUpcomingEvents,
   getCheckInStatus,
   applyToEvent,
   withdrawApplication,
@@ -49,8 +48,7 @@ import AwardsCarousel from "@/components/home/AwardsCarousel";
 import EventCalendarView from "@/components/events/EventCalendarView";
 import { expandEventDates, firstOfMonthIso } from "@/lib/events/dates";
 import { groupEventsByLocation } from "@/lib/events/locations";
-import { getMyRole, getVolunteerStats } from "@/lib/data/profiles";
-import { getMyAwards } from "@/lib/data/awards";
+import { getHomeBootstrap } from "@/lib/data/home";
 import { getEventPublicUrl } from "@/lib/events/share";
 import { getEventCardColor } from "@/lib/events/card-colors";
 import { APP_NAME } from "@/lib/brand";
@@ -63,6 +61,7 @@ import {
   readEventsCache,
   writeEventsCache,
 } from "@/lib/events-cache";
+import { writeCachedSession } from "@/lib/role-cache";
 import type { UserRole, UserAward } from "@/types";
 import { haptic } from "@/lib/haptics";
 
@@ -136,6 +135,10 @@ export default function VolunteeringDashboard() {
   const [portalReady, setPortalReady] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [activenessOpen, setActivenessOpen] = useState(false);
+  /** Skip loadEvents when bootstrap (or warm cache) already seeded the list. */
+  const skipEventsLoadAfterBootstrap = useRef(!!readHomeCache()?.userId);
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
 
   useEffect(() => {
     setPortalReady(true);
@@ -144,47 +147,77 @@ export default function VolunteeringDashboard() {
   useEffect(() => {
     let cancelled = false;
 
-    const loadUpcoming = () => {
-      setUpcomingLoading(true);
-      getUpcomingEvents()
-        .then((events) => {
-          if (!cancelled) setUpcomingEvents(events);
-        })
-        .catch(() => {
-          if (!cancelled) setUpcomingEvents([]);
-        })
-        .finally(() => {
-          if (!cancelled) setUpcomingLoading(false);
-        });
-    };
-
-    Promise.all([getMyRole(), getMyAwards(), getVolunteerStats()])
-      .then(([s, awards, st]) => {
+    getHomeBootstrap()
+      .then((boot) => {
         if (cancelled) return;
 
+        const s = boot.session;
         const nextSession = s
           ? { role: s.role, name: s.name, batch: s.batch }
           : null;
+
         if (nextSession && s) {
-          setUserId(s.id);
-          setSession(nextSession);
+          const collegeFilter = isSnsCenter(s.college ?? "")
+            ? s.college
+            : "all";
+
           setMySkills(s.skills ?? []);
-          if (isSnsCenter(s.college ?? "")) {
-            setRegionFilter(s.college);
+          if (collegeFilter !== "all") {
+            setRegionFilter(collegeFilter);
           }
-          setMyAwards(awards);
-          if (st) setStats(st);
+          setMyAwards(boot.awards);
+          if (boot.stats) setStats(boot.stats);
+          writeCachedSession(s.role, s.status);
           writeHomeCache({
             userId: s.id,
             session: nextSession,
-            awards,
-            stats: st,
+            awards: boot.awards,
+            stats: boot.stats,
           });
-          if (s.role === "volunteer") {
-            loadUpcoming();
-          } else {
-            setUpcomingLoading(false);
+
+          const active = boot.activeEvents;
+          const sortedActive = [...active].sort(
+            (a, b) =>
+              new Date(a.date).getTime() - new Date(b.date).getTime(),
+          );
+          const filteredActive =
+            collegeFilter === "all"
+              ? sortedActive
+              : sortedActive.filter((e) =>
+                  matchesCenter(e.region, collegeFilter),
+                );
+
+          writeEventsCache(
+            s.id,
+            eventsCacheKey("Active", "", "all"),
+            active,
+            active,
+          );
+          if (collegeFilter !== "all") {
+            writeEventsCache(
+              s.id,
+              eventsCacheKey("Active", "", collegeFilter),
+              filteredActive,
+              active,
+            );
           }
+
+          setAllEventsForCalendar(active);
+
+          // Don't clobber Closed/Attended if the user already switched tabs.
+          if (tabRef.current === "Active") {
+            setEvents(filteredActive);
+            setLoading(false);
+            skipEventsLoadAfterBootstrap.current = true;
+          }
+
+          setSession(nextSession);
+          setUserId(s.id);
+
+          if (s.role === "volunteer") {
+            setUpcomingEvents(boot.upcomingEvents);
+          }
+          setUpcomingLoading(false);
         } else {
           setUpcomingLoading(false);
         }
@@ -197,21 +230,6 @@ export default function VolunteeringDashboard() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (!userId) return;
-    // Warm Active-tab cache only. Prefetching Closed/Attended burned 4+ server
-    // actions on every home visit during testing.
-    const key = eventsCacheKey("Active", "", "all");
-    if (readEventsCache(userId, key)) return;
-    void getEvents("active")
-      .then((fetched) => {
-        writeEventsCache(userId, key, fetched, fetched);
-      })
-      .catch(() => {
-        /* ignore prefetch errors */
-      });
-  }, [userId]);
 
   useEffect(() => {
     if (!selectedEvent) return;
@@ -259,8 +277,18 @@ export default function VolunteeringDashboard() {
       setAllEventsForCalendar(calendarEvents);
 
       if (userId) {
-        writeEventsCache(userId, cacheKey, fetched);
-        writeEventsCache(userId, CALENDAR_CACHE_KEY, [], calendarEvents);
+        if (cacheKey === CALENDAR_CACHE_KEY) {
+          writeEventsCache(userId, cacheKey, fetched, calendarEvents);
+        } else {
+          writeEventsCache(userId, cacheKey, fetched);
+          const existingCal = readEventsCache(userId, CALENDAR_CACHE_KEY);
+          writeEventsCache(
+            userId,
+            CALENDAR_CACHE_KEY,
+            existingCal?.events ?? [],
+            calendarEvents,
+          );
+        }
       }
     } catch {
       if (!cached) toast.error("Connection failed");
@@ -272,39 +300,81 @@ export default function VolunteeringDashboard() {
 
   const refreshHome = useCallback(async () => {
     haptic("light");
-    const [s, awards, st] = await Promise.all([
-      getMyRole(),
-      getMyAwards(),
-      getVolunteerStats(),
-    ]);
-    const nextSession = s
-      ? { role: s.role, name: s.name, batch: s.batch }
-      : null;
-    if (nextSession && s) {
-      setUserId(s.id);
-      setSession(nextSession);
-      setMyAwards(awards);
-      if (st) setStats(st);
-      writeHomeCache({
-        userId: s.id,
-        session: nextSession,
-        awards,
-        stats: st,
-      });
-    }
-    await loadEvents({ silent: true });
-    if (s?.role === "volunteer") {
-      setUpcomingLoading(true);
-      getUpcomingEvents()
-        .then(setUpcomingEvents)
-        .catch(() => setUpcomingEvents([]))
-        .finally(() => setUpcomingLoading(false));
+    try {
+      const boot = await getHomeBootstrap();
+      const s = boot.session;
+      const nextSession = s
+        ? { role: s.role, name: s.name, batch: s.batch }
+        : null;
+      if (nextSession && s) {
+        setUserId(s.id);
+        setSession(nextSession);
+        setMySkills(s.skills ?? []);
+        setMyAwards(boot.awards);
+        if (boot.stats) setStats(boot.stats);
+        writeCachedSession(s.role, s.status);
+        writeHomeCache({
+          userId: s.id,
+          session: nextSession,
+          awards: boot.awards,
+          stats: boot.stats,
+        });
+
+        const active = boot.activeEvents;
+        writeEventsCache(
+          s.id,
+          eventsCacheKey("Active", "", "all"),
+          active,
+          active,
+        );
+        if (regionFilter !== "all") {
+          let list = [...active].sort(
+            (a, b) =>
+              new Date(a.date).getTime() - new Date(b.date).getTime(),
+          );
+          list = list.filter((e) => matchesCenter(e.region, regionFilter));
+          writeEventsCache(
+            s.id,
+            eventsCacheKey("Active", "", regionFilter),
+            list,
+            active,
+          );
+        }
+        setAllEventsForCalendar(active);
+
+        if (tab === "Active") {
+          let list = [...active].sort(
+            (a, b) =>
+              new Date(a.date).getTime() - new Date(b.date).getTime(),
+          );
+          if (regionFilter !== "all") {
+            list = list.filter((e) => matchesCenter(e.region, regionFilter));
+          }
+          setEvents(list);
+          setLoading(false);
+        } else {
+          await loadEvents({ silent: true });
+        }
+
+        if (s.role === "volunteer") {
+          setUpcomingEvents(boot.upcomingEvents);
+        }
+        setUpcomingLoading(false);
+      } else {
+        await loadEvents({ silent: true });
+      }
+    } catch {
+      await loadEvents({ silent: true });
     }
     haptic("success");
-  }, [loadEvents]);
+  }, [loadEvents, tab, regionFilter]);
 
   useEffect(() => {
     if (!userId) return;
+    if (skipEventsLoadAfterBootstrap.current) {
+      skipEventsLoadAfterBootstrap.current = false;
+      return;
+    }
     const cacheKey = eventsCacheKey(tab, "", regionFilter);
     const cached = readEventsCache(userId, cacheKey);
     const cachedCalendar = readEventsCache(userId, CALENDAR_CACHE_KEY);

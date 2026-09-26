@@ -1,0 +1,3 @@
+-- OBSOLETE — do not run this file.
+-- Use instead: 021_events_into_work_sns_project.sql (full fixed script).
+-- Reason: earlier attempts rolled back; profiles must be created in the same run.

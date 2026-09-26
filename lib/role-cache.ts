@@ -3,7 +3,13 @@ import type { ProfileStatus, UserRole } from "@/types";
 const ROLE_KEY = "sns-user-role-v1";
 const STATUS_KEY = "sns-user-status-v1";
 
-const VALID_ROLES = new Set<UserRole>(["volunteer", "organiser", "admin"]);
+const VALID_ROLES = new Set<UserRole>([
+  "volunteer",
+  "organiser",
+  "admin",
+  "coordinator",
+  "mentor",
+]);
 
 export function readCachedRole(): UserRole | null {
   if (typeof window === "undefined") return null;

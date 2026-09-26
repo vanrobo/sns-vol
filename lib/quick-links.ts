@@ -10,6 +10,20 @@ export type QuickLink = {
 /** Editable quick links shown below the volunteer dashboard. */
 export const QUICK_LINKS: QuickLink[] = [
   {
+    id: "modules",
+    label: "Platform modules",
+    href: "/modules",
+    description: "Center · Wordsmith · Internship",
+    external: false,
+  },
+  {
+    id: "internship-senior",
+    label: "Senior internship",
+    href: "/internship/senior",
+    description: "Rashmi wing — demo flow",
+    external: false,
+  },
+  {
     id: "magazine",
     label: "SNS Magazine",
     href: "/library",

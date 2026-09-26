@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createVerifyToken, getVerifyUrl } from "@/lib/qr/verify-token";
+import { resolveSessionFromUser } from "@/lib/auth/resolve-session";
 import type { Profile } from "@/types";
 
 export async function getCurrentUser() {
@@ -10,6 +11,43 @@ export async function getCurrentUser() {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
+}
+
+/** One round-trip for layout auth: user + role (replaces getCurrentUser then getMyRole). */
+export async function getAuthAndRole(): Promise<{
+  user: { id: string } | null;
+  session: {
+    id: string;
+    role: Profile["role"];
+    status: Profile["status"];
+    name: string;
+    batch: string | null;
+    phone: string;
+    skills: string[];
+    college: string;
+  } | null;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { user: null, session: null };
+
+  const session = await resolveSessionFromUser(supabase, user.id);
+  if (!session) return { user: { id: user.id }, session: null };
+  return {
+    user: { id: user.id },
+    session: {
+      id: session.id,
+      role: session.role,
+      status: session.status,
+      name: session.name,
+      batch: session.batch,
+      phone: session.phone,
+      skills: session.skills,
+      college: session.college,
+    },
+  };
 }
 
 export async function getProfile(userId?: string): Promise<Profile | null> {
@@ -49,22 +87,18 @@ export async function getMyRole(): Promise<{
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, role, status, name, batch, phone, skills, college")
-    .eq("id", user.id)
-    .maybeSingle();
+  const data = await resolveSessionFromUser(supabase, user.id);
 
-  if (error || !data) return null;
-  return data as {
-    id: string;
-    role: Profile["role"];
-    status: Profile["status"];
-    name: string;
-    batch: string | null;
-    phone: string;
-    skills: string[];
-    college: string;
+  if (!data) return null;
+  return {
+    id: data.id,
+    role: data.role,
+    status: data.status,
+    name: data.name,
+    batch: data.batch,
+    phone: data.phone,
+    skills: data.skills,
+    college: data.college,
   };
 }
 

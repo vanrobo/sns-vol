@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { ProfileStatus, UserRole } from "@/types";
+import { isEventsStaff, isCenterStaff } from "@/lib/auth/access";
+import { resolveSessionFromUser } from "@/lib/auth/resolve-session";
 
 export type SessionProfile = {
   id: string;
@@ -16,14 +18,13 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, role, status")
-    .eq("id", user.id)
-    .single();
-
+  const profile = await resolveSessionFromUser(supabase, user.id);
   if (!profile) return null;
-  return profile as SessionProfile;
+  return {
+    id: profile.id,
+    role: profile.role,
+    status: profile.status,
+  };
 }
 
 export async function requireAuth(): Promise<SessionProfile> {
@@ -40,8 +41,16 @@ export async function requireAdmin(): Promise<SessionProfile> {
 
 export async function requireStaff(): Promise<SessionProfile> {
   const profile = await requireAuth();
-  if (profile.role !== "admin" && profile.role !== "organiser") {
+  if (!isEventsStaff(profile.role)) {
     throw new Error("Staff access required");
+  }
+  return profile;
+}
+
+export async function requireCenterStaff(): Promise<SessionProfile> {
+  const profile = await requireAuth();
+  if (!isCenterStaff(profile.role) && profile.role !== "volunteer") {
+    throw new Error("Center access required");
   }
   return profile;
 }

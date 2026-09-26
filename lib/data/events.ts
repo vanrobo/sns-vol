@@ -4,42 +4,60 @@ import { createClient } from "@/lib/supabase/server";
 import { requireActiveVolunteer } from "@/lib/auth/guards";
 import { getCheckInStatus } from "@/lib/event-checkin";
 import { hasUpcomingOccurrence } from "@/lib/events/dates";
+import { isPastActiveEvent, todayIso } from "@/lib/events/expiry";
 import type { Event, EventStatus } from "@/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function getEvents(status: EventStatus | "attended"): Promise<Event[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+async function fetchEventsForStatus(
+  supabase: SupabaseClient,
+  dbStatus: EventStatus,
+  today: string,
+) {
+  if (dbStatus === "active") {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("status", "active")
+      .order("date", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).filter((e) => !isPastActiveEvent(e, today));
+  }
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Closed (and attended base): include past-active rows until cron persists status.
+  const [{ data: closed, error: closedError }, { data: active, error: activeError }] =
+    await Promise.all([
+      supabase
+        .from("events")
+        .select("*")
+        .eq("status", "closed")
+        .order("date", { ascending: false }),
+      supabase
+        .from("events")
+        .select("*")
+        .eq("status", "active")
+        .order("date", { ascending: false }),
+    ]);
+  if (closedError) throw closedError;
+  if (activeError) throw activeError;
 
-  await supabase
-    .from("events")
-    .update({ status: "closed" })
-    .eq("status", "active")
-    .eq("is_recurring", false)
-    .lt("date", today);
+  const byId = new Map<string, NonNullable<typeof closed>[number]>();
+  for (const e of closed ?? []) byId.set(e.id, e);
+  for (const e of active ?? []) {
+    if (isPastActiveEvent(e, today)) byId.set(e.id, e);
+  }
+  return [...byId.values()].sort((a, b) => b.date.localeCompare(a.date));
+}
 
-  await supabase
-    .from("events")
-    .update({ status: "closed" })
-    .eq("status", "active")
-    .eq("is_recurring", true)
-    .not("end_date", "is", null)
-    .lt("end_date", today);
-
-  const dbStatus = status === "attended" ? "closed" : status;
-
-  const { data: events, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("status", dbStatus)
-    .order("date", { ascending: false });
-
-  if (error) throw error;
-  if (!events?.length) return [];
+async function enrichEventsForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  events: Array<{
+    id: string;
+    required_skills?: string[] | null;
+    [key: string]: unknown;
+  }>,
+): Promise<Event[]> {
+  if (!events.length) return [];
 
   const eventIds = events.map((e) => e.id);
 
@@ -47,17 +65,17 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
     supabase
       .from("applications")
       .select("event_id, status")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .in("event_id", eventIds),
     supabase
       .from("attendance")
       .select("event_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .in("event_id", eventIds),
     supabase
       .from("feedbacks")
       .select("event_id, star_rating")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .in("event_id", eventIds),
   ]);
 
@@ -69,14 +87,29 @@ export async function getEvents(status: EventStatus | "attended"): Promise<Event
     feedbacks?.map((f) => [f.event_id, f.star_rating]) ?? [],
   );
 
-  let result: Event[] = events.map((e) => ({
+  return events.map((e) => ({
     ...e,
     required_skills: e.required_skills ?? [],
     has_applied: appStatusMap.has(e.id),
     application_status: appStatusMap.get(e.id) ?? null,
     has_attended: attended.has(e.id),
     rating: ratings.get(e.id) ?? null,
-  }));
+  })) as Event[];
+}
+
+export async function getEvents(status: EventStatus | "attended"): Promise<Event[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const today = todayIso();
+  const dbStatus = status === "attended" ? "closed" : status;
+  const events = await fetchEventsForStatus(supabase, dbStatus, today);
+  if (!events.length) return [];
+
+  let result = await enrichEventsForUser(supabase, user.id, events);
 
   if (status === "attended") {
     result = result.filter((e) => e.has_attended);

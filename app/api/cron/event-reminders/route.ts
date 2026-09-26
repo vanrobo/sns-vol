@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { closeExpiredEvents } from "@/lib/events/close-expired";
 import { createServiceClient } from "@/lib/supabase/service";
+import { todayIso } from "@/lib/events/expiry";
 
 function formatEventTime(time: string | null | undefined): string {
   if (!time) return "";
@@ -22,7 +24,14 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  const today = todayIso(now);
+
+  // Persist active → closed for past events (was previously done on every home load).
+  try {
+    await closeExpiredEvents(supabase, today);
+  } catch (err) {
+    console.error("closeExpiredEvents", err);
+  }
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().slice(0, 10);

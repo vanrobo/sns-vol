@@ -4,7 +4,7 @@ import { Home, User, AlertCircle, Bell, Heart, Settings, Clock, ClipboardList, L
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
-import { getCurrentUser, getMyRole } from "@/lib/data/profiles";
+import { getAuthAndRole } from "@/lib/data/profiles";
 import { APP_NAME_ACCENT, DONATE_URL } from "@/lib/brand";
 import type { ProfileStatus, UserRole } from "@/types";
 import { useNotificationUnread } from "@/hooks/useNotificationUnread";
@@ -67,15 +67,13 @@ export default function MobileLayout({
 
   useEffect(() => {
     const checkAuth = async () => {
-      const user = await getCurrentUser();
-      if (!user) {
-        clearCachedSession();
-        router.push("/login");
-        return;
-      }
-
       try {
-        const session = await getMyRole();
+        const { user, session } = await getAuthAndRole();
+        if (!user) {
+          clearCachedSession();
+          router.push("/login");
+          return;
+        }
         if (!session) return;
 
         writeCachedSession(session.role, session.status);
